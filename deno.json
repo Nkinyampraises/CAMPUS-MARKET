@@ -1,0 +1,13 @@
+{
+  "tasks": {
+    "start": "deno run --no-check --allow-net --allow-env --allow-read --env supabase/functions/server/index.tsx",
+    "check:server": "deno check supabase/functions/server/index.tsx"
+  },
+  "nodeModulesDir": "auto",
+  "exclude": [
+    "src/**",
+    "dist/**",
+    "vite.config.ts",
+    "postcss.config.mjs"
+  ]
+}
