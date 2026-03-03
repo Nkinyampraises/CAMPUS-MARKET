@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 
 const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:8002'}/make-server-50b25a4f`;
 
-export function Notifications() {
+export function SellerNotifications() {
   const navigate = useNavigate();
   const { currentUser, accessToken } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -99,9 +99,9 @@ export function Notifications() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Notifications</CardTitle>
+          <CardTitle>Seller Notifications</CardTitle>
           <CardDescription>
-            New message received · Seller replied · Order confirmed · Payment successful · Rental ending soon
+            New order alerts - New message alerts - Payout status updates
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -120,13 +120,9 @@ export function Notifications() {
                 >
                   <div className="flex items-center justify-between gap-2 mb-1">
                     <p className="font-semibold">{notification.title || 'Notification'}</p>
-                    <div className="flex items-center gap-2">
-                      {notification.read ? (
-                        <Badge variant="secondary">Read</Badge>
-                      ) : (
-                        <Badge>New</Badge>
-                      )}
-                    </div>
+                    <Badge variant={notification.read ? 'secondary' : 'default'}>
+                      {notification.read ? 'Read' : 'New'}
+                    </Badge>
                   </div>
                   <p className="text-sm text-muted-foreground mb-1">{notification.message}</p>
                   <p className="text-xs text-muted-foreground">
@@ -141,3 +137,4 @@ export function Notifications() {
     </div>
   );
 }
+

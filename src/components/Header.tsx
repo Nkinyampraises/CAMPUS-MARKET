@@ -4,6 +4,8 @@ import { Button } from '@/app/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/app/components/ui/avatar';
 import {
   ShoppingBag,
+  Package,
+  CreditCard,
   Plus,
   MessageSquare,
   User,
@@ -12,7 +14,16 @@ import {
   LayoutDashboard,
   Settings,
   Clock,
-  Heart
+  Heart,
+  Bell,
+  CircleHelp,
+  Eye,
+  Flag,
+  ShieldAlert,
+  Star,
+  Building2,
+  ListTree,
+  BarChart3,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -138,6 +149,82 @@ export function Header() {
                       <User className="h-4 w-4 mr-2" />
                       My Profile
                     </DropdownMenuItem>
+                    {currentUser?.role !== 'admin' && currentUser?.userType === 'buyer' && (
+                      <>
+                        <DropdownMenuItem onClick={() => navigate('/buyer/orders')}>
+                          <ShoppingBag className="h-4 w-4 mr-2" />
+                          My Orders
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate('/buyer/rentals')}>
+                          <Package className="h-4 w-4 mr-2" />
+                          My Rentals
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate('/buyer/payments')}>
+                          <CreditCard className="h-4 w-4 mr-2" />
+                          Payment History
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate('/buyer/notifications')}>
+                          <Bell className="h-4 w-4 mr-2" />
+                          Notifications
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate('/buyer/recently-viewed')}>
+                          <Eye className="h-4 w-4 mr-2" />
+                          Recently Viewed
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate('/buyer/disputes')}>
+                          <ShieldAlert className="h-4 w-4 mr-2" />
+                          Dispute Center
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate('/buyer/report')}>
+                          <Flag className="h-4 w-4 mr-2" />
+                          Report Problem
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate('/buyer/settings')}>
+                          <Settings className="h-4 w-4 mr-2" />
+                          Settings
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate('/buyer/help')}>
+                          <CircleHelp className="h-4 w-4 mr-2" />
+                          Help & Support
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                    {currentUser?.role !== 'admin' && currentUser?.userType === 'seller' && (
+                      <>
+                        <DropdownMenuItem onClick={() => navigate('/seller/manage-listings')}>
+                          <Package className="h-4 w-4 mr-2" />
+                          Manage Listings
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate('/seller/orders')}>
+                          <ShoppingBag className="h-4 w-4 mr-2" />
+                          Orders
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate('/seller/rentals')}>
+                          <Package className="h-4 w-4 mr-2" />
+                          Rentals
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate('/seller/notifications')}>
+                          <Bell className="h-4 w-4 mr-2" />
+                          Notifications
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate('/seller/settings')}>
+                          <Settings className="h-4 w-4 mr-2" />
+                          Settings
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate('/seller/help')}>
+                          <CircleHelp className="h-4 w-4 mr-2" />
+                          Help & Support
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate('/seller/reports')}>
+                          <Flag className="h-4 w-4 mr-2" />
+                          Report Problem
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate('/seller/disputes')}>
+                          <ShieldAlert className="h-4 w-4 mr-2" />
+                          Disputes
+                        </DropdownMenuItem>
+                      </>
+                    )}
                     {currentUser?.role === 'admin' && (
                       <>
                         <DropdownMenuSeparator />
@@ -148,6 +235,26 @@ export function Header() {
                         <DropdownMenuItem onClick={() => navigate('/admin')}>
                           <Settings className="h-4 w-4 mr-2" />
                           Admin Panel
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate('/admin/inbox')}>
+                          <Bell className="h-4 w-4 mr-2" />
+                          Inbox
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate('/admin/reviews')}>
+                          <Star className="h-4 w-4 mr-2" />
+                          Reviews
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate('/admin/universities')}>
+                          <Building2 className="h-4 w-4 mr-2" />
+                          Universities
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate('/admin/categories')}>
+                          <ListTree className="h-4 w-4 mr-2" />
+                          Categories
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate('/admin/analytics')}>
+                          <BarChart3 className="h-4 w-4 mr-2" />
+                          Analytics
                         </DropdownMenuItem>
                       </>
                     )}

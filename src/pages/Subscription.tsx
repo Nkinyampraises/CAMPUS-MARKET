@@ -16,7 +16,7 @@ const plans = {
     yearly: { price: 12000, name: 'Yearly' },
   },
   buyer: {
-    monthly: { price: 500, name: 'Monthly' },
+    monthly: { price: 24, name: 'Monthly' },
     yearly: { price: 6000, name: 'Yearly' },
   },
 };
@@ -38,6 +38,10 @@ export function Subscription() {
   }
 
   const planDetails = useMemo(() => userPlans[selectedPlan], [userPlans, selectedPlan]);
+  const feeOverride =
+    userType === 'buyer' && selectedPlan === 'monthly'
+      ? 1
+      : undefined;
 
   const handleContinue = () => {
     const normalizedPhone = phoneNumber.replace(/[^\d]/g, '');
@@ -54,6 +58,7 @@ export function Subscription() {
         paymentMethod,
         fromName: currentUser.name || 'User',
         fromPhone: phoneNumber,
+        feeOverride,
         payload: {
           plan: selectedPlan,
           paymentMethod,

@@ -5,7 +5,7 @@ import { Button } from '@/app/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs';
-import { DollarSign, Heart, MessageSquare, PackageCheck, ShoppingBag } from 'lucide-react';
+import { Bell, DollarSign, Flag, Heart, MessageSquare, PackageCheck, ShieldAlert, ShoppingBag } from 'lucide-react';
 import { toast } from 'sonner';
 
 const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:8002'}/make-server-50b25a4f`;
@@ -14,36 +14,89 @@ const formatMoney = (value: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value || 0);
 
 export function BuyerDashboard() {
-  const { currentUser, accessToken } = useAuth();
+  const { currentUser, accessToken, refreshAuthToken, logout } = useAuth();
   const navigate = useNavigate();
 
   const [orders, setOrders] = useState<any[]>([]);
   const [favoriteItems, setFavoriteItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchData = async () => {
-    if (!accessToken) return;
+  const getWithAuthRetry = async (endpoint: string) => {
+    if (!accessToken) {
+      return { response: null as Response | null, data: { error: 'Unauthorized' } };
+    }
+
+    const makeRequest = async (token: string) => {
+      const response = await fetch(`${API_URL}${endpoint}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json().catch(() => ({}));
+      return { response, data };
+    };
+
     try {
-      const [ordersRes, favoritesRes] = await Promise.all([
-        fetch(`${API_URL}/orders`, { headers: { Authorization: `Bearer ${accessToken}` } }),
-        fetch(`${API_URL}/favorites`, { headers: { Authorization: `Bearer ${accessToken}` } }),
+      const firstAttempt = await makeRequest(accessToken);
+      if (firstAttempt.response.status !== 401) {
+        return firstAttempt;
+      }
+
+      const refreshedToken = await refreshAuthToken();
+      if (!refreshedToken) {
+        return firstAttempt;
+      }
+
+      return makeRequest(refreshedToken);
+    } catch (error) {
+      return {
+        response: null as Response | null,
+        data: { error: error instanceof Error ? error.message : 'Unable to reach server' },
+      };
+    }
+  };
+
+  const fetchData = async () => {
+    if (!accessToken) {
+      setLoading(false);
+      return;
+    }
+    try {
+      const [ordersResult, favoritesResult] = await Promise.all([
+        getWithAuthRetry('/orders'),
+        getWithAuthRetry('/favorites'),
       ]);
 
-      if (ordersRes.ok) {
-        const data = await ordersRes.json();
+      if (ordersResult.response?.status === 401 || favoritesResult.response?.status === 401) {
+        toast.error('Session expired. Please log in again.');
+        logout();
+        navigate('/login');
+        return;
+      }
+
+      if (!ordersResult.response || !favoritesResult.response) {
+        const message =
+          ordersResult.data?.error ||
+          favoritesResult.data?.error ||
+          'Unable to reach server. Ensure API is running on http://localhost:8002';
+        toast.error(message);
+        return;
+      }
+
+      if (ordersResult.response.ok) {
+        const data = ordersResult.data;
         const myOrders = (data.orders || []).filter((order: any) => order.buyerId === currentUser?.id);
         setOrders(myOrders);
       } else {
-        const err = await ordersRes.json().catch(() => ({}));
-        toast.error(err.error || 'Failed to load orders');
+        toast.error(ordersResult.data?.error || 'Failed to load orders');
       }
 
-      if (favoritesRes.ok) {
-        const data = await favoritesRes.json();
+      if (favoritesResult.response.ok) {
+        const data = favoritesResult.data;
         setFavoriteItems(data.favorites || []);
+      } else {
+        toast.error(favoritesResult.data?.error || 'Failed to load favorites');
       }
     } catch (_error) {
-      toast.error('Failed to load dashboard data');
+      toast.error('Unable to load dashboard data right now');
     } finally {
       setLoading(false);
     }
@@ -88,6 +141,35 @@ export function BuyerDashboard() {
             <p className="text-muted-foreground">Escrow-protected purchases for {currentUser.name}</p>
           </div>
         </div>
+
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Quick Access</CardTitle>
+            <CardDescription>Open buyer pages for orders, rentals, payments, support, and account settings.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <Button variant="outline" onClick={() => navigate('/buyer/orders')}>My Orders</Button>
+              <Button variant="outline" onClick={() => navigate('/buyer/rentals')}>My Rentals</Button>
+              <Button variant="outline" onClick={() => navigate('/buyer/payments')}>Payment History</Button>
+              <Button variant="outline" onClick={() => navigate('/buyer/notifications')}>
+                <Bell className="h-4 w-4 mr-2" />
+                Notifications
+              </Button>
+              <Button variant="outline" onClick={() => navigate('/buyer/disputes')}>
+                <ShieldAlert className="h-4 w-4 mr-2" />
+                Disputes
+              </Button>
+              <Button variant="outline" onClick={() => navigate('/buyer/report')}>
+                <Flag className="h-4 w-4 mr-2" />
+                Report Problem
+              </Button>
+              <Button variant="outline" onClick={() => navigate('/buyer/recently-viewed')}>Recently Viewed</Button>
+              <Button variant="outline" onClick={() => navigate('/buyer/settings')}>Settings</Button>
+              <Button variant="outline" onClick={() => navigate('/buyer/help')}>Help and Support</Button>
+            </div>
+          </CardContent>
+        </Card>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card>

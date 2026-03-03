@@ -203,6 +203,23 @@ export function Admin() {
           </p>
         </div>
 
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Quick Access</CardTitle>
+            <CardDescription>Open advanced admin modules.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+              <Button variant="outline" onClick={() => navigate('/admin/inbox')}>Inbox</Button>
+              <Button variant="outline" onClick={() => navigate('/admin/reviews')}>Reviews</Button>
+              <Button variant="outline" onClick={() => navigate('/admin/universities')}>Universities</Button>
+              <Button variant="outline" onClick={() => navigate('/admin/categories')}>Categories</Button>
+              <Button variant="outline" onClick={() => navigate('/admin/analytics')}>Analytics</Button>
+              <Button variant="outline" onClick={() => navigate('/admin/user-management')}>User Management</Button>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           <Card>
@@ -330,6 +347,14 @@ export function Admin() {
                         </p>
                       </div>
                       <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => navigate(`/admin/user-details/${user.id}`)}
+                        >
+                          <Eye className="mr-1 h-3 w-3" />
+                          Details
+                        </Button>
                         {!user.isVerified && (
                           <Button
                             size="sm"

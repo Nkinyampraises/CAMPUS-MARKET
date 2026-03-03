@@ -26,6 +26,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
 const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:8002'}/make-server-50b25a4f`;
+const RECENTLY_VIEWED_KEY = 'recentlyViewedItemIds';
 
 export function ItemDetails() {
   const { id } = useParams<{ id: string }>();
@@ -42,6 +43,16 @@ export function ItemDetails() {
         const data = await response.json();
         if (response.ok) {
           setItem(data.listing);
+          if (id) {
+            try {
+              const existing = JSON.parse(localStorage.getItem(RECENTLY_VIEWED_KEY) || '[]');
+              const list = Array.isArray(existing) ? existing.filter((entry) => typeof entry === 'string') : [];
+              const deduped = [id, ...list.filter((entry) => entry !== id)].slice(0, 20);
+              localStorage.setItem(RECENTLY_VIEWED_KEY, JSON.stringify(deduped));
+            } catch {
+              // Ignore localStorage parsing issues.
+            }
+          }
         } else {
           toast.error(data.message || 'Failed to fetch item details');
         }

@@ -33,7 +33,7 @@ export function Review() {
   const { currentUser, isAuthenticated, accessToken } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const transactionId = searchParams.get('transactionId');
+  const transactionId = searchParams.get('transactionId') || searchParams.get('order');
 
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);

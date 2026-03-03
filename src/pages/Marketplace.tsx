@@ -54,12 +54,15 @@ export function Marketplace() {
         const response = await fetch(`${API_URL}/listings`);
         const data = await response.json().catch(() => ({}));
         if (!response.ok) {
-          toast.error(data.error || 'Failed to fetch listings');
+          setListings([]);
+          toast.error(data.error || 'Failed to fetch listings from database');
           return;
         }
         setListings(Array.isArray(data.listings) ? data.listings : []);
-      } catch (_error) {
-        toast.error('An error occurred while fetching listings');
+      } catch (error) {
+        setListings([]);
+        const message = error instanceof Error ? error.message : '';
+        toast.error(message || 'Unable to reach listings service');
       }
     };
 

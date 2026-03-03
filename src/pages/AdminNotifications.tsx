@@ -27,11 +27,25 @@ interface Broadcast {
   createdAt: string;
 }
 
+interface SupportReport {
+  id: string;
+  category: string;
+  description: string;
+  reporterId: string;
+  reporterName?: string;
+  status: 'open' | 'reviewed' | 'resolved' | 'rejected';
+  adminNote?: string;
+  createdAt: string;
+}
+
 export function AdminNotifications() {
   const { accessToken } = useAuth();
   const [broadcasts, setBroadcasts] = useState<Broadcast[]>([]);
+  const [supportReports, setSupportReports] = useState<SupportReport[]>([]);
   const [loading, setLoading] = useState(true);
+  const [supportLoading, setSupportLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [actioningReportId, setActioningReportId] = useState('');
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
   const [priority, setPriority] = useState<'normal' | 'high' | 'urgent'>('normal');
@@ -56,9 +70,69 @@ export function AdminNotifications() {
     }
   };
 
+  const fetchSupportReports = async () => {
+    if (!accessToken) return;
+    try {
+      const response = await fetch(`${API_URL}/admin/reports`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        toast.error(data.error || 'Failed to load reports');
+        return;
+      }
+      const reports = Array.isArray(data.reports) ? data.reports : [];
+      setSupportReports(reports);
+    } catch (_error) {
+      toast.error('Failed to load reports');
+    } finally {
+      setSupportLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchBroadcasts();
+    fetchSupportReports();
   }, [accessToken]);
+
+  const updateSupportReportStatus = async (
+    reportId: string,
+    status: 'reviewed' | 'resolved' | 'rejected',
+  ) => {
+    if (!accessToken) return;
+    setActioningReportId(reportId);
+    try {
+      const adminNote = (prompt('Optional admin note') || '').trim();
+      const response = await fetch(`${API_URL}/admin/reports/${reportId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          status,
+          adminNote,
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        toast.error(data.error || 'Failed to update report');
+        return;
+      }
+      setSupportReports((prev) =>
+        prev.map((report) =>
+          report.id === reportId
+            ? { ...report, status, adminNote: adminNote || report.adminNote || '' }
+            : report,
+        ),
+      );
+      toast.success(`Report marked as ${status}`);
+    } catch (_error) {
+      toast.error('Failed to update report');
+    } finally {
+      setActioningReportId('');
+    }
+  };
 
   const handleSend = async () => {
     if (!accessToken) return;
@@ -173,6 +247,67 @@ export function AdminNotifications() {
               </>
             )}
           </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Reports Inbox</CardTitle>
+          <CardDescription>All buyer/seller reports and support requests received by admin.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {supportLoading ? (
+            <div className="text-sm text-muted-foreground">Loading reports...</div>
+          ) : supportReports.length === 0 ? (
+            <div className="text-sm text-muted-foreground">No reports yet.</div>
+          ) : (
+            supportReports.map((report) => (
+              <div key={report.id} className="border rounded-lg p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">{report.category}</Badge>
+                    <Badge variant={report.status === 'resolved' ? 'default' : 'secondary'}>
+                      {report.status}
+                    </Badge>
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    {new Date(report.createdAt).toLocaleString()}
+                  </span>
+                </div>
+                <p className="text-sm mb-2">{report.description}</p>
+                <p className="text-xs text-muted-foreground mb-2">From: {report.reporterName || report.reporterId}</p>
+                {report.adminNote ? (
+                  <p className="text-xs text-muted-foreground mb-2">Admin note: {report.adminNote}</p>
+                ) : null}
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={actioningReportId === report.id}
+                    onClick={() => updateSupportReportStatus(report.id, 'reviewed')}
+                  >
+                    Mark Reviewed
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={actioningReportId === report.id}
+                    onClick={() => updateSupportReportStatus(report.id, 'resolved')}
+                  >
+                    Mark Resolved
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={actioningReportId === report.id}
+                    onClick={() => updateSupportReportStatus(report.id, 'rejected')}
+                  >
+                    Reject
+                  </Button>
+                </div>
+              </div>
+            ))
+          )}
         </CardContent>
       </Card>
 

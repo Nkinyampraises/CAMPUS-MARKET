@@ -13,20 +13,20 @@ const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:8002'}/make
 
 const FAQS = [
   {
-    q: 'How do I confirm an order?',
-    a: 'Open the order details page and confirm delivery after the seller uploads proof.',
+    q: 'How do I mark an order delivered?',
+    a: 'Open seller order details and use the Mark Delivered action to upload proof.',
   },
   {
-    q: 'How do I request a refund?',
-    a: 'From order details, choose refund and include a clear issue reason.',
+    q: 'How do disputes work?',
+    a: 'Open Seller Disputes, submit details for the order or rental, then track status updates.',
   },
   {
-    q: 'How do I contact support?',
-    a: 'Use the support form below. Your request is sent to admins as a support report.',
+    q: 'How can I contact support?',
+    a: 'Use the contact form below to send your issue to admin support.',
   },
 ];
 
-export function HelpSupport() {
+export function SellerHelp() {
   const navigate = useNavigate();
   const { currentUser, accessToken } = useAuth();
   const [subject, setSubject] = useState('');
@@ -54,7 +54,7 @@ export function HelpSupport() {
           Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
-          category: 'support',
+          category: 'support_seller',
           description: `[${subject.trim()}] ${message.trim()}`,
         }),
       });
@@ -82,8 +82,8 @@ export function HelpSupport() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Help / Support</CardTitle>
-          <CardDescription>FAQs and contact admin support form.</CardDescription>
+          <CardTitle>Seller Help</CardTitle>
+          <CardDescription>FAQs and contact support.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {FAQS.map((item) => (
@@ -101,21 +101,21 @@ export function HelpSupport() {
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="space-y-1">
-            <Label htmlFor="support-subject">Subject</Label>
+            <Label htmlFor="seller-help-subject">Subject</Label>
             <Input
-              id="support-subject"
+              id="seller-help-subject"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
-              placeholder="Payment issue, order issue, account issue..."
+              placeholder="Order issue, payout issue, listing issue..."
             />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="support-message">Message</Label>
+            <Label htmlFor="seller-help-message">Message</Label>
             <Textarea
-              id="support-message"
+              id="seller-help-message"
+              rows={5}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              rows={5}
               placeholder="Describe your issue clearly..."
             />
           </div>
@@ -127,3 +127,4 @@ export function HelpSupport() {
     </div>
   );
 }
+

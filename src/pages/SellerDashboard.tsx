@@ -16,7 +16,7 @@ const formatMoney = (value: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value || 0);
 
 export function SellerDashboard() {
-  const { currentUser, accessToken } = useAuth();
+  const { currentUser, accessToken, refreshAuthToken, logout } = useAuth();
   const navigate = useNavigate();
 
   const [myListings, setMyListings] = useState<any[]>([]);
@@ -29,35 +29,111 @@ export function SellerDashboard() {
   const [withdrawPhone, setWithdrawPhone] = useState(currentUser?.phone || '');
   const [withdrawProvider, setWithdrawProvider] = useState<'mtn-momo' | 'orange-money'>('mtn-momo');
 
-  const fetchData = async () => {
-    if (!accessToken) return;
+  const requestWithAuthRetry = async (path: string, init?: RequestInit) => {
+    if (!accessToken) {
+      return { response: null as Response | null, data: { error: 'Unauthorized' } };
+    }
+
+    const makeRequest = async (token: string) => {
+      const response = await fetch(`${API_URL}${path}`, {
+        ...(init || {}),
+        headers: {
+          ...(init?.headers || {}),
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await response.json().catch(() => ({}));
+      return { response, data };
+    };
+
     try {
-      const [listingsRes, ordersRes, messagesRes, walletRes] = await Promise.all([
-        fetch(`${API_URL}/listings/user`, { headers: { Authorization: `Bearer ${accessToken}` } }),
-        fetch(`${API_URL}/orders`, { headers: { Authorization: `Bearer ${accessToken}` } }),
-        fetch(`${API_URL}/messages`, { headers: { Authorization: `Bearer ${accessToken}` } }),
-        fetch(`${API_URL}/wallet`, { headers: { Authorization: `Bearer ${accessToken}` } }),
+      const firstAttempt = await makeRequest(accessToken);
+      if (firstAttempt.response.status !== 401) {
+        return firstAttempt;
+      }
+
+      const refreshedToken = await refreshAuthToken();
+      if (!refreshedToken) {
+        return firstAttempt;
+      }
+
+      return makeRequest(refreshedToken);
+    } catch (error) {
+      return {
+        response: null as Response | null,
+        data: { error: error instanceof Error ? error.message : 'Unable to reach server' },
+      };
+    }
+  };
+
+  const fetchData = async () => {
+    if (!accessToken) {
+      setLoading(false);
+      return;
+    }
+    try {
+      const [listingsResult, ordersResult, messagesResult, walletResult] = await Promise.all([
+        requestWithAuthRetry('/listings/user'),
+        requestWithAuthRetry('/orders'),
+        requestWithAuthRetry('/messages'),
+        requestWithAuthRetry('/wallet'),
       ]);
 
-      if (listingsRes.ok) {
-        const data = await listingsRes.json();
-        setMyListings(data.listings || []);
+      if (
+        listingsResult.response?.status === 401 ||
+        ordersResult.response?.status === 401 ||
+        messagesResult.response?.status === 401 ||
+        walletResult.response?.status === 401
+      ) {
+        toast.error('Session expired. Please log in again.');
+        logout();
+        navigate('/login');
+        return;
       }
-      if (ordersRes.ok) {
-        const data = await ordersRes.json();
+
+      if (
+        !listingsResult.response ||
+        !ordersResult.response ||
+        !messagesResult.response ||
+        !walletResult.response
+      ) {
+        const message =
+          listingsResult.data?.error ||
+          ordersResult.data?.error ||
+          messagesResult.data?.error ||
+          walletResult.data?.error ||
+          'Unable to reach server. Ensure API is running on http://localhost:8002';
+        toast.error(message);
+        return;
+      }
+
+      if (listingsResult.response.ok) {
+        const data = listingsResult.data;
+        setMyListings(data.listings || []);
+      } else {
+        toast.error(listingsResult.data?.error || 'Failed to load listings');
+      }
+      if (ordersResult.response.ok) {
+        const data = ordersResult.data;
         const sales = (data.orders || []).filter((order: any) => order.sellerId === currentUser?.id);
         setOrders(sales);
+      } else {
+        toast.error(ordersResult.data?.error || 'Failed to load orders');
       }
-      if (messagesRes.ok) {
-        const data = await messagesRes.json();
+      if (messagesResult.response.ok) {
+        const data = messagesResult.data;
         setMessages(data.messages || []);
+      } else {
+        toast.error(messagesResult.data?.error || 'Failed to load messages');
       }
-      if (walletRes.ok) {
-        const data = await walletRes.json();
+      if (walletResult.response.ok) {
+        const data = walletResult.data;
         setWallet(data.wallet || { availableBalance: 0, pendingBalance: 0 });
+      } else {
+        toast.error(walletResult.data?.error || 'Failed to load wallet');
       }
     } catch (_error) {
-      toast.error('Failed to load dashboard data');
+      toast.error('Unable to load dashboard data right now');
     } finally {
       setLoading(false);
     }
@@ -87,12 +163,20 @@ export function SellerDashboard() {
   const handleDeleteListing = async (itemId: string) => {
     if (!confirm('Are you sure you want to delete this listing?')) return;
     try {
-      const response = await fetch(`${API_URL}/listings/${itemId}`, {
+      const { response, data } = await requestWithAuthRetry(`/listings/${itemId}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${accessToken}` },
       });
+      if (!response) {
+        toast.error(data?.error || 'Unable to reach server');
+        return;
+      }
+      if (response.status === 401) {
+        toast.error('Session expired. Please log in again.');
+        logout();
+        navigate('/login');
+        return;
+      }
       if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
         toast.error(data.error || 'Failed to remove listing');
         return;
       }
@@ -105,18 +189,18 @@ export function SellerDashboard() {
 
   const handleWithdraw = async () => {
     if (!accessToken) return;
-    const amount = Number(withdrawAmount);
+    const normalizedAmount = withdrawAmount.replace(/\s+/g, '').replace(',', '.');
+    const amount = Number(normalizedAmount);
     if (!Number.isFinite(amount) || amount <= 0) {
       toast.error('Enter a valid amount');
       return;
     }
     setWithdrawing(true);
     try {
-      const response = await fetch(`${API_URL}/wallet/withdrawals`, {
+      const { response, data } = await requestWithAuthRetry('/wallet/withdrawals', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
           amount,
@@ -124,7 +208,16 @@ export function SellerDashboard() {
           phoneNumber: withdrawPhone,
         }),
       });
-      const data = await response.json();
+      if (!response) {
+        toast.error(data?.error || 'Unable to reach server');
+        return;
+      }
+      if (response.status === 401) {
+        toast.error('Session expired. Please log in again.');
+        logout();
+        navigate('/login');
+        return;
+      }
       if (!response.ok) {
         toast.error(data.error || 'Withdrawal failed');
         return;
@@ -167,6 +260,25 @@ export function SellerDashboard() {
             Add New Listing
           </Button>
         </div>
+
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Quick Access</CardTitle>
+            <CardDescription>Open seller pages for listings, orders, rentals, support, and settings.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <Button variant="outline" onClick={() => navigate('/seller/manage-listings')}>Manage Listings</Button>
+              <Button variant="outline" onClick={() => navigate('/seller/orders')}>Orders</Button>
+              <Button variant="outline" onClick={() => navigate('/seller/rentals')}>Rentals</Button>
+              <Button variant="outline" onClick={() => navigate('/seller/notifications')}>Notifications</Button>
+              <Button variant="outline" onClick={() => navigate('/seller/settings')}>Settings</Button>
+              <Button variant="outline" onClick={() => navigate('/seller/help')}>Help and Support</Button>
+              <Button variant="outline" onClick={() => navigate('/seller/reports')}>Report Problem</Button>
+              <Button variant="outline" onClick={() => navigate('/seller/disputes')}>Disputes</Button>
+            </div>
+          </CardContent>
+        </Card>
 
         <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
           <Card>
@@ -259,7 +371,7 @@ export function SellerDashboard() {
                       </div>
                       <div className="flex items-center gap-2">
                         <p className="font-bold text-green-600">{formatMoney(order.amount || 0)}</p>
-                        <Button variant="outline" size="sm" onClick={() => navigate(`/orders/${order.id}`)}>
+                        <Button variant="outline" size="sm" onClick={() => navigate(`/seller/order-details/${order.id}`)}>
                           Open Order
                         </Button>
                       </div>
@@ -338,7 +450,7 @@ export function SellerDashboard() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="space-y-2">
                     <Label>Amount</Label>
-                    <Input value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} placeholder="5000" type="number" min={0} />
+                    <Input value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} placeholder="5000" type="number" min={0} step="any" />
                   </div>
                   <div className="space-y-2">
                     <Label>Phone Number</Label>

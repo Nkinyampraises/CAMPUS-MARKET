@@ -52,6 +52,8 @@ export function AddListing() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    const normalizedPrice = formData.price.replace(/\s+/g, '').replace(',', '.');
+    const parsedPrice = Number(normalizedPrice);
 
     // Validation
     if (!formData.title || !formData.description || !formData.category || !formData.price || !formData.location) {
@@ -59,7 +61,7 @@ export function AddListing() {
       return;
     }
 
-    if (parseFloat(formData.price) <= 0) {
+    if (!Number.isFinite(parsedPrice) || parsedPrice <= 0) {
       setError('Price must be greater than 0');
       return;
     }
@@ -77,7 +79,7 @@ export function AddListing() {
           title: formData.title,
           description: formData.description,
           category: formData.category,
-          price: formData.price,
+          price: parsedPrice,
           type: formData.type,
           rentalPeriod: formData.type === 'rent' ? formData.rentalPeriod : undefined,
           location: formData.location,
@@ -239,7 +241,7 @@ export function AddListing() {
                   value={formData.price}
                   onChange={(e) => handleChange('price', e.target.value)}
                   min="0"
-                  step="500"
+                  step="any"
                   required
                 />
               </div>

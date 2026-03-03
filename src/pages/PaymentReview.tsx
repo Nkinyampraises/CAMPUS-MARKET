@@ -18,6 +18,7 @@ interface PaymentReviewState {
   paymentMethod: 'mtn-momo' | 'orange-money';
   fromName: string;
   fromPhone: string;
+  feeOverride?: number;
   payload: any;
 }
 
@@ -27,7 +28,7 @@ const formatMoney = (value: number) =>
 export function PaymentReview() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { accessToken, refreshCurrentUser } = useAuth();
+  const { accessToken, refreshCurrentUser, refreshAuthToken, logout } = useAuth();
   const state = (location.state || null) as PaymentReviewState | null;
 
   const [submitting, setSubmitting] = useState(false);
@@ -36,8 +37,8 @@ export function PaymentReview() {
     merchantNumber: '671562474',
     feePercent: 2,
     feeFlat: 0,
-    sampleBaseAmount: 500,
-    sampleFee: 10,
+    sampleBaseAmount: 24,
+    sampleFee: 1,
   });
 
   useEffect(() => {
@@ -55,8 +56,8 @@ export function PaymentReview() {
           merchantNumber: data?.merchant?.number || paymentMeta.merchantNumber,
           feePercent: Number(data?.transactionFee?.percent) || paymentMeta.feePercent,
           feeFlat: Number(data?.transactionFee?.flat) || 0,
-          sampleBaseAmount: Number(data?.transactionFee?.sampleBaseAmount) || 500,
-          sampleFee: Number(data?.transactionFee?.sampleFee) || 10,
+          sampleBaseAmount: Number(data?.transactionFee?.sampleBaseAmount) || 24,
+          sampleFee: Number(data?.transactionFee?.sampleFee) || 1,
         });
       } catch (_error) {
         // Keep fallback.
@@ -66,11 +67,57 @@ export function PaymentReview() {
   }, [state?.context]);
 
   const feeAmount = useMemo(() => {
+    if (Number.isFinite(Number(state?.feeOverride)) && Number(state?.feeOverride) >= 0) {
+      return Math.round(Number(state?.feeOverride));
+    }
     const raw = (Number(state?.amount || 0) * paymentMeta.feePercent) / 100 + paymentMeta.feeFlat;
     return Math.round(raw);
-  }, [state?.amount, paymentMeta.feePercent, paymentMeta.feeFlat]);
+  }, [state?.amount, state?.feeOverride, paymentMeta.feePercent, paymentMeta.feeFlat]);
 
   const totalAmount = useMemo(() => Math.round(Number(state?.amount || 0) + feeAmount), [state?.amount, feeAmount]);
+
+  const postWithAuthRetry = async (url: string, payload: any) => {
+    if (!accessToken) {
+      return { response: null as Response | null, data: { error: 'Missing payment session' } };
+    }
+
+    const makeRequest = async (token: string) => {
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        });
+        const data = await response.json().catch(() => ({}));
+        return { response, data };
+      } catch (error) {
+        return {
+          response: null as Response | null,
+          data: {
+            error:
+              error instanceof Error
+                ? error.message
+                : 'Unable to reach payment server. Ensure API is running on http://localhost:8002',
+          },
+        };
+      }
+    };
+
+    const firstAttempt = await makeRequest(accessToken);
+    if (!firstAttempt.response || firstAttempt.response.status !== 401) {
+      return firstAttempt;
+    }
+
+    const refreshedToken = await refreshAuthToken();
+    if (!refreshedToken) {
+      return firstAttempt;
+    }
+
+    return makeRequest(refreshedToken);
+  };
 
   const handleConfirm = async () => {
     if (!state || !accessToken) {
@@ -81,18 +128,19 @@ export function PaymentReview() {
     setSubmitting(true);
     try {
       if (state.context === 'order') {
-        const response = await fetch(`${API_URL}/orders`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify(state.payload),
-        });
-        const data = await response.json();
+        const { response, data } = await postWithAuthRetry(`${API_URL}/orders`, state.payload);
+        if (!response) {
+          toast.error(data.error || 'Missing payment session');
+          return;
+        }
+        if (response.status === 401) {
+          toast.error('Session expired. Please log in again.');
+          logout();
+          navigate('/login');
+          return;
+        }
         if (!response.ok) {
           toast.error(data.error || 'Payment failed');
-          setSubmitting(false);
           return;
         }
         toast.success('Payment successful. Order created.');
@@ -100,18 +148,19 @@ export function PaymentReview() {
         return;
       }
 
-      const response = await fetch(`${API_URL}/subscription/update`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify(state.payload),
-      });
-      const data = await response.json();
+      const { response, data } = await postWithAuthRetry(`${API_URL}/subscription/update`, state.payload);
+      if (!response) {
+        toast.error(data.error || 'Missing payment session');
+        return;
+      }
+      if (response.status === 401) {
+        toast.error('Session expired. Please log in again.');
+        logout();
+        navigate('/login');
+        return;
+      }
       if (!response.ok) {
         toast.error(data.error || 'Subscription payment failed');
-        setSubmitting(false);
         return;
       }
 
@@ -121,7 +170,7 @@ export function PaymentReview() {
       toast.success('Subscription activated successfully');
       navigate('/dashboard');
     } catch (_error) {
-      toast.error('Failed to process payment');
+      toast.error('Payment request could not be completed right now');
     } finally {
       setSubmitting(false);
     }

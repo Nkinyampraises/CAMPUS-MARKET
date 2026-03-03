@@ -161,9 +161,31 @@ const DEFAULT_ADMIN_SETTINGS = {
   updatedAt: "",
 };
 
+const DEFAULT_ADMIN_UNIVERSITIES = [
+  "University of Buea",
+  "University of Bamenda",
+  "University of Yaounde I",
+  "University of Yaounde II",
+  "University of Douala",
+  "University of Dschang",
+  "University of Ngaoundere",
+  "University of Maroua",
+];
+
+const DEFAULT_ADMIN_CATEGORIES = [
+  "Beds & Mattresses",
+  "Chairs & Tables",
+  "Kitchen Items",
+  "Appliances",
+  "Electronics",
+  "Study Desk & Lamps",
+  "Curtains & Rugs",
+  "Shelves & Storage",
+];
+
 const SUBSCRIPTION_PLAN_PRICING = {
   buyer: {
-    monthly: 500,
+    monthly: 24,
     yearly: 6000,
   },
   seller: {
@@ -172,14 +194,54 @@ const SUBSCRIPTION_PLAN_PRICING = {
   },
 } as const;
 
+const parseFlexibleNumber = (value: any) => {
+  if (typeof value === "number") {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return Number.NaN;
+
+    // Accept "25.5", "25,5", "1,000.5" and "1.000,5" styles.
+    let normalized = trimmed.replace(/\s+/g, "");
+    const hasComma = normalized.includes(",");
+    const hasDot = normalized.includes(".");
+
+    if (hasComma && hasDot) {
+      if (normalized.lastIndexOf(",") > normalized.lastIndexOf(".")) {
+        normalized = normalized.replace(/\./g, "").replace(",", ".");
+      } else {
+        normalized = normalized.replace(/,/g, "");
+      }
+    } else if (hasComma) {
+      if (/^-?\d{1,3}(,\d{3})+$/.test(normalized)) {
+        normalized = normalized.replace(/,/g, "");
+      } else {
+        normalized = normalized.replace(",", ".");
+      }
+    }
+
+    return Number(normalized);
+  }
+
+  return Number(value);
+};
+
 const toSafeNumber = (value: any, fallback = 0) => {
-  const num = Number(value);
+  const num = parseFlexibleNumber(value);
   return Number.isFinite(num) ? num : fallback;
 };
 
 const roundMoney = (value: any) => {
   const safeValue = toSafeNumber(value, 0);
   return Math.round((safeValue + Number.EPSILON) * 100) / 100;
+};
+
+// XAF does not use fractional units for mobile money requests.
+const roundXafAmount = (value: any) => {
+  const safeValue = toSafeNumber(value, 0);
+  return Math.max(0, Math.round(safeValue));
 };
 
 const CAMEROON_GEO_BOUNDS = {
@@ -287,6 +349,87 @@ const isAllowedPickupLocation = (locationName: string, lat: any, lng: any) => {
 const createEntityId = (prefix: string) =>
   `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 
+const normalizeUniversityEntry = (entry: any) => {
+  if (!entry || typeof entry !== "object") return null;
+  const name = typeof entry.name === "string" ? entry.name.trim() : "";
+  if (!name) return null;
+  return {
+    id: typeof entry.id === "string" && entry.id.trim() ? entry.id.trim() : createEntityId("UNI"),
+    name,
+    isActive: typeof entry.isActive === "boolean" ? entry.isActive : true,
+    createdAt: typeof entry.createdAt === "string" && entry.createdAt ? entry.createdAt : new Date().toISOString(),
+    updatedAt: typeof entry.updatedAt === "string" && entry.updatedAt ? entry.updatedAt : new Date().toISOString(),
+  };
+};
+
+const normalizeCategoryEntry = (entry: any) => {
+  if (!entry || typeof entry !== "object") return null;
+  const name = typeof entry.name === "string" ? entry.name.trim() : "";
+  if (!name) return null;
+  return {
+    id: typeof entry.id === "string" && entry.id.trim() ? entry.id.trim() : createEntityId("CAT"),
+    name,
+    isActive: typeof entry.isActive === "boolean" ? entry.isActive : true,
+    createdAt: typeof entry.createdAt === "string" && entry.createdAt ? entry.createdAt : new Date().toISOString(),
+    updatedAt: typeof entry.updatedAt === "string" && entry.updatedAt ? entry.updatedAt : new Date().toISOString(),
+  };
+};
+
+async function ensureAdminUniversities() {
+  const saved = await kv.get("admin:universities");
+  if (Array.isArray(saved) && saved.length > 0) {
+    const normalized = saved
+      .map((entry: any) => normalizeUniversityEntry(entry))
+      .filter((entry: any) => entry !== null);
+    if (normalized.length > 0) {
+      await kv.set("admin:universities", normalized);
+      return normalized;
+    }
+  }
+
+  const now = new Date().toISOString();
+  const seeded = DEFAULT_ADMIN_UNIVERSITIES.map((name) => ({
+    id: createEntityId("UNI"),
+    name,
+    isActive: true,
+    createdAt: now,
+    updatedAt: now,
+  }));
+  await kv.set("admin:universities", seeded);
+  return seeded;
+}
+
+async function ensureAdminCategories() {
+  const saved = await kv.get("admin:categories");
+  if (Array.isArray(saved) && saved.length > 0) {
+    const normalized = saved
+      .map((entry: any) => normalizeCategoryEntry(entry))
+      .filter((entry: any) => entry !== null);
+    if (normalized.length > 0) {
+      await kv.set("admin:categories", normalized);
+      return normalized;
+    }
+  }
+
+  const now = new Date().toISOString();
+  const seeded = DEFAULT_ADMIN_CATEGORIES.map((name) => ({
+    id: createEntityId("CAT"),
+    name,
+    isActive: true,
+    createdAt: now,
+    updatedAt: now,
+  }));
+  await kv.set("admin:categories", seeded);
+  return seeded;
+}
+
+const toDayKey = (value: any) => {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toISOString().slice(0, 10);
+};
+
 const normalizeOrderStatusLabel = (status: string) => {
   if (status === ORDER_STATUS.PAID_PENDING_DELIVERY) return "PAID - PENDING DELIVERY";
   if (status === ORDER_STATUS.DELIVERED_RELEASED) return "DELIVERED - RELEASED";
@@ -294,7 +437,20 @@ const normalizeOrderStatusLabel = (status: string) => {
   return status;
 };
 
-const PAYMENT_PROVIDER_MODE = (Deno.env.get("PAYMENT_PROVIDER_MODE") || (Deno.env.get("CAMPAY_APP_ID") ? "campay" : "mock")).toLowerCase();
+const REQUESTED_PAYMENT_PROVIDER_MODE = (Deno.env.get("PAYMENT_PROVIDER_MODE") || "").trim().toLowerCase();
+const CAMPAY_APP_CREDENTIAL = (Deno.env.get("CAMPAY_APP_ID") || Deno.env.get("CAMPAY_API_KEY") || "").trim();
+const CAMPAY_USERNAME = (Deno.env.get("CAMPAY_USERNAME") || "").trim();
+const CAMPAY_PASSWORD = (Deno.env.get("CAMPAY_PASSWORD") || "").trim();
+const CAMPAY_HAS_REQUIRED_CREDENTIALS = Boolean(
+  CAMPAY_APP_CREDENTIAL &&
+  CAMPAY_USERNAME &&
+  CAMPAY_PASSWORD,
+);
+const PAYMENT_PROVIDER_MODE = (
+  REQUESTED_PAYMENT_PROVIDER_MODE === "campay" && CAMPAY_HAS_REQUIRED_CREDENTIALS
+    ? "campay"
+    : "mock"
+).toLowerCase();
 const CAMPAY_BASE_URL = (Deno.env.get("CAMPAY_BASE_URL") || "https://demo.campay.net/api").replace(/\/+$/, "");
 const CAMPAY_TOKEN_URL = Deno.env.get("CAMPAY_TOKEN_URL") || `${CAMPAY_BASE_URL}/token/`;
 const CAMPAY_COLLECTION_URL = Deno.env.get("CAMPAY_COLLECTION_URL") || `${CAMPAY_BASE_URL}/collect/`;
@@ -338,6 +494,12 @@ if (ESCROW_API_KEY && !ESCROW_API_BASE_URL) {
   console.warn("ESCROW_API_KEY is set but ESCROW_API_BASE_URL is missing. External escrow sync is disabled.");
 }
 
+if (REQUESTED_PAYMENT_PROVIDER_MODE === "campay" && !CAMPAY_HAS_REQUIRED_CREDENTIALS) {
+  console.warn(
+    "PAYMENT_PROVIDER_MODE=campay was requested but CamPay credentials are incomplete. Falling back to mock payment mode.",
+  );
+}
+
 let cachedCampayToken = "";
 let cachedCampayTokenExpiry = 0;
 
@@ -353,7 +515,7 @@ const shouldUseMockProvider = () =>
   CAMPAY_FORCE_MOCK || PAYMENT_PROVIDER_MODE !== "campay";
 
 const calculateTransactionFee = (amount: number) =>
-  roundMoney((roundMoney(amount) * TRANSACTION_FEE_PERCENT) / 100 + TRANSACTION_FEE_FLAT);
+  roundXafAmount((roundXafAmount(amount) * TRANSACTION_FEE_PERCENT) / 100 + TRANSACTION_FEE_FLAT);
 
 type EscrowProviderAction = "hold" | "release" | "refund";
 
@@ -553,14 +715,35 @@ async function processInboundMobileMoneyPayment(params: {
     };
   }
 
-  const data = await callCampay(CAMPAY_COLLECTION_URL, {
-    amount: roundMoney(params.amount),
+  const normalizedAmount = roundXafAmount(params.amount);
+  if (normalizedAmount <= 0) {
+    throw new Error("Invalid amount");
+  }
+
+  const payload = {
+    amount: normalizedAmount,
     from: formatCameroonPhoneE164(params.phoneNumber),
     description: params.description,
     external_reference: params.reference,
     method: params.provider,
     channel: params.provider === "orange-money" ? "orange" : "mtn",
-  });
+  };
+
+  let data: any;
+  try {
+    data = await callCampay(CAMPAY_COLLECTION_URL, payload);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error || "");
+    if (!/invalid amount|whole numbers/i.test(message)) {
+      throw error;
+    }
+
+    // Some providers accept whole-number amounts only when passed as digit strings.
+    data = await callCampay(CAMPAY_COLLECTION_URL, {
+      ...payload,
+      amount: String(normalizedAmount),
+    });
+  }
 
   const status = String(
     data?.status || data?.transaction_status || data?.payment_status || "pending",
@@ -601,14 +784,34 @@ async function processOutboundMobileMoneyPayout(params: {
     };
   }
 
-  const data = await callCampay(CAMPAY_DISBURSE_URL, {
-    amount: roundMoney(params.amount),
+  const normalizedAmount = roundXafAmount(params.amount);
+  if (normalizedAmount <= 0) {
+    throw new Error("Invalid amount");
+  }
+
+  const payload = {
+    amount: normalizedAmount,
     to: formatCameroonPhoneE164(params.phoneNumber),
     description: params.description,
     external_reference: params.reference,
     method: params.provider,
     channel: params.provider === "orange-money" ? "orange" : "mtn",
-  });
+  };
+
+  let data: any;
+  try {
+    data = await callCampay(CAMPAY_DISBURSE_URL, payload);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error || "");
+    if (!/invalid amount|whole numbers/i.test(message)) {
+      throw error;
+    }
+
+    data = await callCampay(CAMPAY_DISBURSE_URL, {
+      ...payload,
+      amount: String(normalizedAmount),
+    });
+  }
 
   const status = String(
     data?.status || data?.transaction_status || data?.payout_status || "pending",
@@ -1076,11 +1279,41 @@ app.post("/make-server-50b25a4f/signin", async (c) => {
     return c.json({ 
       success: true, 
       accessToken: data.session.access_token,
+      refreshToken: data.session.refresh_token,
       user: profile
     });
   } catch (error) {
     console.error('Signin error:', error);
     return c.json({ error: 'An error occurred during signin' }, 500);
+  }
+});
+
+// Refresh access token using a refresh token
+app.post("/make-server-50b25a4f/auth/refresh", async (c) => {
+  try {
+    const body = await c.req.json().catch(() => ({}));
+    const refreshToken = typeof body?.refreshToken === "string" ? body.refreshToken : "";
+
+    if (!refreshToken) {
+      return c.json({ error: "Refresh token is required" }, 400);
+    }
+
+    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+    const { data, error } = await supabaseClient.auth.refreshSession({
+      refresh_token: refreshToken,
+    });
+
+    if (error || !data?.session?.access_token) {
+      return c.json({ error: "Unauthorized" }, 401);
+    }
+
+    return c.json({
+      accessToken: data.session.access_token,
+      refreshToken: data.session.refresh_token || refreshToken,
+    });
+  } catch (error) {
+    console.error("Token refresh error:", error);
+    return c.json({ error: "Failed to refresh token" }, 500);
   }
 });
 
@@ -1111,7 +1344,7 @@ app.put("/make-server-50b25a4f/auth/profile", async (c) => {
 
   try {
     const body = await c.req.json();
-    const { name, phone, studentId, profilePicture } = body;
+    const { name, phone, studentId, profilePicture, notificationPreferences, privacyOptions } = body;
 
     const profile = await getUserProfile(user.id);
     
@@ -1133,6 +1366,21 @@ app.put("/make-server-50b25a4f/auth/profile", async (c) => {
       profile.profilePicture = profilePicture;
       profile.avatar = profilePicture;
     }
+    if (notificationPreferences && typeof notificationPreferences === "object") {
+      profile.notificationPreferences = {
+        messages: Boolean(notificationPreferences.messages),
+        orders: Boolean(notificationPreferences.orders),
+        payments: Boolean(notificationPreferences.payments),
+        rentals: Boolean(notificationPreferences.rentals),
+      };
+    }
+    if (privacyOptions && typeof privacyOptions === "object") {
+      profile.privacyOptions = {
+        showPhone: Boolean(privacyOptions.showPhone),
+        showEmail: Boolean(privacyOptions.showEmail),
+        profileVisibility: privacyOptions.profileVisibility === "private" ? "private" : "public",
+      };
+    }
 
     await kv.set(`user:${user.id}`, profile);
 
@@ -1140,6 +1388,36 @@ app.put("/make-server-50b25a4f/auth/profile", async (c) => {
   } catch (error) {
     console.error('Profile update error:', error);
     return c.json({ error: 'Failed to update profile' }, 500);
+  }
+});
+
+// Change password for current user
+app.post("/make-server-50b25a4f/auth/change-password", async (c) => {
+  const user = await verifyAuth(c.req.header("Authorization"));
+  if (!user) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
+  try {
+    const body = await c.req.json().catch(() => ({}));
+    const newPassword = typeof body?.newPassword === "string" ? body.newPassword : "";
+
+    if (!newPassword || newPassword.length < 6) {
+      return c.json({ error: "New password must be at least 6 characters" }, 400);
+    }
+
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(user.id, {
+      password: newPassword,
+    });
+
+    if (error) {
+      return c.json({ error: error.message || "Failed to update password" }, 400);
+    }
+
+    return c.json({ success: true, message: "Password updated successfully" });
+  } catch (error) {
+    console.error("Change password error:", error);
+    return c.json({ error: "Failed to update password" }, 500);
   }
 });
 
@@ -1261,6 +1539,89 @@ app.get("/make-server-50b25a4f/listings/:id", async (c) => {
   } catch (error) {
     console.error('Get listing error:', error);
     return c.json({ error: 'Failed to get listing' }, 500);
+  }
+});
+
+// Update listing
+app.put("/make-server-50b25a4f/listings/:id", async (c) => {
+  const user = await verifyAuth(c.req.header("Authorization"));
+
+  if (!user) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
+  try {
+    const id = c.req.param("id");
+    const listing = await kv.get(`listing:${id}`);
+
+    if (!listing) {
+      return c.json({ error: "Listing not found" }, 404);
+    }
+
+    const userProfile = await getUserProfile(user.id);
+    if (listing.sellerId !== user.id && userProfile?.role !== "admin") {
+      return c.json({ error: "Forbidden" }, 403);
+    }
+
+    const body = await c.req.json().catch(() => ({}));
+    const next = { ...listing };
+
+    const setTextField = (field: string) => {
+      if (typeof body?.[field] === "string") {
+        const value = body[field].trim();
+        if (value) next[field] = value;
+      }
+    };
+
+    setTextField("title");
+    setTextField("description");
+    setTextField("category");
+    setTextField("location");
+    setTextField("condition");
+
+    if (typeof body?.type === "string") {
+      next.type = body.type === "rent" ? "rent" : "sell";
+    }
+    if (typeof body?.rentalPeriod === "string") {
+      next.rentalPeriod = body.rentalPeriod === "daily" || body.rentalPeriod === "weekly" ? body.rentalPeriod : "monthly";
+    }
+    if (next.type !== "rent") {
+      next.rentalPeriod = "";
+    }
+
+    if (body?.price !== undefined) {
+      const parsedPrice = Number(String(body.price).replace(/\s+/g, "").replace(",", "."));
+      if (!Number.isFinite(parsedPrice) || parsedPrice <= 0) {
+        return c.json({ error: "Price must be greater than 0" }, 400);
+      }
+      next.price = parsedPrice;
+    }
+
+    if (Array.isArray(body?.images)) {
+      const images = body.images
+        .filter((image: any) => typeof image === "string")
+        .map((image: string) => image.trim())
+        .filter((image: string) => image.length > 0)
+        .slice(0, 8);
+      next.images = images;
+    }
+
+    if (typeof body?.status === "string") {
+      const allowedStatuses = new Set(["available", "sold", "rented", "reserved", "inactive"]);
+      const normalizedStatus = body.status.trim().toLowerCase();
+      if (!allowedStatuses.has(normalizedStatus)) {
+        return c.json({ error: "Invalid listing status" }, 400);
+      }
+      next.status = normalizedStatus;
+    }
+
+    next.updatedAt = new Date().toISOString();
+    await kv.set(`listing:${id}`, next);
+
+    return c.json({ success: true, listing: await enrichListing(next) });
+  } catch (error) {
+    console.error("Update listing error:", error);
+    return c.json({ error: "Failed to update listing" }, 500);
   }
 });
 
@@ -1562,11 +1923,11 @@ async function createEscrowOrderForBuyer(user: any, body: any) {
 
   const settings = await getAdminSettings();
   const commissionPercent = Math.max(0, toSafeNumber(settings.platformCommissionPercent, DEFAULT_ADMIN_SETTINGS.platformCommissionPercent));
-  const amount = roundMoney(listing.price);
+  const amount = roundXafAmount(listing.price);
   const transactionFee = calculateTransactionFee(amount);
-  const totalCharged = roundMoney(amount + transactionFee);
-  const platformFee = roundMoney((amount * commissionPercent) / 100);
-  const sellerNetAmount = roundMoney(amount - platformFee);
+  const totalCharged = roundXafAmount(amount + transactionFee);
+  const platformFee = roundXafAmount((amount * commissionPercent) / 100);
+  const sellerNetAmount = roundXafAmount(amount - platformFee);
   const orderId = createEntityId("ORD");
   const escrowId = createEntityId("ESC");
   const transactionRef = `${paymentMethod.toUpperCase()}-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
@@ -1751,9 +2112,9 @@ async function releaseEscrowOrder(order: any, actorId: string) {
   }
 
   const settings = await getAdminSettings();
-  const amount = roundMoney(order.amount);
-  const platformFee = roundMoney(order.platformFee);
-  const sellerNetAmount = roundMoney(amount - platformFee);
+  const amount = roundXafAmount(order.amount);
+  const platformFee = roundXafAmount(order.platformFee);
+  const sellerNetAmount = roundXafAmount(amount - platformFee);
   const now = new Date().toISOString();
 
   const escrowProviderSync = await syncEscrowProvider("release", {
@@ -1824,7 +2185,7 @@ async function releaseEscrowOrder(order: any, actorId: string) {
     if (isValidCameroonPhone(sellerPhone)) {
       const withdrawalId = createEntityId("WD");
       const availableWallet = await getWallet(updatedOrder.sellerId);
-      const payoutAmount = roundMoney(sellerNetAmount);
+      const payoutAmount = roundXafAmount(sellerNetAmount);
       if (availableWallet.availableBalance >= payoutAmount && payoutAmount > 0) {
         const payoutReference = `AUTO-MTN-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
         try {
@@ -1950,9 +2311,9 @@ async function refundEscrowOrder(order: any, actorId: string, reason: string) {
     throw new Error("Escrow is not refundable");
   }
 
-  const amount = roundMoney(order.amount);
-  const sellerCompensation = roundMoney(amount * 0.1);
-  const buyerRefundAmount = roundMoney(amount - sellerCompensation);
+  const amount = roundXafAmount(order.amount);
+  const sellerCompensation = roundXafAmount(amount * 0.1);
+  const buyerRefundAmount = roundXafAmount(amount - sellerCompensation);
   const now = new Date().toISOString();
 
   const escrowProviderSync = await syncEscrowProvider("refund", {
@@ -2054,7 +2415,7 @@ async function refundEscrowOrder(order: any, actorId: string, reason: string) {
 
 // Public payment metadata for confirmation screens
 app.get("/make-server-50b25a4f/payment-meta", async (c) => {
-  const sampleAmount = 500;
+  const sampleAmount = 24;
   const sampleFee = calculateTransactionFee(sampleAmount);
   return c.json({
     merchant: {
@@ -2066,7 +2427,7 @@ app.get("/make-server-50b25a4f/payment-meta", async (c) => {
       flat: TRANSACTION_FEE_FLAT,
       sampleBaseAmount: sampleAmount,
       sampleFee,
-      sampleTotal: roundMoney(sampleAmount + sampleFee),
+      sampleTotal: roundXafAmount(sampleAmount + sampleFee),
     },
     escrowProvider: {
       enabled: ESCROW_PROVIDER_ENABLED,
@@ -2110,9 +2471,11 @@ app.post("/make-server-50b25a4f/subscription/update", async (c) => {
     }
 
     const userType = profile.userType === "seller" ? "seller" : "buyer";
-    const baseAmount = roundMoney(SUBSCRIPTION_PLAN_PRICING[userType][plan]);
-    const transactionFee = calculateTransactionFee(baseAmount);
-    const totalCharged = roundMoney(baseAmount + transactionFee);
+    const baseAmount = roundXafAmount(SUBSCRIPTION_PLAN_PRICING[userType][plan]);
+    const transactionFee = userType === "buyer" && plan === "monthly"
+      ? Math.max(1, calculateTransactionFee(baseAmount))
+      : calculateTransactionFee(baseAmount);
+    const totalCharged = roundXafAmount(baseAmount + transactionFee);
     const reference = `SUB-${paymentMethod.toUpperCase()}-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
 
     const paymentResult = await processInboundMobileMoneyPayment({
@@ -2232,6 +2595,21 @@ app.get("/make-server-50b25a4f/orders", async (c) => {
       filteredOrders.map(async (order: any) => {
         const escrow = await kv.get(`escrow:${order.escrowId}`);
         const listing = await kv.get(`listing:${order.itemId}`);
+        const seller = order?.sellerId ? await getUserProfile(order.sellerId) : null;
+
+        const listingType = listing?.type === "rent" ? "rent" : "sell";
+        const rentalPeriod = listingType === "rent" ? (listing?.rentalPeriod || "monthly") : null;
+        const rentalStartSource = order?.pickupDate || order?.createdAt;
+        const rentalStart = rentalStartSource ? new Date(rentalStartSource) : null;
+        const rentalEnd = rentalStart ? new Date(rentalStart.getTime()) : null;
+        if (rentalEnd && rentalPeriod === "daily") {
+          rentalEnd.setDate(rentalEnd.getDate() + 1);
+        } else if (rentalEnd && rentalPeriod === "weekly") {
+          rentalEnd.setDate(rentalEnd.getDate() + 7);
+        } else if (rentalEnd && rentalPeriod === "monthly") {
+          rentalEnd.setMonth(rentalEnd.getMonth() + 1);
+        }
+
         return {
           ...order,
           statusLabel: normalizeOrderStatusLabel(order.status),
@@ -2239,6 +2617,11 @@ app.get("/make-server-50b25a4f/orders", async (c) => {
           proofImageUrl: order.deliveryProofUrl || escrow?.proof_image_url || "",
           listingTitle: listing?.title || "Unknown Item",
           listingImage: listing?.images?.[0] || "",
+          listingType,
+          rentalPeriod,
+          rentalStartDate: rentalStart ? rentalStart.toISOString() : null,
+          rentalEndDate: rentalEnd ? rentalEnd.toISOString() : null,
+          sellerName: seller?.name || "",
         };
       }),
     );
@@ -2378,6 +2761,143 @@ app.put("/make-server-50b25a4f/orders/:id/seller-proof", async (c) => {
   } catch (error) {
     console.error("Seller proof upload error:", error);
     return c.json({ error: "Failed to upload delivery proof" }, 500);
+  }
+});
+
+// Seller accepts or rejects an order
+app.put("/make-server-50b25a4f/orders/:id/seller-decision", async (c) => {
+  const user = await verifyAuth(c.req.header("Authorization"));
+  if (!user) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
+  try {
+    const orderId = c.req.param("id");
+    const order = await kv.get(`order:${orderId}`);
+    if (!order) {
+      return c.json({ error: "Order not found" }, 404);
+    }
+    if (order.sellerId !== user.id) {
+      return c.json({ error: "Only the seller can decide on this order" }, 403);
+    }
+    if (order.status !== ORDER_STATUS.PAID_PENDING_DELIVERY) {
+      return c.json({ error: "Order is not awaiting seller action" }, 400);
+    }
+
+    const body = await c.req.json().catch(() => ({}));
+    const decision = body?.decision === "rejected" ? "rejected" : "accepted";
+    const reason = typeof body?.reason === "string" ? body.reason.trim() : "";
+
+    if (decision === "rejected") {
+      const { order: refundedOrder, escrow } = await refundEscrowOrder(order, user.id, reason || "Seller rejected order");
+      await createUserNotification(order.buyerId, {
+        type: "order_rejected",
+        title: "Order rejected by seller",
+        message: `Seller rejected order ${orderId}. Refund has been initiated.`,
+        priority: "high",
+        data: {
+          orderId,
+          reason: reason || "Seller rejected order",
+        },
+      });
+
+      return c.json({
+        success: true,
+        order: { ...refundedOrder, statusLabel: normalizeOrderStatusLabel(refundedOrder.status) },
+        escrow,
+      });
+    }
+
+    const now = new Date().toISOString();
+    const updatedOrder = {
+      ...order,
+      sellerDecision: "accepted",
+      sellerAcceptedAt: now,
+      sellerDecisionReason: reason,
+      updatedAt: now,
+    };
+    await kv.set(`order:${orderId}`, updatedOrder);
+    await kv.set(`transaction:${orderId}`, buildLegacyTransaction(updatedOrder));
+
+    await createUserNotification(order.buyerId, {
+      type: "order_accepted",
+      title: "Order accepted by seller",
+      message: `Seller accepted order ${orderId}. Awaiting delivery confirmation.`,
+      priority: "normal",
+      data: {
+        orderId,
+      },
+    });
+
+    return c.json({
+      success: true,
+      order: { ...updatedOrder, statusLabel: normalizeOrderStatusLabel(updatedOrder.status) },
+    });
+  } catch (error) {
+    console.error("Seller decision error:", error);
+    return c.json({ error: "Failed to process seller decision" }, 500);
+  }
+});
+
+// Seller marks rental as returned/ended
+app.put("/make-server-50b25a4f/orders/:id/seller-returned", async (c) => {
+  const user = await verifyAuth(c.req.header("Authorization"));
+  if (!user) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
+  try {
+    const orderId = c.req.param("id");
+    const order = await kv.get(`order:${orderId}`);
+    if (!order) {
+      return c.json({ error: "Order not found" }, 404);
+    }
+    if (order.sellerId !== user.id) {
+      return c.json({ error: "Only the seller can mark this rental as returned" }, 403);
+    }
+
+    const listing = await kv.get(`listing:${order.itemId}`);
+    const isRentalOrder = listing?.type === "rent" || Boolean(order?.rentalPeriod);
+    if (!isRentalOrder) {
+      return c.json({ error: "This order is not a rental transaction" }, 400);
+    }
+
+    const now = new Date().toISOString();
+    const updatedOrder = {
+      ...order,
+      rentalReturnStatus: "ended",
+      sellerMarkedReturnedAt: now,
+      updatedAt: now,
+    };
+
+    await kv.set(`order:${orderId}`, updatedOrder);
+    await kv.set(`transaction:${orderId}`, buildLegacyTransaction(updatedOrder));
+
+    if (listing && typeof listing === "object") {
+      listing.status = "available";
+      listing.updatedAt = now;
+      listing.reservedBy = "";
+      await kv.set(`listing:${order.itemId}`, listing);
+    }
+
+    await createUserNotification(order.buyerId, {
+      type: "rental_returned",
+      title: "Rental marked returned",
+      message: `Seller marked rental order ${orderId} as returned.`,
+      priority: "normal",
+      data: {
+        orderId,
+        itemId: order.itemId,
+      },
+    });
+
+    return c.json({
+      success: true,
+      order: { ...updatedOrder, statusLabel: normalizeOrderStatusLabel(updatedOrder.status) },
+    });
+  } catch (error) {
+    console.error("Seller return mark error:", error);
+    return c.json({ error: "Failed to mark rental as returned" }, 500);
   }
 });
 
@@ -2530,7 +3050,7 @@ app.post("/make-server-50b25a4f/wallet/withdrawals", async (c) => {
 
   try {
     const body = await c.req.json();
-    const amount = roundMoney(body?.amount);
+    const amount = roundXafAmount(body?.amount);
     const provider = body?.provider === "orange-money" ? "orange-money" : "mtn-momo";
     const phoneNumber = normalizePhone(body?.phoneNumber);
 
@@ -3048,6 +3568,25 @@ app.get("/make-server-50b25a4f/reviews/:userId", async (c) => {
   }
 });
 
+async function recalculateSellerRating(sellerId: string) {
+  if (!sellerId) return;
+  const seller = await getUserProfile(sellerId);
+  if (!seller) return;
+
+  const allReviews = (await kv.getByPrefix("review:")) || [];
+  const sellerReviews = allReviews.filter((review: any) => review?.sellerId === sellerId);
+  const reviewCount = sellerReviews.length;
+  const total = sellerReviews.reduce((sum: number, review: any) => sum + toSafeNumber(review?.rating, 0), 0);
+  const rating = reviewCount > 0 ? roundMoney(total / reviewCount) : 0;
+
+  const updated = {
+    ...seller,
+    reviewCount,
+    rating,
+  };
+  await kv.set(`user:${sellerId}`, updated);
+}
+
 // ============ ADMIN ROUTES ============
 
 // Get pending users (admin only)
@@ -3176,6 +3715,635 @@ app.get("/make-server-50b25a4f/admin/users", async (c) => {
   } catch (error) {
     console.error('Get all users error:', error);
     return c.json({ error: 'Failed to get users' }, 500);
+  }
+});
+
+// Get user full details (admin only)
+app.get("/make-server-50b25a4f/admin/users/:id/details", async (c) => {
+  const user = await verifyAuth(c.req.header("Authorization"));
+
+  if (!user) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
+  const adminProfile = await getUserProfile(user.id);
+  if (!adminProfile || adminProfile.role !== "admin") {
+    return c.json({ error: "Forbidden - Admin only" }, 403);
+  }
+
+  try {
+    const userId = c.req.param("id");
+    const targetUser = await getUserProfile(userId);
+    if (!targetUser) {
+      return c.json({ error: "User not found" }, 404);
+    }
+
+    const [allListings, allReviews, allReports, allMessages, allTransactions, allOrders] = await Promise.all([
+      kv.getByPrefix("listing:"),
+      kv.getByPrefix("review:"),
+      kv.getByPrefix("report:"),
+      kv.getByPrefix("message:"),
+      kv.getByPrefix("transaction:"),
+      kv.getByPrefix("order:"),
+    ]);
+
+    const userListings = (allListings || [])
+      .filter((listing: any) => listing?.sellerId === userId)
+      .sort(sortByCreatedDesc);
+
+    const reviewsReceived = (allReviews || [])
+      .filter((review: any) => review?.sellerId === userId)
+      .sort((a: any, b: any) => String(b.timestamp || "").localeCompare(String(a.timestamp || "")));
+
+    const reviewsWritten = (allReviews || [])
+      .filter((review: any) => review?.reviewerId === userId)
+      .sort((a: any, b: any) => String(b.timestamp || "").localeCompare(String(a.timestamp || "")));
+
+    const reportsAgainstUser = (allReports || [])
+      .filter((report: any) => report?.targetUserId === userId)
+      .sort(sortByCreatedDesc);
+
+    const reportsByUser = (allReports || [])
+      .filter((report: any) => report?.reporterId === userId)
+      .sort(sortByCreatedDesc);
+
+    const userMessages = (allMessages || [])
+      .filter((message: any) => message?.senderId === userId || message?.receiverId === userId)
+      .sort((a: any, b: any) => String(b.timestamp || "").localeCompare(String(a.timestamp || "")));
+
+    const orderTransactions = (allOrders || []).map((order: any) => buildLegacyTransaction(order));
+    const dedupedTransactions = new Map<string, any>();
+    [...orderTransactions, ...(allTransactions || [])]
+      .filter((transaction: any) => transaction && typeof transaction === "object" && typeof transaction.id === "string")
+      .forEach((transaction: any) => dedupedTransactions.set(transaction.id, transaction));
+
+    const transactionsHistory = Array.from(dedupedTransactions.values())
+      .filter((transaction: any) => transaction?.buyerId === userId || transaction?.sellerId === userId)
+      .sort((a: any, b: any) => String(b.createdAt || b.timestamp || "").localeCompare(String(a.createdAt || a.timestamp || "")));
+
+    const ordersRelated = (allOrders || [])
+      .filter((order: any) => order?.buyerId === userId || order?.sellerId === userId)
+      .sort(sortByCreatedDesc);
+
+    const activityLog: any[] = [];
+
+    for (const listing of userListings) {
+      activityLog.push({
+        type: "listing_created",
+        message: `Created listing: ${listing?.title || listing?.id || "Listing"}`,
+        createdAt: listing?.createdAt || "",
+        meta: {
+          listingId: listing?.id || "",
+        },
+      });
+    }
+
+    for (const order of ordersRelated) {
+      const role = order?.buyerId === userId ? "buyer" : "seller";
+      activityLog.push({
+        type: role === "buyer" ? "order_placed" : "order_received",
+        message:
+          role === "buyer"
+            ? `Placed order for ${order?.listingTitle || order?.itemId || "item"}`
+            : `Received order for ${order?.listingTitle || order?.itemId || "item"}`,
+        createdAt: order?.createdAt || "",
+        meta: {
+          orderId: order?.id || "",
+          status: order?.status || "",
+        },
+      });
+    }
+
+    for (const review of reviewsReceived) {
+      activityLog.push({
+        type: "review_received",
+        message: `Received ${toSafeNumber(review?.rating, 0)}-star review`,
+        createdAt: review?.timestamp || "",
+        meta: {
+          reviewId: review?.id || "",
+        },
+      });
+    }
+
+    for (const review of reviewsWritten) {
+      activityLog.push({
+        type: "review_written",
+        message: `Wrote ${toSafeNumber(review?.rating, 0)}-star review`,
+        createdAt: review?.timestamp || "",
+        meta: {
+          reviewId: review?.id || "",
+        },
+      });
+    }
+
+    for (const report of reportsAgainstUser) {
+      activityLog.push({
+        type: "report_against_user",
+        message: `Report filed against user (${report?.category || "general"})`,
+        createdAt: report?.createdAt || "",
+        meta: {
+          reportId: report?.id || "",
+          status: report?.status || "",
+        },
+      });
+    }
+
+    for (const report of reportsByUser) {
+      activityLog.push({
+        type: "report_submitted",
+        message: `Submitted report (${report?.category || "general"})`,
+        createdAt: report?.createdAt || "",
+        meta: {
+          reportId: report?.id || "",
+          status: report?.status || "",
+        },
+      });
+    }
+
+    for (const message of userMessages.slice(0, 80)) {
+      const outgoing = message?.senderId === userId;
+      activityLog.push({
+        type: outgoing ? "message_sent" : "message_received",
+        message: outgoing ? "Sent message" : "Received message",
+        createdAt: message?.timestamp || "",
+        meta: {
+          messageId: message?.id || "",
+          otherUserId: outgoing ? message?.receiverId : message?.senderId,
+        },
+      });
+    }
+
+    activityLog.sort((a: any, b: any) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
+
+    return c.json({
+      user: targetUser,
+      activityLog: activityLog.slice(0, 200),
+      listings: userListings,
+      reviewsReceived,
+      transactionsHistory,
+      reportsAgainstUser,
+    });
+  } catch (error) {
+    console.error("Get admin user details error:", error);
+    return c.json({ error: "Failed to get user details" }, 500);
+  }
+});
+
+// Get all reviews (admin only)
+app.get("/make-server-50b25a4f/admin/reviews", async (c) => {
+  const user = await verifyAuth(c.req.header("Authorization"));
+
+  if (!user) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
+  const profile = await getUserProfile(user.id);
+  if (!profile || profile.role !== "admin") {
+    return c.json({ error: "Forbidden - Admin only" }, 403);
+  }
+
+  try {
+    const allReviews = (await kv.getByPrefix("review:")) || [];
+    const reviews = await Promise.all(
+      allReviews.map(async (review: any) => {
+        const [reviewer, seller] = await Promise.all([
+          review?.reviewerId ? getUserProfile(review.reviewerId) : Promise.resolve(null),
+          review?.sellerId ? getUserProfile(review.sellerId) : Promise.resolve(null),
+        ]);
+        return {
+          ...review,
+          reviewerName: reviewer?.name || "Unknown User",
+          sellerName: seller?.name || "Unknown User",
+          reviewerIsBlocked: Boolean(reviewer?.isBanned),
+        };
+      }),
+    );
+
+    reviews.sort((a: any, b: any) => String(b.timestamp || "").localeCompare(String(a.timestamp || "")));
+    return c.json({ reviews });
+  } catch (error) {
+    console.error("Get admin reviews error:", error);
+    return c.json({ error: "Failed to get reviews" }, 500);
+  }
+});
+
+// Delete abusive review (admin only)
+app.delete("/make-server-50b25a4f/admin/reviews/:id", async (c) => {
+  const user = await verifyAuth(c.req.header("Authorization"));
+
+  if (!user) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
+  const profile = await getUserProfile(user.id);
+  if (!profile || profile.role !== "admin") {
+    return c.json({ error: "Forbidden - Admin only" }, 403);
+  }
+
+  try {
+    const reviewId = decodeURIComponent(c.req.param("id"));
+    const review = await kv.get(reviewId);
+    if (!review) {
+      return c.json({ error: "Review not found" }, 404);
+    }
+
+    await kv.del(reviewId);
+    await recalculateSellerRating(review?.sellerId || "");
+
+    return c.json({ success: true });
+  } catch (error) {
+    console.error("Delete admin review error:", error);
+    return c.json({ error: "Failed to delete review" }, 500);
+  }
+});
+
+// Block spam reviewer (admin only)
+app.post("/make-server-50b25a4f/admin/reviews/:id/block-reviewer", async (c) => {
+  const user = await verifyAuth(c.req.header("Authorization"));
+
+  if (!user) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
+  const profile = await getUserProfile(user.id);
+  if (!profile || profile.role !== "admin") {
+    return c.json({ error: "Forbidden - Admin only" }, 403);
+  }
+
+  try {
+    const reviewId = decodeURIComponent(c.req.param("id"));
+    const review = await kv.get(reviewId);
+    if (!review?.reviewerId) {
+      return c.json({ error: "Review not found" }, 404);
+    }
+
+    const reviewer = await getUserProfile(review.reviewerId);
+    if (!reviewer) {
+      return c.json({ error: "Reviewer not found" }, 404);
+    }
+
+    reviewer.isBanned = true;
+    reviewer.updatedAt = new Date().toISOString();
+    await kv.set(`user:${review.reviewerId}`, reviewer);
+
+    return c.json({ success: true, reviewer });
+  } catch (error) {
+    console.error("Block reviewer error:", error);
+    return c.json({ error: "Failed to block reviewer" }, 500);
+  }
+});
+
+// List universities (public)
+app.get("/make-server-50b25a4f/universities", async (c) => {
+  try {
+    const universities = await ensureAdminUniversities();
+    return c.json({ universities: universities.filter((entry: any) => entry?.isActive) });
+  } catch (error) {
+    console.error("Get universities error:", error);
+    return c.json({ error: "Failed to get universities" }, 500);
+  }
+});
+
+// List categories (public)
+app.get("/make-server-50b25a4f/categories", async (c) => {
+  try {
+    const categories = await ensureAdminCategories();
+    return c.json({ categories: categories.filter((entry: any) => entry?.isActive) });
+  } catch (error) {
+    console.error("Get categories error:", error);
+    return c.json({ error: "Failed to get categories" }, 500);
+  }
+});
+
+// List universities (admin only)
+app.get("/make-server-50b25a4f/admin/universities", async (c) => {
+  const user = await verifyAuth(c.req.header("Authorization"));
+  if (!user) return c.json({ error: "Unauthorized" }, 401);
+  const profile = await getUserProfile(user.id);
+  if (!profile || profile.role !== "admin") return c.json({ error: "Forbidden - Admin only" }, 403);
+
+  try {
+    const universities = await ensureAdminUniversities();
+    universities.sort((a: any, b: any) => String(a?.name || "").localeCompare(String(b?.name || "")));
+    return c.json({ universities });
+  } catch (error) {
+    console.error("Get admin universities error:", error);
+    return c.json({ error: "Failed to get universities" }, 500);
+  }
+});
+
+// Add university (admin only)
+app.post("/make-server-50b25a4f/admin/universities", async (c) => {
+  const user = await verifyAuth(c.req.header("Authorization"));
+  if (!user) return c.json({ error: "Unauthorized" }, 401);
+  const profile = await getUserProfile(user.id);
+  if (!profile || profile.role !== "admin") return c.json({ error: "Forbidden - Admin only" }, 403);
+
+  try {
+    const body = await c.req.json().catch(() => ({}));
+    const name = typeof body?.name === "string" ? body.name.trim() : "";
+    if (!name) return c.json({ error: "University name is required" }, 400);
+
+    const universities = await ensureAdminUniversities();
+    const duplicate = universities.some((entry: any) => String(entry?.name || "").toLowerCase() === name.toLowerCase());
+    if (duplicate) return c.json({ error: "University already exists" }, 400);
+
+    const now = new Date().toISOString();
+    const next = [
+      ...universities,
+      {
+        id: createEntityId("UNI"),
+        name,
+        isActive: true,
+        createdAt: now,
+        updatedAt: now,
+      },
+    ];
+    await kv.set("admin:universities", next);
+    return c.json({ success: true, universities: next });
+  } catch (error) {
+    console.error("Create university error:", error);
+    return c.json({ error: "Failed to create university" }, 500);
+  }
+});
+
+// Update university (admin only)
+app.put("/make-server-50b25a4f/admin/universities/:id", async (c) => {
+  const user = await verifyAuth(c.req.header("Authorization"));
+  if (!user) return c.json({ error: "Unauthorized" }, 401);
+  const profile = await getUserProfile(user.id);
+  if (!profile || profile.role !== "admin") return c.json({ error: "Forbidden - Admin only" }, 403);
+
+  try {
+    const universityId = c.req.param("id");
+    const body = await c.req.json().catch(() => ({}));
+    const universities = await ensureAdminUniversities();
+    const idx = universities.findIndex((entry: any) => entry?.id === universityId);
+    if (idx < 0) return c.json({ error: "University not found" }, 404);
+
+    const current: any = universities[idx] || {};
+    const nextName = typeof body?.name === "string" && body.name.trim() ? body.name.trim() : String(current.name || "");
+    const nextIsActive = typeof body?.isActive === "boolean" ? body.isActive : Boolean(current.isActive);
+    universities[idx] = {
+      ...current,
+      name: nextName,
+      isActive: nextIsActive,
+      updatedAt: new Date().toISOString(),
+    };
+    await kv.set("admin:universities", universities);
+    return c.json({ success: true, universities });
+  } catch (error) {
+    console.error("Update university error:", error);
+    return c.json({ error: "Failed to update university" }, 500);
+  }
+});
+
+// Delete university (admin only)
+app.delete("/make-server-50b25a4f/admin/universities/:id", async (c) => {
+  const user = await verifyAuth(c.req.header("Authorization"));
+  if (!user) return c.json({ error: "Unauthorized" }, 401);
+  const profile = await getUserProfile(user.id);
+  if (!profile || profile.role !== "admin") return c.json({ error: "Forbidden - Admin only" }, 403);
+
+  try {
+    const universityId = c.req.param("id");
+    const universities = await ensureAdminUniversities();
+    const next = universities.filter((entry: any) => entry?.id !== universityId);
+    await kv.set("admin:universities", next);
+    return c.json({ success: true, universities: next });
+  } catch (error) {
+    console.error("Delete university error:", error);
+    return c.json({ error: "Failed to delete university" }, 500);
+  }
+});
+
+// List categories (admin only)
+app.get("/make-server-50b25a4f/admin/categories", async (c) => {
+  const user = await verifyAuth(c.req.header("Authorization"));
+  if (!user) return c.json({ error: "Unauthorized" }, 401);
+  const profile = await getUserProfile(user.id);
+  if (!profile || profile.role !== "admin") return c.json({ error: "Forbidden - Admin only" }, 403);
+
+  try {
+    const categories = await ensureAdminCategories();
+    categories.sort((a: any, b: any) => String(a?.name || "").localeCompare(String(b?.name || "")));
+    return c.json({ categories });
+  } catch (error) {
+    console.error("Get admin categories error:", error);
+    return c.json({ error: "Failed to get categories" }, 500);
+  }
+});
+
+// Add category (admin only)
+app.post("/make-server-50b25a4f/admin/categories", async (c) => {
+  const user = await verifyAuth(c.req.header("Authorization"));
+  if (!user) return c.json({ error: "Unauthorized" }, 401);
+  const profile = await getUserProfile(user.id);
+  if (!profile || profile.role !== "admin") return c.json({ error: "Forbidden - Admin only" }, 403);
+
+  try {
+    const body = await c.req.json().catch(() => ({}));
+    const name = typeof body?.name === "string" ? body.name.trim() : "";
+    if (!name) return c.json({ error: "Category name is required" }, 400);
+
+    const categories = await ensureAdminCategories();
+    const duplicate = categories.some((entry: any) => String(entry?.name || "").toLowerCase() === name.toLowerCase());
+    if (duplicate) return c.json({ error: "Category already exists" }, 400);
+
+    const now = new Date().toISOString();
+    const next = [
+      ...categories,
+      {
+        id: createEntityId("CAT"),
+        name,
+        isActive: true,
+        createdAt: now,
+        updatedAt: now,
+      },
+    ];
+    await kv.set("admin:categories", next);
+    return c.json({ success: true, categories: next });
+  } catch (error) {
+    console.error("Create category error:", error);
+    return c.json({ error: "Failed to create category" }, 500);
+  }
+});
+
+// Update category (admin only)
+app.put("/make-server-50b25a4f/admin/categories/:id", async (c) => {
+  const user = await verifyAuth(c.req.header("Authorization"));
+  if (!user) return c.json({ error: "Unauthorized" }, 401);
+  const profile = await getUserProfile(user.id);
+  if (!profile || profile.role !== "admin") return c.json({ error: "Forbidden - Admin only" }, 403);
+
+  try {
+    const categoryId = c.req.param("id");
+    const body = await c.req.json().catch(() => ({}));
+    const categories = await ensureAdminCategories();
+    const idx = categories.findIndex((entry: any) => entry?.id === categoryId);
+    if (idx < 0) return c.json({ error: "Category not found" }, 404);
+
+    const current: any = categories[idx] || {};
+    const nextName = typeof body?.name === "string" && body.name.trim() ? body.name.trim() : String(current.name || "");
+    const nextIsActive = typeof body?.isActive === "boolean" ? body.isActive : Boolean(current.isActive);
+    categories[idx] = {
+      ...current,
+      name: nextName,
+      isActive: nextIsActive,
+      updatedAt: new Date().toISOString(),
+    };
+    await kv.set("admin:categories", categories);
+    return c.json({ success: true, categories });
+  } catch (error) {
+    console.error("Update category error:", error);
+    return c.json({ error: "Failed to update category" }, 500);
+  }
+});
+
+// Delete category (admin only)
+app.delete("/make-server-50b25a4f/admin/categories/:id", async (c) => {
+  const user = await verifyAuth(c.req.header("Authorization"));
+  if (!user) return c.json({ error: "Unauthorized" }, 401);
+  const profile = await getUserProfile(user.id);
+  if (!profile || profile.role !== "admin") return c.json({ error: "Forbidden - Admin only" }, 403);
+
+  try {
+    const categoryId = c.req.param("id");
+    const categories = await ensureAdminCategories();
+    const next = categories.filter((entry: any) => entry?.id !== categoryId);
+    await kv.set("admin:categories", next);
+    return c.json({ success: true, categories: next });
+  } catch (error) {
+    console.error("Delete category error:", error);
+    return c.json({ error: "Failed to delete category" }, 500);
+  }
+});
+
+// Analytics (admin only)
+app.get("/make-server-50b25a4f/admin/analytics", async (c) => {
+  const user = await verifyAuth(c.req.header("Authorization"));
+
+  if (!user) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
+  const profile = await getUserProfile(user.id);
+  if (!profile || profile.role !== "admin") {
+    return c.json({ error: "Forbidden - Admin only" }, 403);
+  }
+
+  try {
+    const [allListings, allTransactions, allOrders, allUsers, categories, universities] = await Promise.all([
+      kv.getByPrefix("listing:"),
+      kv.getByPrefix("transaction:"),
+      kv.getByPrefix("order:"),
+      kv.getByPrefix("user:"),
+      ensureAdminCategories(),
+      ensureAdminUniversities(),
+    ]);
+
+    const categoryNameMap = new Map<string, string>();
+    for (const category of categories) {
+      const key = String(category?.id || "").trim().toLowerCase();
+      const name = String(category?.name || "").trim();
+      if (key) categoryNameMap.set(key, name);
+      if (name) categoryNameMap.set(name.toLowerCase(), name);
+    }
+
+    const universityNameMap = new Map<string, string>();
+    for (const university of universities) {
+      const key = String(university?.id || "").trim().toLowerCase();
+      const name = String(university?.name || "").trim();
+      if (key) universityNameMap.set(key, name);
+      if (name) universityNameMap.set(name.toLowerCase(), name);
+    }
+
+    const listingsByDay = new Map<string, number>();
+    for (const listing of allListings || []) {
+      const day = toDayKey(listing?.createdAt);
+      if (!day) continue;
+      listingsByDay.set(day, (listingsByDay.get(day) || 0) + 1);
+    }
+
+    const transactionsFromOrders = (allOrders || []).map((order: any) => buildLegacyTransaction(order));
+    const dedupedTransactions = new Map<string, any>();
+    [...transactionsFromOrders, ...(allTransactions || [])]
+      .filter((transaction: any) => transaction && typeof transaction === "object" && typeof transaction.id === "string")
+      .forEach((transaction: any) => dedupedTransactions.set(transaction.id, transaction));
+    const transactionList = Array.from(dedupedTransactions.values());
+
+    const transactionsByDay = new Map<string, number>();
+    for (const transaction of transactionList) {
+      const day = toDayKey(transaction?.createdAt || transaction?.timestamp);
+      if (!day) continue;
+      transactionsByDay.set(day, (transactionsByDay.get(day) || 0) + 1);
+    }
+
+    const topCategoriesMap = new Map<string, number>();
+    for (const listing of allListings || []) {
+      const rawCategory = String(listing?.category || "").trim();
+      if (!rawCategory) continue;
+      const resolvedCategory = categoryNameMap.get(rawCategory.toLowerCase()) || rawCategory;
+      topCategoriesMap.set(resolvedCategory, (topCategoriesMap.get(resolvedCategory) || 0) + 1);
+    }
+
+    const topUniversitiesMap = new Map<string, number>();
+    for (const u of allUsers || []) {
+      if (!u || u.role === "admin") continue;
+      const rawUniversity = String(u.university || "").trim();
+      if (!rawUniversity) continue;
+      const resolvedUniversity = universityNameMap.get(rawUniversity.toLowerCase()) || rawUniversity;
+      topUniversitiesMap.set(resolvedUniversity, (topUniversitiesMap.get(resolvedUniversity) || 0) + 1);
+    }
+
+    const topSellersMap = new Map<string, { sellerId: string; sellerName: string; count: number; amount: number }>();
+    for (const order of allOrders || []) {
+      if (!order?.sellerId) continue;
+      const sellerId = String(order.sellerId);
+      const sellerProfile = (allUsers || []).find((u: any) => u?.id === sellerId);
+      const current = topSellersMap.get(sellerId) || {
+        sellerId,
+        sellerName: sellerProfile?.name || "Unknown Seller",
+        count: 0,
+        amount: 0,
+      };
+      current.count += 1;
+      current.amount += toSafeNumber(order?.amount, 0);
+      topSellersMap.set(sellerId, current);
+    }
+
+    const dailyListingsPosted = Array.from(listingsByDay.entries())
+      .map(([date, count]) => ({ date, count }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    const dailyTransactions = Array.from(transactionsByDay.entries())
+      .map(([date, count]) => ({ date, count }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    const topCategories = Array.from(topCategoriesMap.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+
+    const topUniversities = Array.from(topUniversitiesMap.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+
+    const topSellers = Array.from(topSellersMap.values())
+      .sort((a, b) => b.amount - a.amount || b.count - a.count)
+      .slice(0, 10);
+
+    return c.json({
+      dailyListingsPosted,
+      dailyTransactions,
+      topCategories,
+      topUniversities,
+      topSellers,
+    });
+  } catch (error) {
+    console.error("Get analytics error:", error);
+    return c.json({ error: "Failed to get analytics" }, 500);
   }
 });
 
@@ -3465,7 +4633,7 @@ app.post("/make-server-50b25a4f/admin/payouts/:sellerId/pay", async (c) => {
 
     const body = await c.req.json().catch(() => ({}));
     const requestedAmount = toSafeNumber(body?.amount, payout.pendingAmount);
-    const amountToPay = Math.min(Math.max(0, requestedAmount), payout.pendingAmount);
+    const amountToPay = roundXafAmount(Math.min(Math.max(0, requestedAmount), payout.pendingAmount));
 
     if (amountToPay <= 0) {
       return c.json({ error: "Invalid payout amount" }, 400);
@@ -3491,7 +4659,7 @@ app.post("/make-server-50b25a4f/admin/payouts/:sellerId/pay", async (c) => {
     const payoutRecord = {
       id: payoutId,
       userId: sellerId,
-      amount: roundMoney(amountToPay),
+      amount: roundXafAmount(amountToPay),
       provider: payoutProvider,
       phoneNumber: sellerPhone,
       status: WITHDRAWAL_STATUS.COMPLETED,

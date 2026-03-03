@@ -19,11 +19,23 @@ interface User {
   subscriptionEndDate?: string;
   profilePicture?: string;
   avatar?: string;
+  notificationPreferences?: {
+    messages: boolean;
+    orders: boolean;
+    payments: boolean;
+    rentals: boolean;
+  };
+  privacyOptions?: {
+    showPhone: boolean;
+    showEmail: boolean;
+    profileVisibility: 'public' | 'private';
+  };
 }
 
 interface AuthContextType {
   currentUser: User | null;
   accessToken: string | null;
+  refreshAuthToken: (tokenOverride?: string | null) => Promise<string | null>;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   register: (userData: RegisterData) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
@@ -66,23 +78,26 @@ const normalizeUser = (user: any): User => {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [refreshToken, setRefreshToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Check if user is stored in localStorage on mount
   useEffect(() => {
     const storedUser = localStorage.getItem('currentUser');
     const storedToken = localStorage.getItem('accessToken');
+    const storedRefreshToken = localStorage.getItem('refreshToken');
     
     if (storedUser && storedToken) {
       setCurrentUser(normalizeUser(JSON.parse(storedUser)));
       setAccessToken(storedToken);
+      setRefreshToken(storedRefreshToken || null);
       // Verify and refresh user data
-      refreshUserData(storedToken);
+      refreshUserData(storedToken, storedRefreshToken);
     }
     setLoading(false);
   }, []);
 
-  const refreshUserData = async (token: string) => {
+  const refreshUserData = async (token: string, fallbackRefreshToken?: string | null) => {
     try {
       const response = await fetch(`${API_URL}/auth/me`, {
         headers: {
@@ -95,6 +110,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const normalizedUser = normalizeUser(data.user);
         setCurrentUser(normalizedUser);
         localStorage.setItem('currentUser', JSON.stringify(normalizedUser));
+      } else if (response.status === 401) {
+        const nextToken = await refreshAuthToken(fallbackRefreshToken || null);
+        if (!nextToken) {
+          logout();
+          return;
+        }
+
+        const retryResponse = await fetch(`${API_URL}/auth/me`, {
+          headers: {
+            'Authorization': `Bearer ${nextToken}`,
+          },
+        });
+
+        if (retryResponse.ok) {
+          const retryData = await retryResponse.json();
+          const normalizedUser = normalizeUser(retryData.user);
+          setCurrentUser(normalizedUser);
+          localStorage.setItem('currentUser', JSON.stringify(normalizedUser));
+        } else {
+          logout();
+        }
       } else {
         // Token invalid, clear auth
         logout();
@@ -107,6 +143,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const refreshUser = async () => {
     if (accessToken) {
       await refreshUserData(accessToken);
+    }
+  };
+
+  const refreshAuthToken = async (tokenOverride?: string | null): Promise<string | null> => {
+    const tokenToUse = tokenOverride || refreshToken || localStorage.getItem('refreshToken');
+    if (!tokenToUse) {
+      return null;
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/auth/refresh`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ refreshToken: tokenToUse }),
+      });
+
+      if (!response.ok) {
+        logout();
+        return null;
+      }
+
+      const data = await response.json();
+      const nextAccessToken = typeof data?.accessToken === 'string' ? data.accessToken : null;
+      const nextRefreshToken =
+        typeof data?.refreshToken === 'string' ? data.refreshToken : tokenToUse;
+
+      if (!nextAccessToken) {
+        logout();
+        return null;
+      }
+
+      setAccessToken(nextAccessToken);
+      setRefreshToken(nextRefreshToken);
+      localStorage.setItem('accessToken', nextAccessToken);
+      localStorage.setItem('refreshToken', nextRefreshToken);
+      return nextAccessToken;
+    } catch (error) {
+      console.error('Token refresh error:', error);
+      return null;
     }
   };
 
@@ -129,8 +206,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const normalizedUser = normalizeUser(data.user);
       setCurrentUser(normalizedUser);
       setAccessToken(data.accessToken);
+      setRefreshToken(data.refreshToken || null);
       localStorage.setItem('currentUser', JSON.stringify(normalizedUser));
       localStorage.setItem('accessToken', data.accessToken);
+      if (data.refreshToken) {
+        localStorage.setItem('refreshToken', data.refreshToken);
+      } else {
+        localStorage.removeItem('refreshToken');
+      }
       
       return { success: true };
     } catch (error) {
@@ -174,8 +257,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = () => {
     setCurrentUser(null);
     setAccessToken(null);
+    setRefreshToken(null);
     localStorage.removeItem('currentUser');
     localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
   };
 
   const updateProfile = async (data: Partial<User>): Promise<boolean> => {
@@ -209,6 +294,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value = {
     currentUser,
     accessToken,
+    refreshAuthToken,
     login,
     register,
     logout,
