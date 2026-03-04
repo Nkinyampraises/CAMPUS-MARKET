@@ -117,14 +117,14 @@ export function Marketplace() {
   }, [searchQuery, selectedCategory, selectedType, sortBy, listings]);
 
   return (
-    <div className="bg-gray-50 min-h-screen py-8">
+    <div className="bg-background min-h-screen py-8 text-foreground">
       <div className="container mx-auto px-4">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Marketplace</h1>
           <p className="text-muted-foreground">Browse items from students across Cameroon universities</p>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
+        <div className="bg-card rounded-lg border border-border shadow-sm p-4 mb-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <div className="lg:col-span-2 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -208,10 +208,10 @@ export function Marketplace() {
               return (
                 <Card
                   key={item.id}
-                  className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+                  className="overflow-hidden border border-border hover:shadow-lg transition-shadow cursor-pointer"
                   onClick={() => navigate(`/item/${item.id}`)}
                 >
-                  <div className="aspect-square relative overflow-hidden bg-gray-100">
+                  <div className="aspect-square relative overflow-hidden bg-muted">
                     <img
                       src={item.images?.[0] || ''}
                       alt={item.title}
@@ -226,7 +226,7 @@ export function Marketplace() {
                         e.stopPropagation();
                         handleSaveItem(item.id);
                       }}
-                      className="absolute bottom-2 right-2 p-2 bg-white rounded-full shadow-md hover:bg-gray-100 transition-colors"
+                      className="absolute bottom-2 right-2 p-2 bg-card/95 rounded-full shadow-md hover:bg-accent transition-colors"
                     >
                       <Heart className={`h-5 w-5 ${savedItems.has(item.id) ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
                     </button>
@@ -249,7 +249,7 @@ export function Marketplace() {
 
                     <div className="flex items-center justify-between text-xs">
                       <div className="flex items-center gap-1">
-                        <div className="h-6 w-6 rounded-full bg-green-100 flex items-center justify-center">
+                        <div className="h-6 w-6 rounded-full bg-green-100 dark:bg-green-900/40 flex items-center justify-center">
                           <span className="text-xs font-medium text-green-600">{(seller?.name || 'S').charAt(0)}</span>
                         </div>
                         <span className="text-muted-foreground">{seller?.name || 'Unknown Seller'}</span>

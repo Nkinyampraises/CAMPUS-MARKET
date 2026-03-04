@@ -46,7 +46,7 @@ export function OrderDetails() {
         return;
       }
       setOrderData(data);
-      setProofUrl(data.order?.deliveryProofUrl || '');
+      setProofUrl(data.order?.deliveryProofUrl || data.escrow?.proof_image_url || '');
     } catch (_error) {
       toast.error('Failed to load order');
       navigate('/dashboard');
@@ -130,6 +130,10 @@ export function OrderDetails() {
 
   const handleBuyerConfirm = async () => {
     if (!accessToken || !id) return;
+    if (!receivedConfirmed) {
+      toast.error('Please confirm that you received the item first');
+      return;
+    }
     setSaving(true);
     try {
       const response = await fetch(`${API_URL}/orders/${id}/buyer-confirm`, {
@@ -208,6 +212,7 @@ export function OrderDetails() {
   }
 
   const { order, escrow, listing, buyer, seller, permissions, sellerWallet } = orderData;
+  const proofImageUrl = order.deliveryProofUrl || escrow?.proof_image_url || '';
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-5xl">
@@ -259,11 +264,11 @@ export function OrderDetails() {
               </AlertDescription>
             </Alert>
 
-            {order.deliveryProofUrl ? (
+            {proofImageUrl ? (
               <div className="space-y-2">
                 <Label>Delivery Proof</Label>
                 <img
-                  src={order.deliveryProofUrl}
+                  src={proofImageUrl}
                   alt="Delivery proof"
                   className="w-full max-w-sm rounded-md border object-cover"
                 />
@@ -337,7 +342,7 @@ export function OrderDetails() {
                     <Button
                       className="bg-green-600 hover:bg-green-700"
                       onClick={handleBuyerConfirm}
-                      disabled={saving || !receivedConfirmed || !order.sellerProofUploaded}
+                      disabled={saving || !receivedConfirmed}
                     >
                       {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
                       Confirm Delivery

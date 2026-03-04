@@ -1227,7 +1227,7 @@ export function Messages() {
   };
 
   return (
-    <div className="bg-gray-50 min-h-screen">
+    <div className="bg-background min-h-screen">
       <div className="container mx-auto px-0">
         <div className="hidden md:block p-4">
           <Button variant="ghost" onClick={() => navigate('/dashboard')}>
@@ -1258,7 +1258,7 @@ export function Messages() {
               <div className="flex h-[calc(100vh-140px)] md:h-[calc(100vh-180px)]">
                 {/* Conversations List - WhatsApp style sidebar */}
                 {(showConversations || !isMobileView) && (
-                  <div className={`${isMobileView ? 'absolute inset-0 z-50 bg-white' : 'w-full md:w-1/3'} border-r flex flex-col`}>
+                  <div className={`${isMobileView ? 'absolute inset-0 z-50' : 'w-full md:w-1/3'} border-r bg-card flex flex-col`}>
                     {/* Mobile header for conversations list */}
                     {isMobileView && (
                       <div className="p-4 border-b flex items-center">
@@ -1315,8 +1315,8 @@ export function Messages() {
                           return (
                             <div
                               key={index}
-                              className={`p-4 cursor-pointer hover:bg-gray-50 transition-colors border-b ${
-                                isSelected ? 'bg-gray-100' : ''
+                              className={`p-4 cursor-pointer hover:bg-accent transition-colors border-b ${
+                                isSelected ? 'bg-muted' : ''
                               }`}
                               onClick={() => handleSelectConversation(convo)}
                             >
@@ -1334,7 +1334,7 @@ export function Messages() {
                                     <p className="font-semibold truncate">
                                       {convo.otherUser.name}
                                     </p>
-                                    <p className="text-xs text-gray-500">
+                                    <p className="text-xs text-muted-foreground">
                                       {formatTime(convo.lastMessageTime)}
                                     </p>
                                   </div>
@@ -1344,11 +1344,11 @@ export function Messages() {
                                     </p>
                                   )}
                                   <div className="flex items-center justify-between">
-                                    <p className="text-sm text-gray-600 truncate flex-1 mr-2">
+                                    <p className="text-sm text-muted-foreground truncate flex-1 mr-2">
                                       {lastMessage ? (
                                         <>
                                           {lastMessage.senderId === currentUser?.id && (
-                                            <span className="text-gray-500">You: </span>
+                                            <span className="text-muted-foreground">You: </span>
                                           )}
                                           {lastMessage.messageType === 'voice' ? '🎤 Voice message' : 
                                            lastMessage.messageType === 'image' ? '📷 Image' : 
@@ -1378,7 +1378,7 @@ export function Messages() {
                     {selectedConversation ? (
                       <>
                         {/* Chat Header */}
-                        <div className="p-4 border-b bg-white flex items-center justify-between">
+                        <div className="p-4 border-b bg-card flex items-center justify-between">
                           <div className="flex items-center gap-3">
                             {isMobileView && (
                               <Button
@@ -1496,17 +1496,17 @@ export function Messages() {
                                 let isRightAligned = isMe;
                                 let bubbleClass = isMe 
                                   ? 'bg-green-600 text-white rounded-tr-none' 
-                                  : 'bg-gray-100 text-gray-900 rounded-tl-none';
+                                  : 'bg-muted text-foreground rounded-tl-none';
 
                                 if (isAdmin) {
                                   // For admin, align based on participants order in ID
                                   const [id1] = selectedConversation.otherUser.id.split('::');
                                   if (msg.senderId === id1) {
                                     isRightAligned = false;
-                                    bubbleClass = 'bg-white border border-gray-200 text-gray-900 rounded-tl-none';
+                                    bubbleClass = 'bg-card border border-border text-foreground rounded-tl-none';
                                   } else {
                                     isRightAligned = true;
-                                    bubbleClass = 'bg-blue-50 border border-blue-100 text-gray-900 rounded-tr-none';
+                                    bubbleClass = 'bg-blue-50 dark:bg-blue-950/35 border border-blue-100 dark:border-blue-700/40 text-foreground rounded-tr-none';
                                   }
                                 }
 
@@ -1527,11 +1527,11 @@ export function Messages() {
                                     )}
                                     <div
                                       className={`max-w-[70%] rounded-2xl p-3 relative ${
-                                        isDeleted ? 'bg-gray-200 text-gray-500 italic' : bubbleClass
+                                        isDeleted ? 'bg-muted text-muted-foreground italic' : bubbleClass
                                       }`}
                                     >
                                       {isAdmin && (
-                                        <p className="text-xs text-gray-500 mb-1 font-medium">
+                                        <p className="text-xs text-muted-foreground mb-1 font-medium">
                                           {senderProfile?.name || 'Unknown'}
                                         </p>
                                       )}
@@ -1552,7 +1552,7 @@ export function Messages() {
                                                 <Play className="h-4 w-4" />
                                               )}
                                             </Button>
-                                            <span className={`text-xs ${isMe || (isAdmin && isRightAligned) ? 'text-green-100' : 'text-gray-500'}`}>
+                                            <span className={`text-xs ${isMe || (isAdmin && isRightAligned) ? 'text-green-100' : 'text-muted-foreground'}`}>
                                               Voice Message
                                             </span>
                                           </div>
@@ -1629,7 +1629,7 @@ export function Messages() {
                                             className="h-6 w-6" 
                                             onClick={() => handleEditMessage(msg)}
                                           >
-                                            <Edit2 className="h-3 w-3 text-gray-500" />
+                                            <Edit2 className="h-3 w-3 text-muted-foreground" />
                                           </Button>
                                         )}
                                         <Button 
@@ -1658,7 +1658,7 @@ export function Messages() {
                                       {selectedConversation.otherUser.name.charAt(0).toUpperCase()}
                                     </AvatarFallback>
                                   </Avatar>
-                                  <div className="bg-gray-100 rounded-2xl rounded-tl-none p-3">
+                                  <div className="bg-muted rounded-2xl rounded-tl-none p-3">
                                     <div className="flex gap-1">
                                       <div className="h-2 w-2 bg-gray-400 rounded-full animate-bounce" />
                                       <div className="h-2 w-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
@@ -1672,7 +1672,7 @@ export function Messages() {
                         </div>
 
                         {/* Message Input */}
-                        <div className="p-4 border-t bg-white space-y-3">
+                        <div className="p-4 border-t bg-card space-y-3">
                           {attachment && (
                             <div className="relative inline-block">
                               <img 
@@ -1691,7 +1691,7 @@ export function Messages() {
                           )}
 
                           {recordedAudio && (
-                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center justify-between">
+                            <div className="bg-blue-50 dark:bg-blue-950/35 border border-blue-200 dark:border-blue-700/40 rounded-lg p-3 flex items-center justify-between">
                               <div className="flex items-center gap-2">
                                 <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center">
                                   <Mic className="h-4 w-4 text-white" />
@@ -1730,7 +1730,7 @@ export function Messages() {
                           )}
 
                           {isRecording && (
-                            <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center justify-between">
+                            <div className="bg-red-50 dark:bg-red-950/35 border border-red-200 dark:border-red-700/40 rounded-lg p-3 flex items-center justify-between">
                               <div className="flex items-center gap-2">
                                 <div className="h-3 w-3 rounded-full bg-red-600 animate-pulse"></div>
                                 <div>
@@ -1806,7 +1806,7 @@ export function Messages() {
                     ) : (
                       <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
                         <div className="max-w-md">
-                          <div className="h-20 w-20 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                          <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
                             <ImageIcon className="h-10 w-10 text-gray-400" />
                           </div>
                           <h3 className="text-xl font-semibold mb-2">No conversation selected</h3>

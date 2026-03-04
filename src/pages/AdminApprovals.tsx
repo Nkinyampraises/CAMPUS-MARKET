@@ -125,7 +125,7 @@ export function AdminApprovals() {
   };
 
   return (
-    <div className="bg-gray-50 min-h-screen py-8">
+    <div className="bg-background min-h-screen py-8">
       <div className="container mx-auto px-4">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Account Approvals</h1>
@@ -157,19 +157,26 @@ export function AdminApprovals() {
                   const university = getUniversityById(user.university);
                   
                   return (
-                    <div key={user.id} className="flex items-start gap-4 p-4 border rounded-lg bg-white">
-                      <div className="h-12 w-12 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
+                    <div key={user.id} className="flex items-start gap-4 p-4 border border-border rounded-lg bg-card">
+                      <div className="h-12 w-12 rounded-full bg-orange-100 dark:bg-orange-900/35 flex items-center justify-center flex-shrink-0">
                         <Clock className="h-6 w-6 text-orange-600" />
                       </div>
                       
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-2">
                           <h3 className="font-semibold text-lg">{user.name}</h3>
-                          <Badge variant="secondary" className="bg-orange-100 text-orange-700">
+                          <Badge variant="secondary" className="bg-orange-100 dark:bg-orange-900/35 text-orange-700 dark:text-orange-200">
                             Pending
                           </Badge>
                           {user.userType && (
-                            <Badge variant="outline" className={user.userType === 'seller' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-blue-50 text-blue-700 border-blue-200'}>
+                            <Badge
+                              variant="outline"
+                              className={
+                                user.userType === 'seller'
+                                  ? 'bg-green-50 dark:bg-green-900/35 text-green-700 dark:text-green-200 border-green-200 dark:border-green-700/40'
+                                  : 'bg-blue-50 dark:bg-blue-900/35 text-blue-700 dark:text-blue-200 border-blue-200 dark:border-blue-700/40'
+                              }
+                            >
                               {user.userType.charAt(0).toUpperCase() + user.userType.slice(1)}
                             </Badge>
                           )}
@@ -220,7 +227,7 @@ export function AdminApprovals() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="text-red-600 hover:bg-red-50"
+                          className="text-red-600 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/40"
                           onClick={() => handleDenyUser(user.id)}
                           disabled={actionLoading === user.id}
                         >

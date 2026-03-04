@@ -122,7 +122,7 @@ export function BuyerDashboard() {
 
   if (loading) {
     return (
-      <div className="bg-gray-50 min-h-screen py-8">
+      <div className="bg-background min-h-screen py-8">
         <div className="container mx-auto px-4">
           <Card>
             <CardContent className="p-8 text-center text-muted-foreground">Loading your dashboard...</CardContent>
@@ -133,7 +133,7 @@ export function BuyerDashboard() {
   }
 
   return (
-    <div className="bg-gray-50 min-h-screen py-8">
+    <div className="bg-background min-h-screen py-8">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -283,7 +283,7 @@ export function BuyerDashboard() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {favoriteItems.map((item: any) => (
                   <Card key={item.id} className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate(`/item/${item.id}`)}>
-                    <div className="aspect-square relative overflow-hidden bg-gray-100">
+                    <div className="aspect-square relative overflow-hidden bg-muted">
                       <img src={item.images?.[0]} alt={item.title} className="w-full h-full object-cover" />
                       <Badge className="absolute top-2 right-2">{item.status}</Badge>
                     </div>

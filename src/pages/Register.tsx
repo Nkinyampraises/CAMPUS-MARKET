@@ -128,7 +128,7 @@ export function Register() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4 bg-gray-50">
+    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4 bg-background">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
@@ -248,7 +248,7 @@ export function Register() {
                 value={formData.userType}
                 onValueChange={(value) => handleChange('userType', value)}
               >
-                <div className="flex items-center space-x-2 border rounded-lg p-3 cursor-pointer hover:bg-gray-50">
+                <div className="flex items-center space-x-2 border rounded-lg p-3 cursor-pointer hover:bg-muted">
                   <RadioGroupItem value="buyer" id="buyer" />
                   <Label htmlFor="buyer" className="flex-1 cursor-pointer flex items-center gap-2">
                     <ShoppingCart className="h-4 w-4 text-blue-600" />
@@ -258,7 +258,7 @@ export function Register() {
                     </div>
                   </Label>
                 </div>
-                <div className="flex items-center space-x-2 border rounded-lg p-3 cursor-pointer hover:bg-gray-50">
+                <div className="flex items-center space-x-2 border rounded-lg p-3 cursor-pointer hover:bg-muted">
                   <RadioGroupItem value="seller" id="seller" />
                   <Label htmlFor="seller" className="flex-1 cursor-pointer flex items-center gap-2">
                     <Store className="h-4 w-4 text-green-600" />

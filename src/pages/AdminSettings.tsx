@@ -29,7 +29,7 @@ const defaultSettings: AdminSettingsData = {
   platformCommissionPercent: 5,
   payoutFeePercent: 5,
   minimumPayoutAmount: 1000,
-  autoPayoutToMobileMoney: true,
+  autoPayoutToMobileMoney: false,
 };
 
 export function AdminSettings() {

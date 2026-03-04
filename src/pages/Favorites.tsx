@@ -56,7 +56,7 @@ export function Favorites() {
   }
 
   return (
-    <div className="bg-gray-50 min-h-screen py-8">
+    <div className="bg-background min-h-screen py-8">
       <div className="container mx-auto px-4">
         <div className="mb-6">
           <Button variant="ghost" onClick={() => navigate('/dashboard')}>
@@ -90,7 +90,7 @@ export function Favorites() {
                   const category = getCategoryById(item.category);
                   return (
                     <Card key={item.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                      <div className="relative aspect-video bg-gray-100 overflow-hidden">
+                      <div className="relative aspect-video bg-muted overflow-hidden">
                         <img
                           src={item.images[0]}
                           alt={item.title}
@@ -98,7 +98,7 @@ export function Favorites() {
                         />
                         <button
                           onClick={() => handleRemoveFavorite(item.id)}
-                          className="absolute top-2 right-2 p-2 bg-white rounded-full shadow-md hover:bg-red-50 transition-colors"
+                          className="absolute top-2 right-2 p-2 bg-card rounded-full shadow-md hover:bg-accent transition-colors"
                         >
                           <Heart className="h-5 w-5 text-red-500 fill-red-500" />
                         </button>

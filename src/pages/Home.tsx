@@ -17,9 +17,9 @@ export function Home() {
   const navigate = useNavigate();
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col bg-background text-foreground">
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-green-50 to-blue-50 py-20 px-4">
+      <section className="bg-gradient-to-br from-green-50 to-blue-50 py-20 px-4 dark:from-emerald-950/50 dark:to-slate-950">
         <div className="container mx-auto text-center">
           <h1 className="text-4xl md:text-6xl font-bold mb-6">
             Student Marketplace<br />
@@ -65,7 +65,7 @@ export function Home() {
       </section>
 
       {/* Problems We Solve */}
-      <section className="py-16 px-4 bg-white">
+      <section className="py-16 px-4 bg-background">
         <div className="container mx-auto">
           <h2 className="text-3xl font-bold text-center mb-12">Why CampusMarket?</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -103,7 +103,7 @@ export function Home() {
       </section>
 
       {/* Categories */}
-      <section className="py-16 px-4 bg-gray-50">
+      <section className="py-16 px-4 bg-muted/40">
         <div className="container mx-auto">
           <h2 className="text-3xl font-bold text-center mb-12">Popular Categories</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
@@ -115,7 +115,7 @@ export function Home() {
               >
                 <CardContent className="pt-6 text-center">
                   <div className="flex justify-center mb-3">
-                    <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
+                    <div className="h-12 w-12 rounded-full bg-green-100 dark:bg-green-900/40 flex items-center justify-center">
                       <ShoppingBag className="h-6 w-6 text-green-600" />
                     </div>
                   </div>
@@ -128,12 +128,12 @@ export function Home() {
       </section>
 
       {/* How It Works */}
-      <section className="py-16 px-4 bg-white">
+      <section className="py-16 px-4 bg-background">
         <div className="container mx-auto">
           <h2 className="text-3xl font-bold text-center mb-12">How It Works</h2>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div className="text-center">
-              <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+              <div className="h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/40 flex items-center justify-center mx-auto mb-4">
                 <Users className="h-8 w-8 text-green-600" />
               </div>
               <h3 className="font-semibold mb-2">1. Sign Up</h3>
@@ -143,7 +143,7 @@ export function Home() {
             </div>
 
             <div className="text-center">
-              <div className="h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-4">
+              <div className="h-16 w-16 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center mx-auto mb-4">
                 <ShoppingBag className="h-8 w-8 text-blue-600" />
               </div>
               <h3 className="font-semibold mb-2">2. Browse Items</h3>
@@ -153,7 +153,7 @@ export function Home() {
             </div>
 
             <div className="text-center">
-              <div className="h-16 w-16 rounded-full bg-purple-100 flex items-center justify-center mx-auto mb-4">
+              <div className="h-16 w-16 rounded-full bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center mx-auto mb-4">
                 <Shield className="h-8 w-8 text-purple-600" />
               </div>
               <h3 className="font-semibold mb-2">3. Secure Payment</h3>
@@ -163,7 +163,7 @@ export function Home() {
             </div>
 
             <div className="text-center">
-              <div className="h-16 w-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
+              <div className="h-16 w-16 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center mx-auto mb-4">
                 <Truck className="h-8 w-8 text-emerald-600" />
               </div>
               <h3 className="font-semibold mb-2">4. Arrange Pickup</h3>
@@ -176,7 +176,7 @@ export function Home() {
       </section>
 
       {/* Features */}
-      <section className="py-16 px-4 bg-green-50">
+      <section className="py-16 px-4 bg-green-50 dark:bg-emerald-950/30">
         <div className="container mx-auto">
           <h2 className="text-3xl font-bold text-center mb-12">Platform Features</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">

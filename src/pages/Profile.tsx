@@ -172,7 +172,7 @@ export function Profile() {
   };
 
   return (
-    <div className="bg-gray-50 min-h-screen py-8">
+    <div className="bg-background min-h-screen py-8">
       <div className="container mx-auto px-4 max-w-4xl">
         <h1 className="text-3xl font-bold mb-6">My Profile</h1>
 

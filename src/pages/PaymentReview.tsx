@@ -32,6 +32,7 @@ export function PaymentReview() {
   const state = (location.state || null) as PaymentReviewState | null;
 
   const [submitting, setSubmitting] = useState(false);
+  const [ussdStarted, setUssdStarted] = useState(false);
   const [paymentMeta, setPaymentMeta] = useState({
     merchantName: 'nkinyampraisesncha',
     merchantNumber: '671562474',
@@ -75,6 +76,10 @@ export function PaymentReview() {
   }, [state?.amount, state?.feeOverride, paymentMeta.feePercent, paymentMeta.feeFlat]);
 
   const totalAmount = useMemo(() => Math.round(Number(state?.amount || 0) + feeAmount), [state?.amount, feeAmount]);
+  const ussdCode = useMemo(
+    () => `*126*9*${String(paymentMeta.merchantNumber || '').replace(/[^\d]/g, '')}*${totalAmount}#`,
+    [paymentMeta.merchantNumber, totalAmount],
+  );
 
   const postWithAuthRetry = async (url: string, payload: any) => {
     if (!accessToken) {
@@ -125,10 +130,31 @@ export function PaymentReview() {
       return;
     }
 
+    if (state.paymentMethod === 'mtn-momo' && !ussdStarted) {
+      setUssdStarted(true);
+      try {
+        const telTarget = `tel:${ussdCode.replace('#', '%23')}`;
+        window.location.href = telTarget;
+      } catch (_error) {
+        // Keep flow available even if dialer launch fails.
+      }
+      toast.info('Dial completed payment in Mobile Money, then tap Confirm and Pay again.');
+      return;
+    }
+
     setSubmitting(true);
     try {
+      const paymentPayload = state.paymentMethod === 'mtn-momo'
+        ? {
+            ...state.payload,
+            paymentChannel: 'ussd',
+            paymentReference: `USSD-${Date.now()}`,
+            ussdCode,
+          }
+        : state.payload;
+
       if (state.context === 'order') {
-        const { response, data } = await postWithAuthRetry(`${API_URL}/orders`, state.payload);
+        const { response, data } = await postWithAuthRetry(`${API_URL}/orders`, paymentPayload);
         if (!response) {
           toast.error(data.error || 'Missing payment session');
           return;
@@ -148,7 +174,7 @@ export function PaymentReview() {
         return;
       }
 
-      const { response, data } = await postWithAuthRetry(`${API_URL}/subscription/update`, state.payload);
+      const { response, data } = await postWithAuthRetry(`${API_URL}/subscription/update`, paymentPayload);
       if (!response) {
         toast.error(data.error || 'Missing payment session');
         return;
@@ -198,6 +224,14 @@ export function PaymentReview() {
             </AlertDescription>
           </Alert>
 
+          {state.paymentMethod === 'mtn-momo' ? (
+            <Alert>
+              <AlertDescription>
+                USSD: <span className="font-mono">{ussdCode}</span>. First tap opens Mobile Money; second tap confirms in escrow.
+              </AlertDescription>
+            </Alert>
+          ) : null}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div className="border rounded-lg p-4">
               <p className="text-muted-foreground mb-2">From</p>
@@ -239,7 +273,7 @@ export function PaymentReview() {
 
           <Button className="w-full bg-green-600 hover:bg-green-700" onClick={handleConfirm} disabled={submitting}>
             {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            {submitting ? 'Processing...' : 'Confirm and Pay'}
+            {submitting ? 'Processing...' : state.paymentMethod === 'mtn-momo' && !ussdStarted ? 'Open Mobile Money' : 'Confirm and Pay'}
           </Button>
         </CardContent>
       </Card>

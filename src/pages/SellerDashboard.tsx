@@ -222,7 +222,12 @@ export function SellerDashboard() {
         toast.error(data.error || 'Withdrawal failed');
         return;
       }
-      toast.success('Withdrawal completed');
+      const withdrawalStatus = String(data?.withdrawal?.status || '').toLowerCase();
+      if (withdrawalStatus === 'processing') {
+        toast.success('Withdrawal submitted. Mobile money payout is processing.');
+      } else {
+        toast.success('Withdrawal completed');
+      }
       setWithdrawAmount('');
       setWallet(data.wallet || wallet);
       await fetchData();
@@ -237,7 +242,7 @@ export function SellerDashboard() {
 
   if (loading) {
     return (
-      <div className="bg-gray-50 min-h-screen py-8">
+      <div className="bg-background min-h-screen py-8">
         <div className="container mx-auto px-4">
           <Card>
             <CardContent className="p-8 text-center text-muted-foreground">Loading dashboard...</CardContent>
@@ -248,7 +253,7 @@ export function SellerDashboard() {
   }
 
   return (
-    <div className="bg-gray-50 min-h-screen py-8">
+    <div className="bg-background min-h-screen py-8">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -395,7 +400,7 @@ export function SellerDashboard() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {myListings.map((item) => (
                   <Card key={item.id} className="overflow-hidden">
-                    <div className="aspect-video relative overflow-hidden bg-gray-100">
+                    <div className="aspect-video relative overflow-hidden bg-muted">
                       <img src={item.images?.[0]} alt={item.title} className="w-full h-full object-cover" />
                       <Badge className="absolute top-2 right-2" variant={item.status === 'available' ? 'default' : 'secondary'}>
                         {item.status}

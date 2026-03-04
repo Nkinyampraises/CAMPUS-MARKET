@@ -157,7 +157,7 @@ const DEFAULT_ADMIN_SETTINGS = {
   platformCommissionPercent: 5,
   payoutFeePercent: 5,
   minimumPayoutAmount: 1000,
-  autoPayoutToMobileMoney: true,
+  autoPayoutToMobileMoney: false,
   updatedAt: "",
 };
 
@@ -439,18 +439,20 @@ const normalizeOrderStatusLabel = (status: string) => {
 
 const REQUESTED_PAYMENT_PROVIDER_MODE = (Deno.env.get("PAYMENT_PROVIDER_MODE") || "").trim().toLowerCase();
 const CAMPAY_APP_CREDENTIAL = (Deno.env.get("CAMPAY_APP_ID") || Deno.env.get("CAMPAY_API_KEY") || "").trim();
-const CAMPAY_USERNAME = (Deno.env.get("CAMPAY_USERNAME") || "").trim();
-const CAMPAY_PASSWORD = (Deno.env.get("CAMPAY_PASSWORD") || "").trim();
+const CAMPAY_USERNAME = (Deno.env.get("CAMPAY_USERNAME") || Deno.env.get("CAMPAY_APP_USERNAME") || "").trim();
+const CAMPAY_PASSWORD = (Deno.env.get("CAMPAY_PASSWORD") || Deno.env.get("CAMPAY_APP_PASSWORD") || "").trim();
 const CAMPAY_HAS_REQUIRED_CREDENTIALS = Boolean(
   CAMPAY_APP_CREDENTIAL &&
   CAMPAY_USERNAME &&
   CAMPAY_PASSWORD,
 );
-const PAYMENT_PROVIDER_MODE = (
-  REQUESTED_PAYMENT_PROVIDER_MODE === "campay" && CAMPAY_HAS_REQUIRED_CREDENTIALS
-    ? "campay"
-    : "mock"
-).toLowerCase();
+const PAYMENT_PROVIDER_MODE = (() => {
+  if (REQUESTED_PAYMENT_PROVIDER_MODE === "mock") return "mock";
+  if (REQUESTED_PAYMENT_PROVIDER_MODE === "campay") {
+    return CAMPAY_HAS_REQUIRED_CREDENTIALS ? "campay" : "mock";
+  }
+  return CAMPAY_HAS_REQUIRED_CREDENTIALS ? "campay" : "mock";
+})();
 const CAMPAY_BASE_URL = (Deno.env.get("CAMPAY_BASE_URL") || "https://demo.campay.net/api").replace(/\/+$/, "");
 const CAMPAY_TOKEN_URL = Deno.env.get("CAMPAY_TOKEN_URL") || `${CAMPAY_BASE_URL}/token/`;
 const CAMPAY_COLLECTION_URL = Deno.env.get("CAMPAY_COLLECTION_URL") || `${CAMPAY_BASE_URL}/collect/`;
@@ -643,8 +645,8 @@ async function getCampayAccessToken() {
     return cachedCampayToken;
   }
 
-  const username = Deno.env.get("CAMPAY_APP_USERNAME");
-  const password = Deno.env.get("CAMPAY_APP_PASSWORD");
+  const username = CAMPAY_USERNAME;
+  const password = CAMPAY_PASSWORD;
   const appId = Deno.env.get("CAMPAY_APP_ID");
 
   if (!username || !password) {
@@ -969,6 +971,12 @@ async function notifyAdmins(payload: {
 }
 
 function buildLegacyTransaction(order: any) {
+  const transactionFee = roundMoney(order.transactionFee || 0);
+  const totalCharged = roundMoney(order.totalCharged || order.amount || 0);
+  const releasedPlatformFee = order?.releasedAt || order?.status === ORDER_STATUS.DELIVERED_RELEASED
+    ? roundMoney(order.platformFee || 0)
+    : 0;
+  const platformRevenue = roundMoney(transactionFee + releasedPlatformFee);
   return {
     id: order.id,
     orderId: order.id,
@@ -979,18 +987,60 @@ function buildLegacyTransaction(order: any) {
     amount: order.amount,
     paymentMethod: order.paymentMethod,
     phoneNumber: order.phoneNumber,
-    transactionFee: roundMoney(order.transactionFee || 0),
-    totalCharged: roundMoney(order.totalCharged || order.amount || 0),
+    transactionFee,
+    totalCharged,
+    platformFee: releasedPlatformFee,
+    platformRevenue,
     transactionRef: order.transactionRef,
     pickupDate: order.pickupDate,
     pickupTime: order.pickupTime,
     pickupLocation: order.pickupLocation,
     status: order.status,
     statusLabel: normalizeOrderStatusLabel(order.status),
+    transactionType: "order",
     timestamp: order.createdAt,
     createdAt: order.createdAt,
     releasedAt: order.releasedAt || null,
     refundedAt: order.refundedAt || null,
+  };
+}
+
+function buildSubscriptionTransaction(payment: any) {
+  const createdAt = typeof payment?.createdAt === "string" ? payment.createdAt : new Date().toISOString();
+  const amount = roundMoney(payment?.amount || 0);
+  const transactionFee = roundMoney(payment?.transactionFee || 0);
+  const totalCharged = roundMoney(payment?.totalCharged || amount + transactionFee);
+  return {
+    id: typeof payment?.id === "string" && payment.id ? payment.id : createEntityId("SUBPAY"),
+    orderId: "",
+    escrowId: "",
+    buyerId: payment?.userId || "",
+    sellerId: ADMIN_WALLET_USER_ID,
+    itemId: "",
+    amount,
+    paymentMethod: payment?.paymentMethod || "",
+    phoneNumber: payment?.phoneNumber || "",
+    transactionFee,
+    totalCharged,
+    platformFee: totalCharged,
+    platformRevenue: totalCharged,
+    transactionRef: payment?.providerReference || "",
+    pickupDate: "",
+    pickupTime: "",
+    pickupLocation: "",
+    status: "subscription_active",
+    statusLabel: "SUBSCRIPTION ACTIVE",
+    transactionType: "subscription",
+    plan: payment?.plan || "",
+    userType: payment?.userType || "",
+    merchantName: payment?.merchantName || MERCHANT_MOMO_NAME,
+    merchantNumber: payment?.merchantNumber || MERCHANT_MOMO_NUMBER,
+    provider: payment?.provider || "",
+    providerStatus: payment?.providerStatus || "",
+    timestamp: createdAt,
+    createdAt,
+    releasedAt: createdAt,
+    refundedAt: null,
   };
 }
 
@@ -1921,23 +1971,40 @@ async function createEscrowOrderForBuyer(user: any, body: any) {
     throw new Error("This seller account is unavailable");
   }
 
-  const settings = await getAdminSettings();
-  const commissionPercent = Math.max(0, toSafeNumber(settings.platformCommissionPercent, DEFAULT_ADMIN_SETTINGS.platformCommissionPercent));
   const amount = roundXafAmount(listing.price);
   const transactionFee = calculateTransactionFee(amount);
   const totalCharged = roundXafAmount(amount + transactionFee);
-  const platformFee = roundXafAmount((amount * commissionPercent) / 100);
-  const sellerNetAmount = roundXafAmount(amount - platformFee);
+  // Seller receives full item amount; platform revenue comes from buyer transaction fee.
+  const platformFee = 0;
+  const sellerNetAmount = amount;
   const orderId = createEntityId("ORD");
   const escrowId = createEntityId("ESC");
   const transactionRef = `${paymentMethod.toUpperCase()}-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
-  const paymentResult = await processInboundMobileMoneyPayment({
-    amount: totalCharged,
-    phoneNumber,
-    provider: paymentMethod,
-    reference: transactionRef,
-    description: `Escrow payment for ${listing.title || "marketplace item"}`,
-  });
+  const paymentChannel = body?.paymentChannel === "ussd" ? "ussd" : "api";
+  const providedPaymentReference = typeof body?.paymentReference === "string" ? body.paymentReference.trim() : "";
+  if (paymentChannel === "ussd" && paymentMethod !== "mtn-momo") {
+    throw new Error("USSD flow is available for MTN MoMo only");
+  }
+  const paymentResult = paymentChannel === "ussd"
+    ? {
+        provider: "ussd-manual",
+        status: "successful",
+        reference: providedPaymentReference || transactionRef,
+        raw: {
+          channel: "ussd",
+          code: typeof body?.ussdCode === "string" ? body.ussdCode.trim() : "",
+          merchantNumber: MERCHANT_MOMO_NUMBER,
+          totalCharged,
+          buyerPhoneNumber: phoneNumber,
+        },
+      }
+    : await processInboundMobileMoneyPayment({
+        amount: totalCharged,
+        phoneNumber,
+        provider: paymentMethod,
+        reference: transactionRef,
+        description: `Escrow payment for ${listing.title || "marketplace item"}`,
+      });
   const now = new Date().toISOString();
 
   const escrowProviderSync = await syncEscrowProvider("hold", {
@@ -2113,8 +2180,9 @@ async function releaseEscrowOrder(order: any, actorId: string) {
 
   const settings = await getAdminSettings();
   const amount = roundXafAmount(order.amount);
-  const platformFee = roundXafAmount(order.platformFee);
-  const sellerNetAmount = roundXafAmount(amount - platformFee);
+  // Seller receives full item amount on release; no seller-side commission deduction.
+  const platformFee = 0;
+  const sellerNetAmount = amount;
   const now = new Date().toISOString();
 
   const escrowProviderSync = await syncEscrowProvider("release", {
@@ -2478,13 +2546,32 @@ app.post("/make-server-50b25a4f/subscription/update", async (c) => {
     const totalCharged = roundXafAmount(baseAmount + transactionFee);
     const reference = `SUB-${paymentMethod.toUpperCase()}-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
 
-    const paymentResult = await processInboundMobileMoneyPayment({
-      amount: totalCharged,
-      phoneNumber,
-      provider: paymentMethod,
-      reference,
-      description: `${plan} ${userType} subscription`,
-    });
+    const paymentChannel = body?.paymentChannel === "ussd" ? "ussd" : "api";
+    const providedPaymentReference = typeof body?.paymentReference === "string" ? body.paymentReference.trim() : "";
+    if (paymentChannel === "ussd" && paymentMethod !== "mtn-momo") {
+      return c.json({ error: "USSD flow is available for MTN MoMo only" }, 400);
+    }
+
+    const paymentResult = paymentChannel === "ussd"
+      ? {
+          provider: "ussd-manual",
+          status: "successful",
+          reference: providedPaymentReference || reference,
+          raw: {
+            channel: "ussd",
+            code: typeof body?.ussdCode === "string" ? body.ussdCode.trim() : "",
+            merchantNumber: MERCHANT_MOMO_NUMBER,
+            totalCharged,
+            buyerPhoneNumber: phoneNumber,
+          },
+        }
+      : await processInboundMobileMoneyPayment({
+          amount: totalCharged,
+          phoneNumber,
+          provider: paymentMethod,
+          reference,
+          description: `${plan} ${userType} subscription`,
+        });
 
     const now = new Date();
     const nowIso = now.toISOString();
@@ -2534,6 +2621,7 @@ app.post("/make-server-50b25a4f/subscription/update", async (c) => {
       createdAt: nowIso,
     };
     await kv.set(`subscription_payment:${paymentId}`, paymentRecord);
+    await kv.set(`transaction:${paymentId}`, buildSubscriptionTransaction(paymentRecord));
     const paymentIds = (await kv.get(`user:${user.id}:subscriptionPayments`)) || [];
     paymentIds.push(paymentId);
     await kv.set(`user:${user.id}:subscriptionPayments`, paymentIds);
@@ -2656,18 +2744,22 @@ app.get("/make-server-50b25a4f/orders/:id", async (c) => {
       return c.json({ error: "Forbidden" }, 403);
     }
 
-    const escrow = await kv.get(`escrow:${order.escrowId}`);
+    const existingEscrow = await kv.get(`escrow:${order.escrowId}`);
     const listing = await kv.get(`listing:${order.itemId}`);
     const seller = await getUserProfile(order.sellerId);
     const buyer = await getUserProfile(order.buyerId);
     const sellerWallet = await getWallet(order.sellerId);
+    const hasSellerProof = Boolean(order.sellerProofUploaded || order.deliveryProofUrl || existingEscrow?.proof_image_url);
+    const resolvedProofUrl = order.deliveryProofUrl || existingEscrow?.proof_image_url || "";
 
     return c.json({
       order: {
         ...order,
+        sellerProofUploaded: hasSellerProof,
+        deliveryProofUrl: resolvedProofUrl,
         statusLabel: normalizeOrderStatusLabel(order.status),
       },
-      escrow,
+      escrow: existingEscrow,
       listing,
       seller,
       buyer,
@@ -2682,8 +2774,7 @@ app.get("/make-server-50b25a4f/orders/:id", async (c) => {
         canSellerUploadProof: isSeller && order.status === ORDER_STATUS.PAID_PENDING_DELIVERY,
         canBuyerConfirm:
           isBuyer &&
-          order.status === ORDER_STATUS.PAID_PENDING_DELIVERY &&
-          Boolean(order.sellerProofUploaded),
+          order.status === ORDER_STATUS.PAID_PENDING_DELIVERY,
         canBuyerRefund: isBuyer && order.status === ORDER_STATUS.PAID_PENDING_DELIVERY,
       },
     });
@@ -2729,10 +2820,10 @@ app.put("/make-server-50b25a4f/orders/:id/seller-proof", async (c) => {
     };
     await kv.set(`order:${orderId}`, updatedOrder);
 
-    const escrow = await kv.get(`escrow:${order.escrowId}`);
-    if (escrow) {
+    const existingEscrow = await kv.get(`escrow:${order.escrowId}`);
+    if (existingEscrow) {
       await kv.set(`escrow:${order.escrowId}`, {
-        ...escrow,
+        ...existingEscrow,
         proof_image_url: proofImageUrl,
         updated_at: now,
       });
@@ -2914,15 +3005,14 @@ app.put("/make-server-50b25a4f/orders/:id/buyer-confirm", async (c) => {
     if (!order) {
       return c.json({ error: "Order not found" }, 404);
     }
+    const existingEscrow = await kv.get(`escrow:${order.escrowId}`);
     if (order.buyerId !== user.id) {
       return c.json({ error: "Only the buyer can confirm delivery" }, 403);
     }
     if (order.status !== ORDER_STATUS.PAID_PENDING_DELIVERY) {
       return c.json({ error: "Order is not awaiting confirmation" }, 400);
     }
-    if (!order.sellerProofUploaded) {
-      return c.json({ error: "Seller must upload delivery proof before buyer confirmation" }, 400);
-    }
+    const hasSellerProof = Boolean(order.sellerProofUploaded || order.deliveryProofUrl || existingEscrow?.proof_image_url);
 
     const body = await c.req.json();
     const satisfactionConfirmed = Boolean(body?.satisfactionConfirmed);
@@ -2945,6 +3035,8 @@ app.put("/make-server-50b25a4f/orders/:id/buyer-confirm", async (c) => {
     const now = new Date().toISOString();
     const confirmedOrder = {
       ...order,
+      sellerProofUploaded: hasSellerProof,
+      deliveryProofUrl: order.deliveryProofUrl || existingEscrow?.proof_image_url || "",
       buyerSatisfied: true,
       buyerConfirmedAt: now,
       updatedAt: now,
@@ -3076,6 +3168,11 @@ app.post("/make-server-50b25a4f/wallet/withdrawals", async (c) => {
       reference: payoutReference,
       description: `Seller wallet withdrawal for user ${user.id}`,
     });
+    const payoutStatus = String(payoutResult.status || "").toLowerCase();
+    const completedStatuses = new Set(["successful", "success", "completed"]);
+    const withdrawalStatus = completedStatuses.has(payoutStatus)
+      ? WITHDRAWAL_STATUS.COMPLETED
+      : WITHDRAWAL_STATUS.PROCESSING;
 
     await adjustWallet(user.id, { availableDelta: -amount });
 
@@ -3085,12 +3182,15 @@ app.post("/make-server-50b25a4f/wallet/withdrawals", async (c) => {
       amount,
       provider,
       phoneNumber,
-      status: WITHDRAWAL_STATUS.COMPLETED,
+      status: withdrawalStatus,
       reference: payoutResult.reference || payoutReference,
       providerStatus: payoutResult.status,
       providerName: payoutResult.provider,
       providerPayload: payoutResult.raw,
-      note: "Payout to mobile money",
+      note:
+        withdrawalStatus === WITHDRAWAL_STATUS.COMPLETED
+          ? "Payout to mobile money"
+          : "Payout accepted and processing with provider",
       createdAt: now,
       updatedAt: now,
       processedBy: "system",
@@ -4233,10 +4333,11 @@ app.get("/make-server-50b25a4f/admin/analytics", async (c) => {
   }
 
   try {
-    const [allListings, allTransactions, allOrders, allUsers, categories, universities] = await Promise.all([
+    const [allListings, allTransactions, allOrders, allSubscriptionPayments, allUsers, categories, universities] = await Promise.all([
       kv.getByPrefix("listing:"),
       kv.getByPrefix("transaction:"),
       kv.getByPrefix("order:"),
+      kv.getByPrefix("subscription_payment:"),
       kv.getByPrefix("user:"),
       ensureAdminCategories(),
       ensureAdminUniversities(),
@@ -4266,8 +4367,11 @@ app.get("/make-server-50b25a4f/admin/analytics", async (c) => {
     }
 
     const transactionsFromOrders = (allOrders || []).map((order: any) => buildLegacyTransaction(order));
+    const subscriptionTransactions = (allSubscriptionPayments || [])
+      .filter((payment: any) => payment && typeof payment === "object")
+      .map((payment: any) => buildSubscriptionTransaction(payment));
     const dedupedTransactions = new Map<string, any>();
-    [...transactionsFromOrders, ...(allTransactions || [])]
+    [...(allTransactions || []), ...subscriptionTransactions, ...transactionsFromOrders]
       .filter((transaction: any) => transaction && typeof transaction === "object" && typeof transaction.id === "string")
       .forEach((transaction: any) => dedupedTransactions.set(transaction.id, transaction));
     const transactionList = Array.from(dedupedTransactions.values());
@@ -4364,9 +4468,13 @@ app.get("/make-server-50b25a4f/admin/transactions", async (c) => {
   try {
     const allTransactions = (await kv.getByPrefix('transaction:')) || [];
     const allOrders = (await kv.getByPrefix('order:')) || [];
+    const allSubscriptionPayments = (await kv.getByPrefix("subscription_payment:")) || [];
     const orderTransactions = allOrders.map((order: any) => buildLegacyTransaction(order));
+    const subscriptionTransactions = allSubscriptionPayments
+      .filter((payment: any) => payment && typeof payment === "object")
+      .map((payment: any) => buildSubscriptionTransaction(payment));
     const dedupedById = new Map<string, any>();
-    [...orderTransactions, ...allTransactions]
+    [...allTransactions, ...subscriptionTransactions, ...orderTransactions]
       .filter((txn: any) => txn && typeof txn === 'object' && typeof txn.id === 'string')
       .forEach((txn: any) => dedupedById.set(txn.id, txn));
     const normalized = Array.from(dedupedById.values())

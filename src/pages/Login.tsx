@@ -39,7 +39,7 @@ export function Login() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4 bg-gray-50">
+    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4 bg-background">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
@@ -99,12 +99,12 @@ export function Login() {
           </form>
 
           {/* Demo Credentials */}
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-            <p className="text-sm font-medium text-blue-900 mb-2">Demo Accounts:</p>
-            <div className="space-y-1 text-xs text-blue-700">
+          <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-950/40 rounded-lg border border-blue-200/50 dark:border-blue-700/40">
+            <p className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">Demo Accounts:</p>
+            <div className="space-y-1 text-xs text-blue-700 dark:text-blue-200">
               <p><strong>Student:</strong> amina.ngoma@student.ub.cm</p>
               <p><strong>Admin:</strong> admin@campusmarket.cm</p>
-              <p className="mt-2 text-blue-600">Password: Any password works for demo</p>
+              <p className="mt-2 text-blue-600 dark:text-blue-300">Password: Any password works for demo</p>
             </div>
           </div>
         </CardContent>

@@ -97,7 +97,7 @@ export function Admin() {
   const totalTransactions = transactions.length;
   const totalMessages = allMessages.length;
   const totalRevenue = transactions
-    .reduce((sum, t) => sum + (t.platformFee || 0), 0);
+    .reduce((sum, t) => sum + Number(t.platformRevenue ?? t.platformFee ?? 0), 0);
 
   // Memoize conversations for the admin messages tab
     const conversations = useMemo(() => {
@@ -182,7 +182,7 @@ export function Admin() {
   };
 
   return (
-    <div className="bg-gray-50 min-h-screen py-8">
+    <div className="bg-background min-h-screen py-8">
         <div className="container mx-auto px-4">
           {/* Check if user is admin */}
           {currentUser?.role !== 'admin' ? (
@@ -399,7 +399,7 @@ export function Admin() {
 
                     return (
                       <div key={item.id} className="flex items-start gap-4 p-4 border rounded-lg">
-                        <div className="w-24 h-24 rounded overflow-hidden bg-gray-100 flex-shrink-0">
+                        <div className="w-24 h-24 rounded overflow-hidden bg-muted flex-shrink-0">
                           <img
                             src={item.images[0]}
                             alt={item.title}
@@ -467,32 +467,43 @@ export function Admin() {
                     const item = listings.find(i => i.id === txn.itemId);
                     const buyer = users.find(u => u.id === txn.buyerId);
                     const seller = users.find(u => u.id === txn.sellerId);
+                    const isSubscription = txn.transactionType === 'subscription';
+                    const title = isSubscription
+                      ? `${txn.plan === 'yearly' ? 'Yearly' : 'Monthly'} Subscription`
+                      : (item?.title || 'Marketplace Order');
+                    const statusLabel = isSubscription ? 'subscription_active' : txn.status;
+                    const methodLabel = txn.paymentMethod === 'mtn-momo'
+                      ? 'MTN MoMo'
+                      : (txn.paymentMethod === 'orange-money' ? 'Orange Money' : 'N/A');
+                    const revenueAmount = Number(txn.platformRevenue ?? txn.platformFee ?? 0);
+                    const grossAmount = Number(txn.totalCharged ?? txn.amount ?? 0);
 
                     return (
                       <div key={txn.id} className="flex items-center justify-between p-4 border rounded-lg">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <p className="font-medium">{item?.title}</p>
+                            <p className="font-medium">{title}</p>
                             <Badge
-                              variant={txn.status === 'delivered_released' ? 'default' : 'secondary'}
+                              variant={statusLabel === 'delivered_released' || isSubscription ? 'default' : 'secondary'}
                             >
-                              {txn.status}
+                              {statusLabel}
                             </Badge>
                           </div>
                           <p className="text-sm text-muted-foreground">
-                            Buyer: {buyer?.name} → Seller: {seller?.name}
+                            Buyer: {buyer?.name || (isSubscription ? 'Subscriber' : 'Unknown Buyer')} -&gt; Seller: {isSubscription ? 'Platform Account' : (seller?.name || 'Unknown Seller')}
                           </p>
                           <p className="text-xs text-muted-foreground mt-1">
                             {new Date(txn.timestamp || txn.createdAt).toLocaleString()} • {txn.transactionRef || txn.orderId}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            Method: {txn.paymentMethod === 'mtn-momo' ? 'MTN MoMo' : (txn.paymentMethod === 'orange-money' ? 'Orange Money' : 'N/A')}
+                            Method: {methodLabel}
                           </p>
                         </div>
                         <div className="text-right">
                           <p className="font-bold text-green-600">
-                            {formatCurrency(txn.amount)}
+                            {formatCurrency(grossAmount)}
                           </p>
+                          <p className="text-xs text-muted-foreground">Revenue: {formatCurrency(revenueAmount)}</p>
                         </div>
                       </div>
                     );
@@ -522,7 +533,7 @@ export function Admin() {
                     return (
                       <div 
                         key={conversation.id} 
-                        className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                        className="p-4 border rounded-lg hover:bg-accent cursor-pointer transition-colors"
                         onClick={() => navigate('/messages')}
                       >
                         <div className="flex items-center justify-between mb-2">
@@ -535,7 +546,7 @@ export function Admin() {
                             {new Date(lastMsg.timestamp).toLocaleString()}
                           </span>
                         </div>
-                        <p className="text-sm text-gray-600 truncate">
+                        <p className="text-sm text-muted-foreground truncate">
                           {lastMsg.messageType === 'image' ? '📷 [Image]' :
                            lastMsg.messageType === 'voice' ? '🎤 [Voice Message]' : 
                            lastMsg.content}
