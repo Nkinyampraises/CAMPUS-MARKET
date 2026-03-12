@@ -58,7 +58,7 @@ interface RegisterData {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:8002'}/make-server-50b25a4f`;
+import { API_URL } from '@/lib/api';
 
 const normalizeUser = (user: any): User => {
   const userType = user?.userType === 'seller' ? 'seller' : 'buyer';
@@ -88,11 +88,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const storedRefreshToken = localStorage.getItem('refreshToken');
     
     if (storedUser && storedToken) {
-      setCurrentUser(normalizeUser(JSON.parse(storedUser)));
-      setAccessToken(storedToken);
-      setRefreshToken(storedRefreshToken || null);
-      // Verify and refresh user data
-      refreshUserData(storedToken, storedRefreshToken);
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        setCurrentUser(normalizeUser(parsedUser));
+        setAccessToken(storedToken);
+        setRefreshToken(storedRefreshToken || null);
+        // Verify and refresh user data
+        refreshUserData(storedToken, storedRefreshToken);
+      } catch (error) {
+        console.error('Failed to parse stored user data:', error);
+        localStorage.removeItem('currentUser');
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+      }
     }
     setLoading(false);
   }, []);
@@ -132,8 +140,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           logout();
         }
       } else {
-        // Token invalid, clear auth
-        logout();
+        // Preserve local session on non-auth errors (e.g., API misconfig or temporary outage).
+        console.warn('Auth refresh failed with status:', response.status);
       }
     } catch (error) {
       console.error('Failed to refresh user data:', error);

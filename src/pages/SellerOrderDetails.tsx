@@ -7,7 +7,7 @@ import { Badge } from '@/app/components/ui/badge';
 import { ArrowLeft, Flag, MessageSquare } from 'lucide-react';
 import { toast } from 'sonner';
 
-const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:8002'}/make-server-50b25a4f`;
+import { API_URL } from '@/lib/api';
 
 const formatMoney = (value: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value || 0);

@@ -10,10 +10,10 @@ import { Label } from '@/app/components/ui/label';
 import { DollarSign, Heart, MessageSquare, Package, Plus, ShoppingBag, Wallet } from 'lucide-react';
 import { toast } from 'sonner';
 
-const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:8002'}/make-server-50b25a4f`;
+import { API_URL } from '@/lib/api';
 
 const formatMoney = (value: number) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value || 0);
+  `${new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(Number(value) || 0)} FCFA`;
 
 export function SellerDashboard() {
   const { currentUser, accessToken, refreshAuthToken, logout } = useAuth();
@@ -102,7 +102,7 @@ export function SellerDashboard() {
           ordersResult.data?.error ||
           messagesResult.data?.error ||
           walletResult.data?.error ||
-          'Unable to reach server. Ensure API is running on http://localhost:8002';
+          'Unable to reach server. Ensure API is running and reachable from this device.';
         toast.error(message);
         return;
       }

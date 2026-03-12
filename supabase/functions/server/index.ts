@@ -635,14 +635,21 @@ async function syncEscrowProvider(action: EscrowProviderAction, payload: Record<
   }
 }
 
-async function getCampayAccessToken() {
-  const staticToken = Deno.env.get("CAMPAY_ACCESS_TOKEN");
-  if (staticToken && staticToken.trim().length > 0) {
-    return staticToken.trim();
+type CampayTokenOptions = {
+  forceRefresh?: boolean;
+  ignoreStaticToken?: boolean;
+};
+
+async function getCampayAccessToken(options: CampayTokenOptions = {}) {
+  const { forceRefresh = false, ignoreStaticToken = false } = options;
+
+  if (!forceRefresh && cachedCampayToken && Date.now() < cachedCampayTokenExpiry) {
+    return cachedCampayToken;
   }
 
-  if (cachedCampayToken && Date.now() < cachedCampayTokenExpiry) {
-    return cachedCampayToken;
+  const staticToken = Deno.env.get("CAMPAY_ACCESS_TOKEN");
+  if (!forceRefresh && !ignoreStaticToken && staticToken && staticToken.trim().length > 0) {
+    return staticToken.trim();
   }
 
   const username = CAMPAY_USERNAME;
@@ -653,23 +660,48 @@ async function getCampayAccessToken() {
     throw new Error("CamPay credentials are missing");
   }
 
-  const tokenPayload: Record<string, string> = {
-    username,
-    password,
+  const requestToken = async (payload: Record<string, string>) => {
+    const response = await fetch(CAMPAY_TOKEN_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const rawText = await response.text();
+    let data: any = {};
+    if (rawText) {
+      try {
+        data = JSON.parse(rawText);
+      } catch {
+        data = { rawText };
+      }
+    }
+
+    return { response, data };
   };
+
+  const tokenPayload: Record<string, string> = { username, password };
+  const tokenPayloadAlt: Record<string, string> = { app_username: username, app_password: password };
   if (appId) {
     tokenPayload.app_id = appId;
+    tokenPayloadAlt.app_id = appId;
   }
 
-  const tokenResponse = await fetch(CAMPAY_TOKEN_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(tokenPayload),
-  });
-  const tokenData = await tokenResponse.json().catch(() => ({}));
+  let { response: tokenResponse, data: tokenData } = await requestToken(tokenPayload);
+  if (!tokenResponse.ok && [400, 401, 403].includes(tokenResponse.status)) {
+    ({ response: tokenResponse, data: tokenData } = await requestToken(tokenPayloadAlt));
+  }
 
   if (!tokenResponse.ok) {
-    throw new Error(tokenData?.error || tokenData?.message || "Failed to authenticate with CamPay");
+    const rawMessage = typeof tokenData?.rawText === "string" ? tokenData.rawText.trim() : "";
+    const detail = (
+      tokenData?.error ||
+      tokenData?.message ||
+      (rawMessage.length > 300 ? `${rawMessage.slice(0, 300)}…` : rawMessage) ||
+      ""
+    ).toString();
+
+    throw new Error(detail || `Failed to authenticate with CamPay (${tokenResponse.status})`);
   }
 
   const token = tokenData?.token || tokenData?.access_token || tokenData?.accessToken;
@@ -678,24 +710,73 @@ async function getCampayAccessToken() {
   }
 
   cachedCampayToken = token;
-  cachedCampayTokenExpiry = Date.now() + (45 * 60 * 1000);
+  const expiresInSeconds = toSafeNumber(
+    tokenData?.expires_in ?? tokenData?.expiresIn ?? tokenData?.expires,
+    0,
+  );
+  const defaultMs = 45 * 60 * 1000;
+  const expiresInMs = expiresInSeconds > 0 ? Math.floor(expiresInSeconds * 1000) : defaultMs;
+  cachedCampayTokenExpiry = Date.now() + Math.max(30 * 1000, expiresInMs - 60 * 1000);
   return token;
 }
 
 async function callCampay(endpoint: string, payload: Record<string, any>) {
-  const token = await getCampayAccessToken();
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `${CAMPAY_AUTH_SCHEME} ${token}`,
-    },
-    body: JSON.stringify(payload),
-  });
-  const data = await response.json().catch(() => ({}));
+  const makeRequest = async (token: string) => {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `${CAMPAY_AUTH_SCHEME} ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const rawText = await response.text();
+    let data: any = {};
+    if (rawText) {
+      try {
+        data = JSON.parse(rawText);
+      } catch {
+        data = { rawText };
+      }
+    }
+
+    return { response, data };
+  };
+
+  let token = await getCampayAccessToken();
+  let { response, data } = await makeRequest(token);
+
+  if (response.status === 401) {
+    cachedCampayToken = "";
+    cachedCampayTokenExpiry = 0;
+
+    try {
+      token = await getCampayAccessToken({ forceRefresh: true, ignoreStaticToken: true });
+      ({ response, data } = await makeRequest(token));
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unable to refresh CamPay access token";
+      throw new Error(`CamPay unauthorized (401). ${message}`);
+    }
+  }
 
   if (!response.ok) {
-    throw new Error(data?.error || data?.message || `CamPay API error (${response.status})`);
+    const rawMessage = typeof data?.rawText === "string" ? data.rawText.trim() : "";
+    const detail = (
+      data?.error ||
+      data?.message ||
+      (rawMessage.length > 300 ? `${rawMessage.slice(0, 300)}…` : rawMessage) ||
+      ""
+    ).toString();
+
+    const baseMessage = detail || `CamPay API error (${response.status})`;
+    const hint =
+      response.status === 401
+        ? " Check CAMPAY_AUTH_SCHEME, CAMPAY_BASE_URL, and CamPay credentials."
+        : "";
+
+    throw new Error(`${baseMessage}${hint}`);
   }
 
   return data;
@@ -1206,6 +1287,51 @@ app.get("/make-server-50b25a4f/health", (c) => {
   return c.json({ status: "ok" });
 });
 
+// CamPay webhook callback (stores payload for inspection)
+const handleCampayWebhookGet = (c: any) => c.json({ status: "ok" });
+const handleCampayWebhookPost = async (c: any) => {
+  try {
+    const rawBody = await c.req.text();
+    let payload: any = null;
+    if (rawBody) {
+      try {
+        payload = JSON.parse(rawBody);
+      } catch {
+        payload = null;
+      }
+    }
+
+    const eventId = createEntityId("CPWH");
+    const receivedAt = new Date().toISOString();
+    const headers = Object.fromEntries(c.req.raw.headers.entries());
+
+    const record = {
+      id: eventId,
+      receivedAt,
+      headers,
+      payload,
+      rawBody,
+    };
+
+    await kv.set(`campay:webhook:${eventId}`, record);
+    const recent = (await kv.get("campay:webhook:ids")) || [];
+    recent.push(eventId);
+    if (recent.length > 200) {
+      recent.splice(0, recent.length - 200);
+    }
+    await kv.set("campay:webhook:ids", recent);
+
+    return c.json({ received: true });
+  } catch (error) {
+    console.error("CamPay webhook error:", error);
+    return c.json({ error: "Failed to process webhook" }, 500);
+  }
+};
+app.get("/make-server-50b25a4f/campay/webhook", handleCampayWebhookGet);
+app.get("/campay/webhook", handleCampayWebhookGet);
+app.post("/make-server-50b25a4f/campay/webhook", handleCampayWebhookPost);
+app.post("/campay/webhook", handleCampayWebhookPost);
+
 // ============ AUTHENTICATION ROUTES ============
 
 // Sign up endpoint
@@ -1581,14 +1707,30 @@ app.get("/make-server-50b25a4f/listings/:id", async (c) => {
       return c.json({ error: 'Listing not found' }, 404);
     }
 
-    // Increment views
-    listing.views = (listing.views || 0) + 1;
-    await kv.set(`listing:${id}`, listing);
-
     return c.json({ listing: await enrichListing(listing) });
   } catch (error) {
     console.error('Get listing error:', error);
     return c.json({ error: 'Failed to get listing' }, 500);
+  }
+});
+
+// Register a manual listing view
+app.post("/make-server-50b25a4f/listings/:id/view", async (c) => {
+  try {
+    const id = c.req.param('id');
+    const listing = await kv.get(`listing:${id}`);
+
+    if (!listing) {
+      return c.json({ error: 'Listing not found' }, 404);
+    }
+
+    listing.views = Math.max(0, toSafeNumber(listing.views, 0)) + 1;
+    await kv.set(`listing:${id}`, listing);
+
+    return c.json({ success: true, views: listing.views });
+  } catch (error) {
+    console.error('Record listing view error:', error);
+    return c.json({ error: 'Failed to record listing view' }, 500);
   }
 });
 
@@ -3552,9 +3694,14 @@ app.post("/make-server-50b25a4f/favorites", async (c) => {
     if (!favorites.includes(itemId)) {
       favorites.push(itemId);
       await kv.set(`user:${user.id}:favorites`, favorites);
+      listing.likesCount = Math.max(0, toSafeNumber(listing.likesCount, 0)) + 1;
+      await kv.set(`listing:${itemId}`, listing);
     }
 
-    return c.json({ success: true });
+    return c.json({
+      success: true,
+      likesCount: Math.max(0, toSafeNumber(listing.likesCount, 0)),
+    });
   } catch (error) {
     console.error('Add favorite error:', error);
     return c.json({ error: 'Failed to add to favorites' }, 500);
@@ -3572,11 +3719,21 @@ app.delete("/make-server-50b25a4f/favorites/:itemId", async (c) => {
   try {
     const itemId = c.req.param('itemId');
     const favorites = await kv.get(`user:${user.id}:favorites`) || [];
-    
+    const hadFavorite = favorites.includes(itemId);
+    const listing = await kv.get(`listing:${itemId}`);
+
     const newFavorites = favorites.filter((id: string) => id !== itemId);
     await kv.set(`user:${user.id}:favorites`, newFavorites);
 
-    return c.json({ success: true });
+    if (hadFavorite && listing) {
+      listing.likesCount = Math.max(0, toSafeNumber(listing.likesCount, 0) - 1);
+      await kv.set(`listing:${itemId}`, listing);
+    }
+
+    return c.json({
+      success: true,
+      likesCount: listing ? Math.max(0, toSafeNumber(listing.likesCount, 0)) : 0,
+    });
   } catch (error) {
     console.error('Remove favorite error:', error);
     return c.json({ error: 'Failed to remove from favorites' }, 500);
@@ -3597,7 +3754,7 @@ app.get("/make-server-50b25a4f/favorites", async (c) => {
       favoriteIds.map(async (id: string) => await kv.get(`listing:${id}`))
     );
 
-    return c.json({ favorites: favorites.filter(f => f !== null) });
+    return c.json({ favorites: favorites.filter(Boolean) });
   } catch (error) {
     console.error('Get favorites error:', error);
     return c.json({ error: 'Failed to get favorites' }, 500);

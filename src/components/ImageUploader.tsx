@@ -3,6 +3,7 @@ import { Button } from '@/app/components/ui/button';
 import { Label } from '@/app/components/ui/label';
 import { Upload, X, Loader2, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ImageUploaderProps {
   images: string[];
@@ -11,11 +12,29 @@ interface ImageUploaderProps {
   type?: 'listing' | 'profile';
 }
 
-const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:8002'}/make-server-50b25a4f`;
+import { API_URL } from '@/lib/api';
 
 export function ImageUploader({ images, onChange, maxImages = 5, type = 'listing' }: ImageUploaderProps) {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { accessToken, refreshAuthToken } = useAuth();
+
+  const uploadFileWithToken = async (file: File, token?: string | null) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('type', type);
+
+    const headers: HeadersInit = {};
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    return fetch(`${API_URL}/upload`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+  };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -45,27 +64,27 @@ export function ImageUploader({ images, onChange, maxImages = 5, type = 'listing
           continue;
         }
 
-        // Upload to server
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('type', type);
+        let token = accessToken || localStorage.getItem('accessToken');
+        let response = await uploadFileWithToken(file, token);
 
-        const token = localStorage.getItem('accessToken');
-        
-        const response = await fetch(`${API_URL}/upload`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-          body: formData,
-        });
+        if (response.status === 401) {
+          const refreshed = await refreshAuthToken();
+          token = refreshed || token;
+          if (refreshed) {
+            response = await uploadFileWithToken(file, refreshed);
+          }
+        }
 
         if (response.ok) {
           const data = await response.json();
           uploadedUrls.push(data.url);
         } else {
-          const error = await response.json();
-          toast.error(error.error || 'Failed to upload image');
+          const error = await response.json().catch(() => ({}));
+          if (response.status === 401) {
+            toast.error('Session expired. Please log in again.');
+          } else {
+            toast.error(error.error || 'Failed to upload image');
+          }
         }
       }
 

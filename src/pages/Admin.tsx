@@ -26,7 +26,7 @@ import { AdminSettings } from './AdminSettings';
 import { AdminNotifications } from './AdminNotifications';
 import { AdminPayouts } from './AdminPayouts';
 
-const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:8002'}/make-server-50b25a4f`;
+import { API_URL } from '@/lib/api';
 
 const formatCurrency = (amount) => {
   return new Intl.NumberFormat('en-US', {

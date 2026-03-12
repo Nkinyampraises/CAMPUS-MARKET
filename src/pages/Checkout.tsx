@@ -17,7 +17,7 @@ import { Alert, AlertDescription } from '@/app/components/ui/alert';
 import { ArrowLeft, Loader2, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 
-const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:8002'}/make-server-50b25a4f`;
+import { API_URL } from '@/lib/api';
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
 
 const fallbackPickupLocations = [

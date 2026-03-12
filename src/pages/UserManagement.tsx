@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Tag, Table, Button, message, Popconfirm, Avatar, Space } from 'antd';
 import { getUniversityName } from '@/data/mockData';
 
-const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:8002'}/make-server-50b25a4f`;
+import { API_URL } from '@/lib/api';
 
 interface User {
   id: string;

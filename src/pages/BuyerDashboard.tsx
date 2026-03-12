@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/ta
 import { Bell, DollarSign, Flag, Heart, MessageSquare, PackageCheck, ShieldAlert, ShoppingBag } from 'lucide-react';
 import { toast } from 'sonner';
 
-const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:8002'}/make-server-50b25a4f`;
+import { API_URL } from '@/lib/api';
 
 const formatMoney = (value: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value || 0);
@@ -20,6 +20,8 @@ export function BuyerDashboard() {
   const [orders, setOrders] = useState<any[]>([]);
   const [favoriteItems, setFavoriteItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const safeFavoriteItems = useMemo(() => favoriteItems.filter(Boolean), [favoriteItems]);
 
   const getWithAuthRetry = async (endpoint: string) => {
     if (!accessToken) {
@@ -76,7 +78,7 @@ export function BuyerDashboard() {
         const message =
           ordersResult.data?.error ||
           favoritesResult.data?.error ||
-          'Unable to reach server. Ensure API is running on http://localhost:8002';
+          'Unable to reach server. Ensure API is running and reachable from this device.';
         toast.error(message);
         return;
       }
@@ -91,7 +93,8 @@ export function BuyerDashboard() {
 
       if (favoritesResult.response.ok) {
         const data = favoritesResult.data;
-        setFavoriteItems(data.favorites || []);
+        const favorites = Array.isArray(data.favorites) ? data.favorites.filter(Boolean) : [];
+        setFavoriteItems(favorites);
       } else {
         toast.error(favoritesResult.data?.error || 'Failed to load favorites');
       }
@@ -218,11 +221,11 @@ export function BuyerDashboard() {
         </div>
 
         <Tabs defaultValue="orders" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="orders">My Orders</TabsTrigger>
-            <TabsTrigger value="favorites">Saved Items ({favoriteItems.length})</TabsTrigger>
-            <TabsTrigger value="messages">Messages</TabsTrigger>
-          </TabsList>
+            <TabsList>
+              <TabsTrigger value="orders">My Orders</TabsTrigger>
+              <TabsTrigger value="favorites">Saved Items ({safeFavoriteItems.length})</TabsTrigger>
+              <TabsTrigger value="messages">Messages</TabsTrigger>
+            </TabsList>
 
           <TabsContent value="orders" className="space-y-4">
             {orders.length > 0 ? (
@@ -279,16 +282,16 @@ export function BuyerDashboard() {
           </TabsContent>
 
           <TabsContent value="favorites">
-            {favoriteItems.length > 0 ? (
+            {safeFavoriteItems.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {favoriteItems.map((item: any) => (
+                {safeFavoriteItems.map((item: any) => (
                   <Card key={item.id} className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate(`/item/${item.id}`)}>
                     <div className="aspect-square relative overflow-hidden bg-muted">
-                      <img src={item.images?.[0]} alt={item.title} className="w-full h-full object-cover" />
+                      <img src={item?.images?.[0]} alt={item?.title || 'Saved item'} className="w-full h-full object-cover" />
                       <Badge className="absolute top-2 right-2">{item.status}</Badge>
                     </div>
                     <CardContent className="p-4">
-                      <h3 className="font-semibold mb-2 line-clamp-2">{item.title}</h3>
+                      <h3 className="font-semibold mb-2 line-clamp-2">{item.title || 'Untitled item'}</h3>
                       <p className="text-lg font-bold text-green-600 mb-3">{formatMoney(item.price || 0)}</p>
                       <Button className="w-full" onClick={(e) => { e.stopPropagation(); navigate(`/item/${item.id}`); }}>
                         View Details

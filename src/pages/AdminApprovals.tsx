@@ -16,7 +16,7 @@ import {
 import { getUniversityById } from '@/data/mockData';
 import { toast } from 'sonner';
 
-const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:8002'}/make-server-50b25a4f`;
+import { API_URL } from '@/lib/api';
 
 interface PendingUser {
   id: string;

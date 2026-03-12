@@ -8,12 +8,12 @@ import { ArrowLeft, Heart, Package } from 'lucide-react';
 import { formatCurrency, getCategoryById } from '@/data/mockData';
 import { toast } from 'sonner';
 
-const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:8002'}/make-server-50b25a4f`;
+import { API_URL } from '@/lib/api';
 
 export function Favorites() {
   const { currentUser, isAuthenticated, accessToken } = useAuth();
   const navigate = useNavigate();
-  const [favoriteItems, setFavoriteItems] = useState([]);
+  const [favoriteItems, setFavoriteItems] = useState<any[]>([]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -28,7 +28,8 @@ export function Favorites() {
         });
         const data = await response.json();
         if (response.ok) {
-          setFavoriteItems(data.favorites);
+          const favorites = Array.isArray(data.favorites) ? data.favorites.filter(Boolean) : [];
+          setFavoriteItems(favorites);
         }
       } catch (error) {
         toast.error('Failed to fetch favorites');
@@ -44,7 +45,7 @@ export function Favorites() {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${accessToken}` }
       });
-      setFavoriteItems(prev => prev.filter(item => item.id !== itemId));
+      setFavoriteItems(prev => prev.filter(item => item?.id !== itemId));
       toast.success('Removed from favorites');
     } catch (error) {
       toast.error('Failed to remove favorite');
@@ -86,14 +87,14 @@ export function Favorites() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {favoriteItems.map((item) => {
+                {favoriteItems.filter(Boolean).map((item) => {
                   const category = getCategoryById(item.category);
                   return (
                     <Card key={item.id} className="overflow-hidden hover:shadow-lg transition-shadow">
                       <div className="relative aspect-video bg-muted overflow-hidden">
                         <img
-                          src={item.images[0]}
-                          alt={item.title}
+                          src={item?.images?.[0]}
+                          alt={item?.title || 'Saved item'}
                           className="w-full h-full object-cover"
                         />
                         <button

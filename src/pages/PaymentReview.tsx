@@ -7,7 +7,7 @@ import { Alert, AlertDescription } from '@/app/components/ui/alert';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:8002'}/make-server-50b25a4f`;
+import { API_URL } from '@/lib/api';
 
 type PaymentContext = 'order' | 'subscription';
 
@@ -105,7 +105,7 @@ export function PaymentReview() {
             error:
               error instanceof Error
                 ? error.message
-                : 'Unable to reach payment server. Ensure API is running on http://localhost:8002',
+                : 'Unable to reach payment server. Ensure API is running and reachable from this device.',
           },
         };
       }

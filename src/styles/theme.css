@@ -132,7 +132,7 @@
     @apply text-foreground;
     background-color: var(--background);
     background-image: var(--app-background-image);
-    background-attachment: fixed;
+    background-attachment: scroll;
   }
 
   /**

@@ -7,7 +7,7 @@ import { Badge } from '@/app/components/ui/badge';
 import { ArrowLeft, CheckCheck } from 'lucide-react';
 import { toast } from 'sonner';
 
-const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:8002'}/make-server-50b25a4f`;
+import { API_URL } from '@/lib/api';
 
 export function Notifications() {
   const navigate = useNavigate();

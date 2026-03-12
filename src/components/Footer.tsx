@@ -1,7 +1,10 @@
 import { Link } from 'react-router-dom';
 import { ShoppingBag, Mail, Phone, MapPin } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export function Footer() {
+  const { t } = useLanguage();
+
   return (
     <footer className="border-t border-border bg-card text-muted-foreground pt-12 pb-6">
       <div className="container mx-auto px-4">
@@ -15,32 +18,35 @@ export function Footer() {
               <h3 className="text-foreground font-bold text-lg">CampusMarket</h3>
             </div>
             <p className="text-sm text-muted-foreground">
-              The trusted student marketplace for Cameroon universities. Buy, sell, and rent household items safely and affordably.
+              {t(
+                'footer.about',
+                'The trusted student marketplace for Cameroon universities. Buy, sell, and rent household items safely and affordably.',
+              )}
             </p>
           </div>
 
           {/* Quick Links */}
           <div>
-            <h4 className="text-foreground font-semibold mb-4">Quick Links</h4>
+            <h4 className="text-foreground font-semibold mb-4">{t('footer.quickLinks', 'Quick Links')}</h4>
             <ul className="space-y-2 text-sm">
               <li>
                 <Link to="/marketplace" className="hover:text-green-400 transition-colors">
-                  Browse Marketplace
+                  {t('footer.browseMarketplace', 'Browse Marketplace')}
                 </Link>
               </li>
               <li>
                 <Link to="/register" className="hover:text-green-400 transition-colors">
-                  Sign Up
+                  {t('auth.signup', 'Sign Up')}
                 </Link>
               </li>
               <li>
                 <Link to="/login" className="hover:text-green-400 transition-colors">
-                  Login
+                  {t('auth.login', 'Login')}
                 </Link>
               </li>
               <li>
                 <a href="#" className="hover:text-green-400 transition-colors">
-                  How It Works
+                  {t('footer.howItWorks', 'How It Works')}
                 </a>
               </li>
             </ul>
@@ -48,7 +54,7 @@ export function Footer() {
 
           {/* Categories */}
           <div>
-            <h4 className="text-foreground font-semibold mb-4">Categories</h4>
+            <h4 className="text-foreground font-semibold mb-4">{t('footer.categories', 'Categories')}</h4>
             <ul className="space-y-2 text-sm">
               <li>
                 <a href="#" className="hover:text-green-400 transition-colors">
@@ -75,7 +81,7 @@ export function Footer() {
 
           {/* Contact */}
           <div>
-            <h4 className="text-foreground font-semibold mb-4">Contact Us</h4>
+            <h4 className="text-foreground font-semibold mb-4">{t('footer.contactUs', 'Contact Us')}</h4>
             <ul className="space-y-3 text-sm">
               <li className="flex items-start gap-2">
                 <Mail className="h-4 w-4 mt-0.5 text-green-400 flex-shrink-0" />
@@ -87,7 +93,7 @@ export function Footer() {
               </li>
               <li className="flex items-start gap-2">
                 <MapPin className="h-4 w-4 mt-0.5 text-green-400 flex-shrink-0" />
-                <span>Serving all major universities in Cameroon</span>
+                <span>{t('footer.servingCameroon', 'Serving all major universities in Cameroon')}</span>
               </li>
             </ul>
           </div>
@@ -96,17 +102,17 @@ export function Footer() {
         {/* Bottom Bar */}
         <div className="border-t border-border pt-6 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-sm text-muted-foreground">
-            © 2026 CampusMarket. All rights reserved.
+            © 2026 CampusMarket. {t('footer.rights', 'All rights reserved.')}
           </p>
           <div className="flex gap-6 text-sm">
             <a href="#" className="hover:text-green-400 transition-colors">
-              Privacy Policy
+              {t('footer.privacy', 'Privacy Policy')}
             </a>
             <a href="#" className="hover:text-green-400 transition-colors">
-              Terms of Service
+              {t('footer.terms', 'Terms of Service')}
             </a>
             <a href="#" className="hover:text-green-400 transition-colors">
-              FAQ
+              {t('footer.faq', 'FAQ')}
             </a>
           </div>
         </div>

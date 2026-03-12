@@ -1,7 +1,7 @@
 {
   "tasks": {
-    "start": "deno run --no-check --allow-net --allow-env --allow-read --env supabase/functions/server/index.tsx",
-    "check:server": "deno check supabase/functions/server/index.tsx"
+    "start": "deno run --no-check --allow-net --allow-env --allow-read --env supabase/functions/server/index.ts",
+    "check:server": "deno check supabase/functions/server/index.ts"
   },
   "nodeModulesDir": "auto",
   "exclude": [
