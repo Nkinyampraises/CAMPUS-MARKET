@@ -111,7 +111,7 @@ export function SellerDashboard() {
         const data = listingsResult.data;
         setMyListings(data.listings || []);
       } else {
-        toast.error(listingsResult.data?.error || 'Failed to load listings');
+        toast.error(listingsResult.data?.details || listingsResult.data?.error || 'Failed to load listings');
       }
       if (ordersResult.response.ok) {
         const data = ordersResult.data;

@@ -20,76 +20,135 @@ const requiredEnv = (key: string): string => {
   return value;
 };
 
-const client = () => createClient(
-  requiredEnv("SUPABASE_URL"),
-  requiredEnv("SUPABASE_SERVICE_ROLE_KEY"),
-);
+const client = () =>
+  createClient(
+    requiredEnv("SUPABASE_URL"),
+    requiredEnv("SUPABASE_SERVICE_ROLE_KEY"),
+  );
+
+const DEFAULT_KV_TABLE = "kv_store_50b25a4f";
+const LEGACY_KV_TABLE = "kv_store";
+
+let resolvedKvTable: string | null = null;
+
+const getKvTableCandidates = () => {
+  const configured = (Deno.env.get("KV_STORE_TABLE") || "")
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+
+  return Array.from(new Set([
+    ...configured,
+    DEFAULT_KV_TABLE,
+    LEGACY_KV_TABLE,
+  ]));
+};
+
+const isMissingTableError = (message: string) =>
+  /relation .* does not exist|table .* does not exist|could not find the table|not found in the schema cache/i.test(
+    message,
+  );
+
+const toErrorMessage = (error: any) => {
+  const parts = [error?.message, error?.details, error?.hint]
+    .filter((entry) => typeof entry === "string" && entry.trim().length > 0)
+    .map((entry) => entry.trim());
+
+  return parts.join(" ").trim() || "Supabase request failed";
+};
+
+async function withKvTable<T>(
+  operation: (supabase: ReturnType<typeof client>, table: string) => Promise<{ data?: any; error?: any }>,
+  onSuccess: (data: any) => T,
+): Promise<T> {
+  const candidates = resolvedKvTable
+    ? [resolvedKvTable, ...getKvTableCandidates().filter((table) => table !== resolvedKvTable)]
+    : getKvTableCandidates();
+
+  let lastMissingTableError: Error | null = null;
+
+  for (const table of candidates) {
+    const supabase = client();
+    const { data, error } = await operation(supabase, table);
+
+    if (!error) {
+      resolvedKvTable = table;
+      return onSuccess(data);
+    }
+
+    const message = toErrorMessage(error);
+    if (isMissingTableError(message)) {
+      if (resolvedKvTable === table) {
+        resolvedKvTable = null;
+      }
+      lastMissingTableError = new Error(message);
+      continue;
+    }
+
+    throw new Error(message);
+  }
+
+  const triedTables = getKvTableCandidates().join(", ");
+  throw lastMissingTableError || new Error(`Unable to access a KV store table. Tried: ${triedTables}`);
+}
 
 // Set stores a key-value pair in the database.
 export const set = async (key: string, value: any): Promise<void> => {
-  const supabase = client()
-  const { error } = await supabase.from("kv_store_50b25a4f").upsert({
-    key,
-    value
-  });
-  if (error) {
-    throw new Error(error.message);
-  }
+  await withKvTable(
+    async (supabase, table) =>
+      await supabase.from(table).upsert({
+        key,
+        value,
+      }),
+    () => undefined,
+  );
 };
 
 // Get retrieves a key-value pair from the database.
 export const get = async (key: string): Promise<any> => {
-  const supabase = client()
-  const { data, error } = await supabase.from("kv_store_50b25a4f").select("value").eq("key", key).maybeSingle();
-  if (error) {
-    throw new Error(error.message);
-  }
-  return data?.value;
+  return await withKvTable(
+    async (supabase, table) => await supabase.from(table).select("value").eq("key", key).maybeSingle(),
+    (data) => data?.value,
+  );
 };
 
 // Delete deletes a key-value pair from the database.
 export const del = async (key: string): Promise<void> => {
-  const supabase = client()
-  const { error } = await supabase.from("kv_store_50b25a4f").delete().eq("key", key);
-  if (error) {
-    throw new Error(error.message);
-  }
+  await withKvTable(
+    async (supabase, table) => await supabase.from(table).delete().eq("key", key),
+    () => undefined,
+  );
 };
 
 // Sets multiple key-value pairs in the database.
 export const mset = async (keys: string[], values: any[]): Promise<void> => {
-  const supabase = client()
-  const { error } = await supabase.from("kv_store_50b25a4f").upsert(keys.map((k, i) => ({ key: k, value: values[i] })));
-  if (error) {
-    throw new Error(error.message);
-  }
+  await withKvTable(
+    async (supabase, table) =>
+      await supabase.from(table).upsert(keys.map((entry, index) => ({ key: entry, value: values[index] }))),
+    () => undefined,
+  );
 };
 
 // Gets multiple key-value pairs from the database.
 export const mget = async (keys: string[]): Promise<any[]> => {
-  const supabase = client()
-  const { data, error } = await supabase.from("kv_store_50b25a4f").select("value").in("key", keys);
-  if (error) {
-    throw new Error(error.message);
-  }
-  return data?.map((d) => d.value) ?? [];
+  return await withKvTable(
+    async (supabase, table) => await supabase.from(table).select("value").in("key", keys),
+    (data) => data?.map((entry: any) => entry.value) ?? [],
+  );
 };
 
 // Deletes multiple key-value pairs from the database.
 export const mdel = async (keys: string[]): Promise<void> => {
-  const supabase = client()
-  const { error } = await supabase.from("kv_store_50b25a4f").delete().in("key", keys);
-  if (error) {
-    throw new Error(error.message);
-  }
+  await withKvTable(
+    async (supabase, table) => await supabase.from(table).delete().in("key", keys),
+    () => undefined,
+  );
 };
 
 // Search for key-value pairs by prefix.
 export const getByPrefix = async (prefix: string): Promise<any[]> => {
-  const supabase = client()
-  const { data, error } = await supabase.from("kv_store_50b25a4f").select("key, value").like("key", prefix + "%");
-  if (error) {
-    throw new Error(error.message);
-  }
-  return data?.map((d) => d.value) ?? [];
+  return await withKvTable(
+    async (supabase, table) => await supabase.from(table).select("key, value").like("key", `${prefix}%`),
+    (data) => data?.map((entry: any) => entry.value) ?? [],
+  );
 };

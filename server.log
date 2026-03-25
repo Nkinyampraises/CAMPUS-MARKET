@@ -1,0 +1,22 @@
+Task start deno run --no-check --allow-net --allow-env --allow-read --env supabase/functions/server/index.ts
+Server listening on port 8002
+Listening on http://localhost:8002/
+TypeError: error sending request for url (https://gidhrctnjfxzccaplkjj.supabase.co/auth/v1/admin/users?page=&per_page=): client error (Connect): dns error: No such host is known. (os error 11001)
+    at async mainFetch (ext:deno_fetch/26_fetch.js:192:12)
+    at async fetch (ext:deno_fetch/26_fetch.js:475:11)
+    at async _handleRequest (file:///C:/Users/MATRIX%20TECHNOLOGY/Documents/market/node_modules/.deno/@supabase+auth-js@2.94.0/node_modules/@supabase/auth-js/dist/main/lib/fetch.js:101:18)
+    at async _request (file:///C:/Users/MATRIX%20TECHNOLOGY/Documents/market/node_modules/.deno/@supabase+auth-js@2.94.0/node_modules/@supabase/auth-js/dist/main/lib/fetch.js:91:18)
+    at async GoTrueAdminApi.listUsers (file:///C:/Users/MATRIX%20TECHNOLOGY/Documents/market/node_modules/.deno/@supabase+auth-js@2.94.0/node_modules/@supabase/auth-js/dist/main/GoTrueAdminApi.js:150:30)
+    at async createAdminUser (file:///C:/Users/MATRIX%20TECHNOLOGY/Documents/market/supabase/functions/server/index.ts:93:49)
+Error listing users: error sending request for url (https://gidhrctnjfxzccaplkjj.supabase.co/auth/v1/admin/users?page=&per_page=): client error (Connect): dns error: No such host is known. (os error 11001)
+TypeError: error sending request for url (https://gidhrctnjfxzccaplkjj.supabase.co/auth/v1/admin/users): client error (Connect): dns error: No such host is known. (os error 11001)
+    at async mainFetch (ext:deno_fetch/26_fetch.js:192:12)
+    at async fetch (ext:deno_fetch/26_fetch.js:475:11)
+    at async _handleRequest (file:///C:/Users/MATRIX%20TECHNOLOGY/Documents/market/node_modules/.deno/@supabase+auth-js@2.94.0/node_modules/@supabase/auth-js/dist/main/lib/fetch.js:101:18)
+    at async _request (file:///C:/Users/MATRIX%20TECHNOLOGY/Documents/market/node_modules/.deno/@supabase+auth-js@2.94.0/node_modules/@supabase/auth-js/dist/main/lib/fetch.js:91:18)
+    at async GoTrueAdminApi.createUser (file:///C:/Users/MATRIX%20TECHNOLOGY/Documents/market/node_modules/.deno/@supabase+auth-js@2.94.0/node_modules/@supabase/auth-js/dist/main/GoTrueAdminApi.js:127:20)
+    at async createAdminUser (file:///C:/Users/MATRIX%20TECHNOLOGY/Documents/market/supabase/functions/server/index.ts:109:27)
+Error creating admin user: error sending request for url (https://gidhrctnjfxzccaplkjj.supabase.co/auth/v1/admin/users): client error (Connect): dns error: No such host is known. (os error 11001)
+Created bucket: make-50b25a4f-listings
+Created bucket: make-50b25a4f-profiles
+Created bucket: make-50b25a4f-delivery-proofs

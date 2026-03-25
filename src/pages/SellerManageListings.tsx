@@ -63,7 +63,7 @@ export function SellerManageListings() {
     try {
       const { response, data } = await requestWithAuthRetry('/listings/user');
       if (!response) {
-        toast.error(data.error || 'Failed to load listings');
+        toast.error(data.details || data.error || 'Failed to load listings');
         return;
       }
       if (response.status === 401) {
@@ -73,7 +73,7 @@ export function SellerManageListings() {
         return;
       }
       if (!response.ok) {
-        toast.error(data.error || 'Failed to load listings');
+        toast.error(data.details || data.error || 'Failed to load listings');
         return;
       }
       setListings(Array.isArray(data.listings) ? data.listings : []);
@@ -258,4 +258,3 @@ export function SellerManageListings() {
     </div>
   );
 }
-

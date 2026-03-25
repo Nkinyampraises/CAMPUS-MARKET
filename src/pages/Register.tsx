@@ -137,7 +137,7 @@ export function Register() {
             </div>
           </div>
           <CardTitle>Create Account</CardTitle>
-          <CardDescription>Join CampusMarket - Student Marketplace</CardDescription>
+          <CardDescription>Join UNITRADE - Student Marketplace</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -323,3 +323,4 @@ export function Register() {
     </div>
   );
 }
+

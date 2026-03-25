@@ -5,6 +5,8 @@ import { Footer } from '@/components/Footer';
 import { Home } from '@/pages/Home';
 import { Login } from '@/pages/Login';
 import { Register } from '@/pages/Register';
+import { ForgotPassword } from '@/pages/ForgotPassword';
+import { ResetPassword } from '@/pages/ResetPassword';
 import { Marketplace } from '@/pages/Marketplace';
 import { ItemDetails } from '@/pages/ItemDetails';
 import { Dashboard } from '@/pages/Dashboard';
@@ -63,6 +65,8 @@ export default function App() {
                 <Routes>
                   <Route path="/" element={<Home />} />
                   <Route path="/login" element={<Login />} />
+                  <Route path="/forgot-password" element={<ForgotPassword />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
                   <Route path="/register" element={<Register />} />
                   <Route path="/marketplace" element={<Marketplace />} />
                   <Route path="/item/:id" element={<ItemDetails />} />

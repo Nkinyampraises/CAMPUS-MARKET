@@ -10,6 +10,35 @@ const app = new Hono();
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+const frontendUrl = (Deno.env.get('FRONTEND_URL') || Deno.env.get('SITE_URL') || Deno.env.get('PUBLIC_SITE_URL') || '').trim();
+
+const resolveFrontendBase = (req: Request) => {
+  if (frontendUrl) {
+    return frontendUrl.replace(/\/+$/, '');
+  }
+
+  const origin = req.headers.get('origin');
+  if (origin) {
+    return origin.replace(/\/+$/, '');
+  }
+
+  const forwardedHost = req.headers.get('x-forwarded-host') || req.headers.get('host');
+  if (!forwardedHost) {
+    return undefined;
+  }
+
+  const forwardedProto = req.headers.get('x-forwarded-proto') || 'https';
+  return `${forwardedProto}://${forwardedHost}`.replace(/\/+$/, '');
+};
+
+const resolveFrontendRedirectTo = (req: Request, path: string) => {
+  const base = resolveFrontendBase(req);
+  if (!base) {
+    return undefined;
+  }
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  return `${base}${normalizedPath}`;
+};
 
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
@@ -94,7 +123,7 @@ async function createAdminUser() {
     name: 'Admin',
     email: adminEmail,
     phone: '000000000',
-    university: 'CampusMarket',
+    university: 'UNITRADE',
     studentId: '',
     rating: 0,
     reviewCount: 0,
@@ -122,7 +151,7 @@ async function createAdminUser() {
 createAdminUser().catch(console.error);
 
 function normalizeUserProfile(profile: any) {
-  if (!profile || typeof profile !== 'object') {
+  if (!profile || typeof profile !== 'object' || Array.isArray(profile)) {
     return null;
   }
 
@@ -150,8 +179,8 @@ function normalizeUserProfile(profile: any) {
 }
 
 const DEFAULT_ADMIN_SETTINGS = {
-  platformName: "CampusMarket",
-  supportEmail: "support@campusmarket.cm",
+  platformName: "UNITRADE",
+  supportEmail: "support@UNITRADE.cm",
   maintenanceMode: false,
   allowNewRegistrations: true,
   platformCommissionPercent: 5,
@@ -232,6 +261,11 @@ const toSafeNumber = (value: any, fallback = 0) => {
   const num = parseFlexibleNumber(value);
   return Number.isFinite(num) ? num : fallback;
 };
+
+const isProduction = () => String(Deno.env.get("NODE_ENV") || "").toLowerCase() === "production";
+const errorMessage = (error: unknown) => (error instanceof Error ? error.message : String(error));
+const internalErrorPayload = (message: string, error: unknown) =>
+  isProduction() ? { error: message } : { error: message, details: errorMessage(error) };
 
 const roundMoney = (value: any) => {
   const safeValue = toSafeNumber(value, 0);
@@ -1246,8 +1280,8 @@ async function getUserProfile(userId: string) {
   return normalizedProfile;
 }
 
-async function enrichListing(listing: any) {
-  if (!listing || typeof listing !== 'object') {
+async function enrichListing(listing: any, sellerCache?: Map<string, any | null>) {
+  if (!listing || typeof listing !== 'object' || Array.isArray(listing)) {
     return listing;
   }
 
@@ -1261,7 +1295,16 @@ async function enrichListing(listing: any) {
     return normalizedListing;
   }
 
-  const seller = await getUserProfile(normalizedListing.sellerId);
+  let seller: any | null | undefined =
+    sellerCache ? sellerCache.get(normalizedListing.sellerId) : undefined;
+
+  if (typeof seller === 'undefined') {
+    seller = await getUserProfile(normalizedListing.sellerId);
+    if (sellerCache) {
+      sellerCache.set(normalizedListing.sellerId, seller || null);
+    }
+  }
+
   if (!seller) {
     return normalizedListing;
   }
@@ -1358,18 +1401,21 @@ app.post("/make-server-50b25a4f/signup", async (c) => {
       return c.json({ error: 'Missing required fields' }, 400);
     }
 
-    // Create user with Supabase Auth
-    const { data, error } = await supabaseAdmin.auth.admin.createUser({
+    // Create user with Supabase Auth (email confirmation required)
+    const emailRedirectTo = resolveFrontendRedirectTo(c.req.raw, '/login');
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      email_confirm: true, // Auto-confirm email
-      user_metadata: {
-        name,
-        phone,
-        university,
-        studentId,
-        userType: normalizedUserType,
-        profilePicture: normalizedProfilePicture,
+      options: {
+        data: {
+          name,
+          phone,
+          university,
+          studentId,
+          userType: normalizedUserType,
+          profilePicture: normalizedProfilePicture,
+        },
+        ...(emailRedirectTo ? { emailRedirectTo } : {}),
       },
     });
 
@@ -1378,7 +1424,11 @@ app.post("/make-server-50b25a4f/signup", async (c) => {
       return c.json({ error: error.message }, 400);
     }
 
-    // Create user profile in KV store with pending approval
+    if (!data.user) {
+      return c.json({ error: 'Signup failed. Please try again.' }, 500);
+    }
+
+    // Create user profile in KV store (auto-approved)
     const userProfile = {
       id: data.user.id,
       name,
@@ -1389,7 +1439,7 @@ app.post("/make-server-50b25a4f/signup", async (c) => {
       rating: 0,
       reviewCount: 0,
       isVerified: false,
-      isApproved: false, // Pending admin approval
+      isApproved: true, // Auto-approve (no admin approval required)
       role: 'student',
       userType: normalizedUserType,
       profilePicture: normalizedProfilePicture,
@@ -1408,12 +1458,70 @@ app.post("/make-server-50b25a4f/signup", async (c) => {
 
     return c.json({ 
       success: true, 
-      message: 'Account created! Please wait for admin approval before logging in.',
+      message: 'Account created! Please check your email to confirm your account before logging in.',
       userId: data.user.id
     });
   } catch (error) {
-    console.error('Signup error:', error);
-    return c.json({ error: 'An error occurred during signup' }, 500);
+    const message = error instanceof Error ? error.message : 'An error occurred during signup';
+    console.error('Signup error:', message);
+    return c.json({ error: message }, 500);
+  }
+});
+
+// Send password reset email
+app.post("/make-server-50b25a4f/auth/forgot-password", async (c) => {
+  try {
+    const body = await c.req.json().catch(() => ({}));
+    const email = typeof body?.email === 'string' ? body.email.trim() : '';
+
+    if (!email) {
+      return c.json({ error: 'Email is required' }, 400);
+    }
+
+    const redirectTo = resolveFrontendRedirectTo(c.req.raw, '/reset-password');
+    const { error } = await supabase.auth.resetPasswordForEmail(email, redirectTo ? { redirectTo } : undefined);
+
+    if (error) {
+      console.error('Forgot password error:', error.message);
+      return c.json({ error: error.message }, 400);
+    }
+
+    return c.json({ success: true, message: 'Password reset email sent.' });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to send reset email';
+    console.error('Forgot password error:', message);
+    return c.json({ error: message }, 500);
+  }
+});
+
+// Reset password using recovery token
+app.post("/make-server-50b25a4f/auth/reset-password", async (c) => {
+  try {
+    const user = await verifyAuth(c.req.header('Authorization'));
+
+    if (!user) {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+
+    const body = await c.req.json().catch(() => ({}));
+    const password = typeof body?.password === 'string' ? body.password : '';
+
+    if (!password || password.length < 6) {
+      return c.json({ error: 'Password must be at least 6 characters' }, 400);
+    }
+
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(user.id, { password });
+
+    if (error) {
+      console.error('Reset password error:', error.message);
+      return c.json({ error: error.message }, 400);
+    }
+
+    return c.json({ success: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to reset password';
+    console.error('Reset password error:', message);
+    return c.json({ error: message }, 500);
   }
 });
 
@@ -1443,13 +1551,6 @@ app.post("/make-server-50b25a4f/signin", async (c) => {
 
     if (profile.isBanned) {
       return c.json({ error: 'Your account has been suspended. Contact support.' }, 403);
-    }
-
-    // Check if account is approved (unless admin)
-    if (profile.role !== 'admin' && !profile.isApproved) {
-      return c.json({ 
-        error: 'Your account is pending admin approval. Please wait for approval before logging in.' 
-      }, 403);
     }
 
     return c.json({ 
@@ -1666,11 +1767,29 @@ app.post("/make-server-50b25a4f/listings", async (c) => {
 app.get("/make-server-50b25a4f/listings", async (c) => {
   try {
     const listings = await kv.getByPrefix('listing:');
-    const enriched = await Promise.all((listings || []).map(async (listing: any) => await enrichListing(listing)));
-    return c.json({ listings: enriched || [] });
+    const sellerCache = new Map<string, any | null>();
+    const enriched: any[] = [];
+
+    for (const listing of listings || []) {
+      if (!listing || typeof listing !== 'object' || Array.isArray(listing)) {
+        continue;
+      }
+
+      try {
+        const value = await enrichListing(listing, sellerCache);
+        if (value) {
+          enriched.push(value);
+        }
+      } catch (error) {
+        const listingId = typeof listing.id === 'string' ? listing.id : 'unknown';
+        console.error(`Get listings enrich error (${listingId}):`, error);
+      }
+    }
+
+    return c.json({ listings: enriched });
   } catch (error) {
     console.error('Get listings error:', error);
-    return c.json({ error: 'Failed to get listings' }, 500);
+    return c.json(internalErrorPayload('Failed to get listings', error), 500);
   }
 });
 
@@ -4257,7 +4376,7 @@ app.get("/make-server-50b25a4f/universities", async (c) => {
     return c.json({ universities: universities.filter((entry: any) => entry?.isActive) });
   } catch (error) {
     console.error("Get universities error:", error);
-    return c.json({ error: "Failed to get universities" }, 500);
+    return c.json(internalErrorPayload("Failed to get universities", error), 500);
   }
 });
 
@@ -4268,7 +4387,7 @@ app.get("/make-server-50b25a4f/categories", async (c) => {
     return c.json({ categories: categories.filter((entry: any) => entry?.isActive) });
   } catch (error) {
     console.error("Get categories error:", error);
-    return c.json({ error: "Failed to get categories" }, 500);
+    return c.json(internalErrorPayload("Failed to get categories", error), 500);
   }
 });
 

@@ -15,7 +15,7 @@ export function Footer() {
               <div className="h-8 w-8 bg-green-600 rounded-lg flex items-center justify-center">
                 <ShoppingBag className="h-5 w-5 text-white" />
               </div>
-              <h3 className="text-foreground font-bold text-lg">CampusMarket</h3>
+              <h3 className="text-foreground font-bold text-lg">UNITRADE</h3>
             </div>
             <p className="text-sm text-muted-foreground">
               {t(
@@ -85,7 +85,7 @@ export function Footer() {
             <ul className="space-y-3 text-sm">
               <li className="flex items-start gap-2">
                 <Mail className="h-4 w-4 mt-0.5 text-green-400 flex-shrink-0" />
-                <span>support@campusmarket.cm</span>
+                <span>support@UNITRADE.cm</span>
               </li>
               <li className="flex items-start gap-2">
                 <Phone className="h-4 w-4 mt-0.5 text-green-400 flex-shrink-0" />
@@ -102,7 +102,7 @@ export function Footer() {
         {/* Bottom Bar */}
         <div className="border-t border-border pt-6 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-sm text-muted-foreground">
-            © 2026 CampusMarket. {t('footer.rights', 'All rights reserved.')}
+            © 2026 UNITRADE. {t('footer.rights', 'All rights reserved.')}
           </p>
           <div className="flex gap-6 text-sm">
             <a href="#" className="hover:text-green-400 transition-colors">
@@ -120,3 +120,4 @@ export function Footer() {
     </footer>
   );
 }
+

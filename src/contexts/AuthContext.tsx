@@ -249,10 +249,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }),
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        return { success: false, error: data.error || 'Registration failed' };
+        return {
+          success: false,
+          error:
+            data.error ||
+            data.message ||
+            response.statusText ||
+            `Registration failed (${response.status})`,
+        };
       }
 
       return { success: true };

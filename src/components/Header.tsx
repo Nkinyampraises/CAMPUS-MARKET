@@ -59,9 +59,9 @@ export function Header() {
         <div className="flex items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <img src={appLogo} alt="CampusMarket logo" className="h-12 w-12 rounded-lg object-cover" />
+            <img src={appLogo} alt="UNITRADE logo" className="h-12 w-12 rounded-lg object-cover" />
             <div className="hidden sm:block">
-              <h1 className="text-xl font-bold text-foreground">CampusMarket</h1>
+              <h1 className="text-xl font-bold text-foreground">UNITRADE</h1>
               <p className="text-xs text-muted-foreground">{t('brand.universities', 'Cameroon Universities')}</p>
             </div>
           </Link>
@@ -319,3 +319,4 @@ export function Header() {
     </header>
   );
 }
+

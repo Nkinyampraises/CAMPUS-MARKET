@@ -3,7 +3,9 @@
 :root {
   --font-size: 16px;
   --background: #ffffff;
-  --app-background-image: none;
+  --app-background-image: radial-gradient(circle at top, rgba(16, 185, 129, 0.12), transparent 55%),
+    radial-gradient(circle at 30% 20%, rgba(14, 165, 233, 0.16), transparent 50%),
+    linear-gradient(120deg, #f8fafc 0%, #eefbf6 45%, #f2f7ff 100%);
   --foreground: oklch(0.145 0 0);
   --card: #ffffff;
   --card-foreground: oklch(0.145 0 0);
@@ -42,9 +44,42 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
+@keyframes login-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes login-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes login-slide {
+  from {
+    opacity: 0;
+    transform: translateX(22px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 .dark {
   --background: #011824;
-  --app-background-image: linear-gradient(180deg, #00362f 0%, #001829 100%);
+  --app-background-image: radial-gradient(circle at top, rgba(16, 185, 129, 0.18), transparent 55%),
+    radial-gradient(circle at 30% 20%, rgba(14, 165, 233, 0.2), transparent 50%),
+    linear-gradient(120deg, #031b14 0%, #051f2c 55%, #041a21 100%);
   --foreground: #e6f7ff;
   --card: #042433;
   --card-foreground: #e6f7ff;
@@ -234,5 +269,14 @@
   .dark .hover\:bg-gray-100:hover,
   .dark .hover\:bg-red-50:hover {
     background-color: var(--accent);
+  }
+}
+
+@layer utilities {
+  .bg-background.min-h-screen,
+  .bg-background.min-h-\[calc\(100vh-4rem\)\] {
+    background-color: var(--background);
+    background-image: var(--app-background-image);
+    background-attachment: scroll;
   }
 }

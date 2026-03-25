@@ -95,7 +95,9 @@ export function Marketplace() {
           const data = await response.json().catch(() => ({}));
           if (!response.ok) {
             setListings([]);
-            toast.error(data.error || t('marketplace.failedFetchListings', 'Failed to fetch listings from database'));
+            toast.error(
+              data.details || data.error || t('marketplace.failedFetchListings', 'Failed to fetch listings from database'),
+            );
           } else {
             setListings(Array.isArray(data.listings) ? data.listings : []);
           }

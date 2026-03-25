@@ -171,7 +171,7 @@ export const users: User[] = [
   {
     id: 'admin1',
     name: 'Admin User',
-    email: 'admin@campusmarket.cm',
+    email: 'admin@UNITRADE.cm',
     phone: '+237 600 000 000',
     university: '1',
     rating: 5.0,
@@ -471,3 +471,4 @@ export const getCategoryById = (id: string): Category | undefined => {
 export const getLocationById = (id: string): Location | undefined => {
   return locations.find(loc => loc.id === id);
 };
+

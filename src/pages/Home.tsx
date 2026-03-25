@@ -169,7 +169,7 @@ export function Home() {
             if (isMounted) setListings(data.listings);
           } else if (!silent) {
             if (isMounted) setListings([]);
-            toast.error(data.error || t('home.failedLoadListings', 'Failed to load home listings'));
+            toast.error(data.details || data.error || t('home.failedLoadListings', 'Failed to load home listings'));
           }
         } else if (!silent) {
           if (isMounted) setListings([]);
@@ -476,12 +476,12 @@ export function Home() {
   };
 
   return (
-    <div className="bg-[#eef1f5] text-foreground dark:bg-slate-950">
+    <div className="text-foreground">
       <section className="relative overflow-hidden border-b border-emerald-200/70 bg-gradient-to-r from-emerald-100 via-green-100 to-lime-200 dark:border-slate-800 dark:from-emerald-950/60 dark:via-slate-900 dark:to-slate-800">
         <div className="container mx-auto px-4 py-10">
           <div>
           <Badge className="mb-4 bg-white/80 text-slate-700 hover:bg-white dark:bg-slate-700 dark:text-slate-100">
-            {t('home.badge', 'CampusMarket Picks')}
+            {t('home.badge', 'UNITRADE Picks')}
           </Badge>
           <h1 className="text-3xl font-bold leading-tight text-slate-900 md:text-5xl dark:text-white">
             {t('home.heroTitle', 'Discover top student deals, rentals, and room essentials.')}
@@ -509,51 +509,52 @@ export function Home() {
         </div>
       </section>
 
-      <div className="container mx-auto space-y-6 px-4 py-8">
-        <section className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          {[
-            {
-              id: 'rentals-near-you',
-              title: t('home.rentalsNearYou', 'Rentals near you'),
-              subtitle: t('home.rentalsSubtitle', 'Short-term and semester rentals from nearby campuses.'),
-              cta: t('home.browseRentals', 'Browse rentals'),
-              filters: { section: 'rentals-near-you', type: 'rent', sort: 'recent' } as MarketplaceRouteFilters,
-              image: getFeatureImage(rentalsFeatureImages, 0),
-            },
-            {
-              id: 'recommended-for-you',
-              title: t('home.recommendedForYou', 'Recommended for you'),
-              subtitle: t('home.recommendedSubtitle', 'Popular student picks based on what is trending now.'),
-              cta: t('home.seeRecommendations', 'See recommendations'),
-              filters: { section: 'recommended-for-you', sort: 'recent' } as MarketplaceRouteFilters,
-              image: getFeatureImage(recommendedFeatureImages, 1),
-            },
-          ].map((card) => (
-            <button
-              key={card.id}
-              className="group relative overflow-hidden rounded-3xl border border-white/60 text-left shadow-sm transition hover:shadow-xl"
-              onClick={() => openMarketplace(card.filters)}
-            >
-              {card.image ? (
-                <img src={card.image} alt={card.title} className="h-80 w-full object-cover transition duration-500 group-hover:scale-105" />
-              ) : (
-                <div className="h-80 w-full bg-gradient-to-r from-slate-300 to-slate-200 dark:from-slate-700 dark:to-slate-600" />
-              )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-black/10" />
-              <div className="absolute inset-x-0 bottom-0 p-6 text-white">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/80">
-                  {t('home.featuredSection', 'Featured Section')}
-                </p>
-                <h2 className="mt-2 text-2xl font-bold">{card.title}</h2>
-                <p className="mt-2 text-sm text-white/90">{card.subtitle}</p>
-                <p className="mt-4 inline-flex items-center text-sm font-semibold">
-                  {card.cta}
-                  <ChevronRight className="ml-1 h-4 w-4" />
-                </p>
-              </div>
-            </button>
-          ))}
-        </section>
+      <div className="bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.12),_transparent_55%),radial-gradient(circle_at_30%_20%,_rgba(14,165,233,0.16),_transparent_50%),linear-gradient(120deg,_#f8fafc_0%,_#eefbf6_45%,_#f2f7ff_100%)] dark:bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.18),_transparent_55%),radial-gradient(circle_at_30%_20%,_rgba(14,165,233,0.2),_transparent_50%),linear-gradient(120deg,_#031b14_0%,_#051f2c_55%,_#041a21_100%)]">
+        <div className="container mx-auto space-y-6 px-4 py-8">
+          <section className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            {[
+              {
+                id: 'rentals-near-you',
+                title: t('home.rentalsNearYou', 'Rentals near you'),
+                subtitle: t('home.rentalsSubtitle', 'Short-term and semester rentals from nearby campuses.'),
+                cta: t('home.browseRentals', 'Browse rentals'),
+                filters: { section: 'rentals-near-you', type: 'rent', sort: 'recent' } as MarketplaceRouteFilters,
+                image: getFeatureImage(rentalsFeatureImages, 0),
+              },
+              {
+                id: 'recommended-for-you',
+                title: t('home.recommendedForYou', 'Recommended for you'),
+                subtitle: t('home.recommendedSubtitle', 'Popular student picks based on what is trending now.'),
+                cta: t('home.seeRecommendations', 'See recommendations'),
+                filters: { section: 'recommended-for-you', sort: 'recent' } as MarketplaceRouteFilters,
+                image: getFeatureImage(recommendedFeatureImages, 1),
+              },
+            ].map((card) => (
+              <button
+                key={card.id}
+                className="group relative overflow-hidden rounded-3xl border border-white/60 text-left shadow-sm transition hover:shadow-xl"
+                onClick={() => openMarketplace(card.filters)}
+              >
+                {card.image ? (
+                  <img src={card.image} alt={card.title} className="h-80 w-full object-cover transition duration-500 group-hover:scale-105" />
+                ) : (
+                  <div className="h-80 w-full bg-gradient-to-r from-slate-300 to-slate-200 dark:from-slate-700 dark:to-slate-600" />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-black/10" />
+                <div className="absolute inset-x-0 bottom-0 p-6 text-white">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/80">
+                    {t('home.featuredSection', 'Featured Section')}
+                  </p>
+                  <h2 className="mt-2 text-2xl font-bold">{card.title}</h2>
+                  <p className="mt-2 text-sm text-white/90">{card.subtitle}</p>
+                  <p className="mt-4 inline-flex items-center text-sm font-semibold">
+                    {card.cta}
+                    <ChevronRight className="ml-1 h-4 w-4" />
+                  </p>
+                </div>
+              </button>
+            ))}
+          </section>
 
         <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -684,7 +685,7 @@ export function Home() {
               <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
                 {t(
                   'home.aboutBody',
-                  'CampusMarket connects students across Cameroon universities to buy, sell, and rent essentials safely. Our goal is simple: make student life more affordable, trustworthy, and sustainable.',
+                  'UNITRADE connects students across Cameroon universities to buy, sell, and rent essentials safely. Our goal is simple: make student life more affordable, trustworthy, and sustainable.',
                 )}
               </p>
               <Button
@@ -740,18 +741,20 @@ export function Home() {
           </div>
         </section>
 
-        {!loading && availableListings.length === 0 && (
-          <section className="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center dark:border-slate-700 dark:bg-slate-900">
-            <h3 className="text-lg font-semibold">{t('home.noListings', 'No listings available')}</h3>
-            <p className="mt-2 text-sm text-muted-foreground">
-              {t('home.noListingsSub', 'Add listings and this home layout will populate automatically with live data.')}
-            </p>
-            <Button className="mt-4 bg-green-600 hover:bg-green-700" onClick={() => openMarketplace()}>
-              {t('home.exploreMarketplace', 'Explore marketplace')}
-            </Button>
-          </section>
-        )}
+          {!loading && availableListings.length === 0 && (
+            <section className="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center dark:border-slate-700 dark:bg-slate-900">
+              <h3 className="text-lg font-semibold">{t('home.noListings', 'No listings available')}</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {t('home.noListingsSub', 'Add listings and this home layout will populate automatically with live data.')}
+              </p>
+              <Button className="mt-4 bg-green-600 hover:bg-green-700" onClick={() => openMarketplace()}>
+                {t('home.exploreMarketplace', 'Explore marketplace')}
+              </Button>
+            </section>
+          )}
+        </div>
       </div>
     </div>
   );
 }
+

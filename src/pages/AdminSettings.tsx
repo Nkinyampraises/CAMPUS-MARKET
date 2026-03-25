@@ -22,8 +22,8 @@ interface AdminSettingsData {
 }
 
 const defaultSettings: AdminSettingsData = {
-  platformName: 'CampusMarket',
-  supportEmail: 'support@campusmarket.cm',
+  platformName: 'UNITRADE',
+  supportEmail: 'support@UNITRADE.cm',
   maintenanceMode: false,
   allowNewRegistrations: true,
   platformCommissionPercent: 5,
@@ -198,3 +198,4 @@ export function AdminSettings() {
     </Card>
   );
 }
+

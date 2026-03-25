@@ -11,7 +11,7 @@ type LanguageContextValue = {
   t: (key: string, fallback?: string, values?: TranslationValues) => string;
 };
 
-const LANGUAGE_STORAGE_KEY = 'campusmarket-language';
+const LANGUAGE_STORAGE_KEY = 'UNITRADE-language';
 
 const FR_TRANSLATIONS: Record<string, string> = {
   'nav.home': 'Accueil',
@@ -45,7 +45,7 @@ const FR_TRANSLATIONS: Record<string, string> = {
   'language.fr': 'Francais',
   'language.select': 'Choisir la langue',
 
-  'home.badge': 'CampusMarket Selection',
+  'home.badge': 'UNITRADE Selection',
   'home.heroTitle': 'Decouvrez les meilleures offres et locations etudiants.',
   'home.heroSubtitle': 'Parcourez les sections comme votre reference. Chaque carte ouvre le marche avec des resultats lies.',
   'home.exploreMarketplace': 'Explorer le marche',
@@ -82,7 +82,7 @@ const FR_TRANSLATIONS: Record<string, string> = {
   'home.aboutLabel': 'A propos',
   'home.aboutTitle': 'Concu pour les etudiants, par des etudiants.',
   'home.aboutBody':
-    'CampusMarket connecte les etudiants des universites du Cameroun pour acheter, vendre et louer en securite. Notre objectif: rendre la vie etudiante plus abordable, fiable et durable.',
+    'UNITRADE connecte les etudiants des universites du Cameroun pour acheter, vendre et louer en securite. Notre objectif: rendre la vie etudiante plus abordable, fiable et durable.',
   'home.aboutCta': 'Explorer la communaute du marche',
   'home.aboutPoint1Title': 'Offres abordables',
   'home.aboutPoint1Body': 'Des prix adaptes aux etudiants pour les essentiels du quotidien.',
@@ -235,3 +235,4 @@ export const useLanguage = () => {
   }
   return context;
 };
+
