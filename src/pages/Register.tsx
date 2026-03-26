@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
+import { PasswordInput } from '@/app/components/ui/password-input';
 import { Label } from '@/app/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
@@ -32,10 +33,12 @@ export function Register() {
   const [loading, setLoading] = useState(false);
   const [uploadingProfilePicture, setUploadingProfilePicture] = useState(false);
   const [error, setError] = useState('');
+  const [confirmationLink, setConfirmationLink] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setConfirmationLink('');
 
     // Validation
     if (formData.password !== formData.confirmPassword) {
@@ -68,11 +71,14 @@ export function Register() {
       });
 
       if (result.success) {
-        toast.success('Account created! Please wait for admin approval before logging in.');
-        // Show success message instead of navigating
-        setTimeout(() => {
-          navigate('/login');
-        }, 3000);
+        toast.success(result.message || 'Account created successfully. You can now log in.');
+        if (result.confirmationLink) {
+          setConfirmationLink(result.confirmationLink);
+        } else {
+          setTimeout(() => {
+            navigate('/login');
+          }, 3000);
+        }
       } else {
         setError(result.error || 'Email already exists or registration failed');
       }
@@ -144,6 +150,14 @@ export function Register() {
             {error && (
               <Alert variant="destructive">
                 <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            {confirmationLink && (
+              <Alert>
+                <AlertDescription>
+                  Confirmation link: <a href={confirmationLink} className="text-green-600 hover:underline break-all">{confirmationLink}</a>
+                </AlertDescription>
               </Alert>
             )}
 
@@ -273,9 +287,8 @@ export function Register() {
 
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input
+              <PasswordInput
                 id="password"
-                type="password"
                 placeholder="Min. 6 characters"
                 value={formData.password}
                 onChange={(e) => handleChange('password', e.target.value)}
@@ -285,9 +298,8 @@ export function Register() {
 
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirm Password</Label>
-              <Input
+              <PasswordInput
                 id="confirmPassword"
-                type="password"
                 placeholder="Re-enter password"
                 value={formData.confirmPassword}
                 onChange={(e) => handleChange('confirmPassword', e.target.value)}

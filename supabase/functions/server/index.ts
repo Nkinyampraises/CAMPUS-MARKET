@@ -1,15 +1,16 @@
 import { Hono } from "npm:hono";
 import { cors } from "npm:hono/cors";
 import { logger } from "npm:hono/logger";
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { Buffer } from "node:buffer";
 import * as kv from "./kv_store.tsx";
+import {
+  isEmailDeliveryConfigured,
+  sendAccountConfirmationEmail,
+  sendPasswordResetEmail,
+} from "./mail.ts";
 
 const app = new Hono();
 
-// Create Supabase clients
-const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
 const frontendUrl = (Deno.env.get('FRONTEND_URL') || Deno.env.get('SITE_URL') || Deno.env.get('PUBLIC_SITE_URL') || '').trim();
 
 const resolveFrontendBase = (req: Request) => {
@@ -40,9 +41,6 @@ const resolveFrontendRedirectTo = (req: Request, path: string) => {
   return `${base}${normalizedPath}`;
 };
 
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
 // Enable logger
 app.use('*', logger(console.log));
 
@@ -57,98 +55,6 @@ app.use(
     maxAge: 600,
   }),
 );
-
-// Initialize storage buckets
-async function initializeBuckets() {
-  const buckets = ['make-50b25a4f-listings', 'make-50b25a4f-profiles', 'make-50b25a4f-delivery-proofs'];
-  
-  for (const bucketName of buckets) {
-    const { data: bucketsList } = await supabaseAdmin.storage.listBuckets();
-    const bucketExists = bucketsList?.some(bucket => bucket.name === bucketName);
-    
-    if (!bucketExists) {
-      await supabaseAdmin.storage.createBucket(bucketName, {
-        public: false,
-        fileSizeLimit: 5242880, // 5MB
-      });
-      console.log(`Created bucket: ${bucketName}`);
-    }
-  }
-}
-
-// Initialize buckets on startup
-initializeBuckets().catch(console.error);
-
-// Helper function to create admin user on startup
-async function createAdminUser() {
-  const adminEmail = Deno.env.get('ADMIN_EMAIL');
-  const adminPassword = Deno.env.get('ADMIN_PASSWORD');
-
-  if (!adminEmail || !adminPassword) {
-    console.error('ADMIN_EMAIL and ADMIN_PASSWORD must be set in .env file');
-    return;
-  }
-
-  // Check if user already exists by fetching the default list of users (up to 50)
-  const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers();
-
-  if (listError) {
-    console.error('Error listing users:', listError.message);
-    // Decide if we should stop here or try to create anyway
-    // For now, we'll log the error and continue, the createUser will fail if user exists
-  }
-
-  const adminExists = users?.some(user => user.email === adminEmail);
-
-  if (adminExists) {
-    console.log('Admin user already exists');
-    return;
-  }
-
-  // Create admin user
-  const { data, error } = await supabaseAdmin.auth.admin.createUser({
-    email: adminEmail,
-    password: adminPassword,
-    email_confirm: true, // Auto-confirm admin email
-  });
-
-  if (error) {
-    console.error('Error creating admin user:', error.message);
-    return;
-  }
-
-  // Create admin profile in KV store
-  const userProfile = {
-    id: data.user.id,
-    name: 'Admin',
-    email: adminEmail,
-    phone: '000000000',
-    university: 'UNITRADE',
-    studentId: '',
-    rating: 0,
-    reviewCount: 0,
-    isVerified: true,
-    isApproved: true,
-    role: 'admin',
-    userType: 'seller',
-    profilePicture: '',
-    avatar: '',
-    isBanned: false,
-    createdAt: new Date().toISOString(),
-  };
-
-  await kv.set(`user:${data.user.id}`, userProfile);
-  await kv.set(`wallet:${data.user.id}`, {
-    userId: data.user.id,
-    availableBalance: 0,
-    pendingBalance: 0,
-    updatedAt: new Date().toISOString(),
-  });
-  console.log('Admin user created successfully');
-}
-
-// Create admin user on startup
-createAdminUser().catch(console.error);
 
 function normalizeUserProfile(profile: any) {
   if (!profile || typeof profile !== 'object' || Array.isArray(profile)) {
@@ -177,6 +83,427 @@ function normalizeUserProfile(profile: any) {
 
   return normalized;
 }
+
+const AUTH_PROVIDER = "postgres";
+const STORAGE_PROVIDER = "postgres";
+const textEncoder = new TextEncoder();
+const readEnvNumber = (key: string, fallback: number) => {
+  const raw = Number((Deno.env.get(key) || "").trim());
+  return Number.isFinite(raw) ? raw : fallback;
+};
+const PASSWORD_HASH_ITERATIONS = Math.max(100_000, readEnvNumber("PASSWORD_HASH_ITERATIONS", 120_000));
+const ACCESS_TOKEN_TTL_MS = Math.max(60_000, readEnvNumber("ACCESS_TOKEN_TTL_MS", 1000 * 60 * 60 * 12));
+const REFRESH_TOKEN_TTL_MS = Math.max(300_000, readEnvNumber("REFRESH_TOKEN_TTL_MS", 1000 * 60 * 60 * 24 * 30));
+const PASSWORD_RESET_TTL_MS = Math.max(300_000, readEnvNumber("PASSWORD_RESET_TTL_MS", 1000 * 60 * 30));
+const EMAIL_CONFIRMATION_TTL_MS = Math.max(300_000, readEnvNumber("EMAIL_CONFIRMATION_TTL_MS", 1000 * 60 * 60 * 24));
+const MAX_UPLOAD_SIZE_BYTES = 5 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp"]);
+const FILE_ROUTE_PREFIX = "/make-server-50b25a4f/files";
+
+const normalizeEmail = (value: any) => (typeof value === "string" ? value.trim().toLowerCase() : "");
+const sanitizeFileName = (value: any) => {
+  const normalized = typeof value === "string" ? value.trim() : "";
+  const safe = normalized.replace(/[^A-Za-z0-9._-]/g, "_");
+  return safe || "upload";
+};
+
+const bytesToHex = (bytes: Uint8Array) =>
+  Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+
+const hexToBytes = (value: string) => {
+  const normalized = value.trim();
+  if (!normalized || normalized.length % 2 !== 0) {
+    throw new Error("Invalid hex value");
+  }
+
+  const bytes = new Uint8Array(normalized.length / 2);
+  for (let index = 0; index < normalized.length; index += 2) {
+    bytes[index / 2] = Number.parseInt(normalized.slice(index, index + 2), 16);
+  }
+  return bytes;
+};
+
+const timingSafeEqual = (left: string, right: string) => {
+  if (left.length !== right.length) {
+    return false;
+  }
+
+  let result = 0;
+  for (let index = 0; index < left.length; index += 1) {
+    result |= left.charCodeAt(index) ^ right.charCodeAt(index);
+  }
+  return result === 0;
+};
+
+const createRandomToken = (size = 32) => {
+  const bytes = crypto.getRandomValues(new Uint8Array(size));
+  return bytesToHex(bytes);
+};
+
+const authUserKey = (userId: string) => `auth:user:${userId}`;
+const authEmailKey = (email: string) => `auth:email:${encodeURIComponent(email)}`;
+const authAccessKey = (token: string) => `auth:access:${token}`;
+const authRefreshKey = (token: string) => `auth:refresh:${token}`;
+const authPasswordResetKey = (tokenHash: string) => `auth:password-reset:${tokenHash}`;
+const authEmailConfirmationKey = (tokenHash: string) => `auth:email-confirm:${tokenHash}`;
+const storedFileKey = (fileId: string) => `file:${fileId}`;
+
+const resolveRequestOrigin = (req: Request) => {
+  const requestUrl = new URL(req.url);
+  const forwardedHost = req.headers.get("x-forwarded-host") || req.headers.get("host");
+  if (!forwardedHost) {
+    return requestUrl.origin;
+  }
+
+  const forwardedProto = req.headers.get("x-forwarded-proto") || requestUrl.protocol.replace(/:$/, "");
+  return `${forwardedProto}://${forwardedHost}`;
+};
+
+const buildStoredFileUrl = (req: Request, fileId: string) =>
+  `${resolveRequestOrigin(req)}${FILE_ROUTE_PREFIX}/${encodeURIComponent(fileId)}`;
+
+async function sha256Hex(value: string) {
+  const digest = await crypto.subtle.digest("SHA-256", textEncoder.encode(value));
+  return bytesToHex(new Uint8Array(digest));
+}
+
+async function derivePasswordHash(password: string, saltHex: string, iterations: number) {
+  const baseKey = await crypto.subtle.importKey(
+    "raw",
+    textEncoder.encode(password),
+    "PBKDF2",
+    false,
+    ["deriveBits"],
+  );
+
+  const bits = await crypto.subtle.deriveBits(
+    {
+      name: "PBKDF2",
+      hash: "SHA-256",
+      salt: hexToBytes(saltHex),
+      iterations,
+    },
+    baseKey,
+    256,
+  );
+
+  return bytesToHex(new Uint8Array(bits));
+}
+
+async function createPasswordRecord(password: string) {
+  const passwordSalt = createRandomToken(16);
+  const passwordHash = await derivePasswordHash(password, passwordSalt, PASSWORD_HASH_ITERATIONS);
+
+  return {
+    passwordSalt,
+    passwordHash,
+    passwordIterations: PASSWORD_HASH_ITERATIONS,
+    passwordUpdatedAt: new Date().toISOString(),
+  };
+}
+
+async function verifyPassword(password: string, authRecord: any) {
+  if (!authRecord?.passwordSalt || !authRecord?.passwordHash) {
+    return false;
+  }
+
+  const expected = await derivePasswordHash(
+    password,
+    authRecord.passwordSalt,
+    toSafeNumber(authRecord.passwordIterations, PASSWORD_HASH_ITERATIONS),
+  );
+
+  return timingSafeEqual(expected, String(authRecord.passwordHash));
+}
+
+async function persistLocalAuthRecord(authRecord: any) {
+  const normalizedEmail = normalizeEmail(authRecord?.email);
+  if (!authRecord?.userId || !normalizedEmail) {
+    throw new Error("Invalid auth record");
+  }
+
+  authRecord.email = normalizedEmail;
+  await kv.mset(
+    [authUserKey(authRecord.userId), authEmailKey(normalizedEmail)],
+    [authRecord, authRecord.userId],
+  );
+}
+
+async function getLocalAuthRecordByUserId(userId: string) {
+  if (!userId) {
+    return null;
+  }
+  return await kv.get(authUserKey(userId));
+}
+
+async function deleteLocalAuthRecord(userId: string) {
+  if (!userId) {
+    return;
+  }
+
+  const authRecord = await getLocalAuthRecordByUserId(userId);
+  const keys = [authUserKey(userId)];
+  if (authRecord?.email) {
+    keys.push(authEmailKey(normalizeEmail(authRecord.email)));
+  }
+
+  await kv.mdel(keys);
+}
+
+async function findUserProfileByEmail(email: string) {
+  const normalizedEmail = normalizeEmail(email);
+  if (!normalizedEmail) {
+    return null;
+  }
+
+  const candidates = (await kv.getByPrefix("user:")) || [];
+  for (const candidate of candidates) {
+    const profile = normalizeUserProfile(candidate);
+    if (!profile?.id) {
+      continue;
+    }
+
+    if (normalizeEmail(profile.email) === normalizedEmail) {
+      return profile;
+    }
+  }
+
+  return null;
+}
+
+async function getLocalAuthRecordByEmail(email: string) {
+  const normalizedEmail = normalizeEmail(email);
+  if (!normalizedEmail) {
+    return null;
+  }
+
+  const indexedUserId = await kv.get(authEmailKey(normalizedEmail));
+  if (typeof indexedUserId === "string" && indexedUserId) {
+    const indexedRecord = await getLocalAuthRecordByUserId(indexedUserId);
+    if (indexedRecord) {
+      if (normalizeEmail(indexedRecord.email) !== normalizedEmail) {
+        indexedRecord.email = normalizedEmail;
+        await persistLocalAuthRecord(indexedRecord);
+      }
+      return indexedRecord;
+    }
+  }
+
+  const profile = await findUserProfileByEmail(normalizedEmail);
+  if (!profile?.id) {
+    return null;
+  }
+
+  const authRecord = await getLocalAuthRecordByUserId(profile.id);
+  if (!authRecord) {
+    return null;
+  }
+
+  if (normalizeEmail(authRecord.email) !== normalizedEmail) {
+    authRecord.email = normalizedEmail;
+  }
+  await persistLocalAuthRecord(authRecord);
+  return authRecord;
+}
+
+async function createSessionPair(userId: string, email: string) {
+  const now = Date.now();
+  const createdAt = new Date(now).toISOString();
+  const normalizedEmail = normalizeEmail(email);
+  const accessToken = createRandomToken(32);
+  const refreshToken = createRandomToken(32);
+
+  const accessSession = {
+    type: "access",
+    userId,
+    email: normalizedEmail,
+    createdAt,
+    expiresAt: new Date(now + ACCESS_TOKEN_TTL_MS).toISOString(),
+  };
+
+  const refreshSession = {
+    type: "refresh",
+    userId,
+    email: normalizedEmail,
+    createdAt,
+    expiresAt: new Date(now + REFRESH_TOKEN_TTL_MS).toISOString(),
+  };
+
+  await kv.mset(
+    [authAccessKey(accessToken), authRefreshKey(refreshToken)],
+    [accessSession, refreshSession],
+  );
+
+  return { accessToken, refreshToken };
+}
+
+async function createPasswordResetSession(userId: string, email: string) {
+  const resetToken = createRandomToken(32);
+  const resetTokenHash = await sha256Hex(resetToken);
+
+  await kv.set(authPasswordResetKey(resetTokenHash), {
+    userId,
+    email: normalizeEmail(email),
+    createdAt: new Date().toISOString(),
+    expiresAt: new Date(Date.now() + PASSWORD_RESET_TTL_MS).toISOString(),
+  });
+
+  return resetToken;
+}
+
+async function createEmailConfirmationSession(userId: string, email: string) {
+  const confirmationToken = createRandomToken(32);
+  const confirmationTokenHash = await sha256Hex(confirmationToken);
+
+  await kv.set(authEmailConfirmationKey(confirmationTokenHash), {
+    userId,
+    email: normalizeEmail(email),
+    createdAt: new Date().toISOString(),
+    expiresAt: new Date(Date.now() + EMAIL_CONFIRMATION_TTL_MS).toISOString(),
+  });
+
+  return confirmationToken;
+}
+
+async function getValidSession(token: string, type: "access" | "refresh") {
+  const lookupKey = type === "access" ? authAccessKey(token) : authRefreshKey(token);
+  const session = await kv.get(lookupKey);
+  if (!session?.userId || session?.type !== type) {
+    return null;
+  }
+
+  const expiresAt = typeof session.expiresAt === "string" ? Date.parse(session.expiresAt) : Number.NaN;
+  if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
+    await kv.del(lookupKey);
+    return null;
+  }
+
+  return session;
+}
+
+async function createPasswordResetLink(req: Request, token: string) {
+  const path = `/reset-password?access_token=${encodeURIComponent(token)}&type=recovery`;
+  return resolveFrontendRedirectTo(req, path) || path;
+}
+
+async function createEmailConfirmationLink(req: Request, token: string) {
+  const path = `/confirm-email?token=${encodeURIComponent(token)}`;
+  return resolveFrontendRedirectTo(req, path) || path;
+}
+
+async function ensureLocalAdminUser() {
+  const adminEmail = normalizeEmail(Deno.env.get("ADMIN_EMAIL"));
+  const adminPassword = (Deno.env.get("ADMIN_PASSWORD") || "").trim();
+
+  if (!adminEmail || !adminPassword) {
+    console.error("ADMIN_EMAIL and ADMIN_PASSWORD must be set in .env file");
+    return;
+  }
+
+  let profile = await findUserProfileByEmail(adminEmail);
+
+  if (!profile) {
+    const userId = crypto.randomUUID();
+    profile = {
+      id: userId,
+      name: "Admin",
+      email: adminEmail,
+      phone: "000000000",
+      university: "UNITRADE",
+      studentId: "",
+      rating: 0,
+      reviewCount: 0,
+      isVerified: true,
+      isApproved: true,
+      role: "admin",
+      userType: "seller",
+      profilePicture: "",
+      avatar: "",
+      isBanned: false,
+      createdAt: new Date().toISOString(),
+    };
+
+    await kv.mset(
+      [`user:${userId}`, `wallet:${userId}`],
+      [
+        profile,
+        {
+          userId,
+          availableBalance: 0,
+          pendingBalance: 0,
+          updatedAt: new Date().toISOString(),
+        },
+      ],
+    );
+    console.log("Admin user created successfully");
+  } else {
+    let changed = false;
+
+    if (profile.role !== "admin") {
+      profile.role = "admin";
+      changed = true;
+    }
+    if (profile.userType !== "seller") {
+      profile.userType = "seller";
+      changed = true;
+    }
+    if (!profile.isApproved) {
+      profile.isApproved = true;
+      changed = true;
+    }
+    if (!profile.isVerified) {
+      profile.isVerified = true;
+      changed = true;
+    }
+    if (normalizeEmail(profile.email) !== adminEmail) {
+      profile.email = adminEmail;
+      changed = true;
+    }
+
+    if (changed) {
+      await kv.set(`user:${profile.id}`, profile);
+    }
+
+    const wallet = await kv.get(`wallet:${profile.id}`);
+    if (!wallet) {
+      await kv.set(`wallet:${profile.id}`, {
+        userId: profile.id,
+        availableBalance: 0,
+        pendingBalance: 0,
+        updatedAt: new Date().toISOString(),
+      });
+    }
+  }
+
+  let authRecord = await getLocalAuthRecordByUserId(profile.id);
+  if (!authRecord) {
+    authRecord = {
+      userId: profile.id,
+      email: adminEmail,
+      emailVerified: true,
+      emailConfirmedAt: new Date().toISOString(),
+      ...(await createPasswordRecord(adminPassword)),
+      createdAt: new Date().toISOString(),
+    };
+    await persistLocalAuthRecord(authRecord);
+    console.log("Admin auth credentials initialized");
+    return;
+  }
+
+  if (normalizeEmail(authRecord.email) !== adminEmail) {
+    authRecord.email = adminEmail;
+  }
+  if (authRecord.emailVerified === false) {
+    authRecord.emailVerified = true;
+    authRecord.emailConfirmedAt = authRecord.emailConfirmedAt || new Date().toISOString();
+  }
+  await persistLocalAuthRecord(authRecord);
+  if (normalizeEmail(authRecord.email) === adminEmail) {
+    await kv.set(authEmailKey(adminEmail), profile.id);
+  }
+}
+
+ensureLocalAdminUser().catch(console.error);
 
 const DEFAULT_ADMIN_SETTINGS = {
   platformName: "UNITRADE",
@@ -1242,15 +1569,17 @@ async function verifyAuth(authHeader: string | null | undefined) {
   if (!authHeader?.startsWith('Bearer ')) {
     return null;
   }
-  
+
   const token = authHeader.split(' ')[1];
-  const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
-  
-  if (error || !user) {
+  const session = await getValidSession(token, "access");
+  if (!session) {
     return null;
   }
-  
-  return user;
+
+  return {
+    id: session.userId,
+    email: session.email,
+  };
 }
 
 // Helper function to get user profile
@@ -1327,7 +1656,13 @@ async function enrichListing(listing: any, sellerCache?: Map<string, any | null>
 
 // Health check endpoint
 app.get("/make-server-50b25a4f/health", (c) => {
-  return c.json({ status: "ok" });
+  return c.json({
+    status: "ok",
+    database: "postgres",
+    auth: AUTH_PROVIDER,
+    storage: STORAGE_PROVIDER,
+    email: isEmailDeliveryConfigured ? "smtp" : "disabled",
+  });
 });
 
 // CamPay webhook callback (stores payload for inspection)
@@ -1382,6 +1717,7 @@ app.post("/make-server-50b25a4f/signup", async (c) => {
   try {
     const body = await c.req.json();
     const { name, email, password, phone, university, studentId, userType, profilePicture } = body;
+    const normalizedEmail = normalizeEmail(email);
     const normalizedUserType = userType === 'seller' ? 'seller' : 'buyer';
     const normalizedProfilePicture = typeof profilePicture === 'string' ? profilePicture : '';
     const adminSettings = {
@@ -1397,42 +1733,35 @@ app.post("/make-server-50b25a4f/signup", async (c) => {
       return c.json({ error: 'New registrations are currently disabled.' }, 403);
     }
 
-    if (!name || !email || !password || !phone || !university) {
+    if (!name || !normalizedEmail || !password || !phone || !university) {
       return c.json({ error: 'Missing required fields' }, 400);
     }
 
-    // Create user with Supabase Auth (email confirmation required)
-    const emailRedirectTo = resolveFrontendRedirectTo(c.req.raw, '/login');
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          name,
-          phone,
-          university,
-          studentId,
-          userType: normalizedUserType,
-          profilePicture: normalizedProfilePicture,
-        },
-        ...(emailRedirectTo ? { emailRedirectTo } : {}),
-      },
-    });
-
-    if (error) {
-      console.log('Signup error:', error);
-      return c.json({ error: error.message }, 400);
+    if (password.length < 6) {
+      return c.json({ error: 'Password must be at least 6 characters' }, 400);
     }
 
-    if (!data.user) {
-      return c.json({ error: 'Signup failed. Please try again.' }, 500);
+    const existingAuthRecord = await getLocalAuthRecordByEmail(normalizedEmail);
+    const existingProfile = await findUserProfileByEmail(normalizedEmail);
+    if (existingAuthRecord || existingProfile) {
+      return c.json({ error: 'An account with this email already exists' }, 409);
     }
 
-    // Create user profile in KV store (auto-approved)
+    const userId = crypto.randomUUID();
+    const emailVerificationRequired = isEmailDeliveryConfigured;
+    const authRecord = {
+      userId,
+      email: normalizedEmail,
+      emailVerified: !emailVerificationRequired,
+      emailConfirmedAt: emailVerificationRequired ? "" : new Date().toISOString(),
+      ...(await createPasswordRecord(password)),
+      createdAt: new Date().toISOString(),
+    };
+
     const userProfile = {
-      id: data.user.id,
+      id: userId,
       name,
-      email,
+      email: normalizedEmail,
       phone,
       university,
       studentId: studentId || '',
@@ -1448,18 +1777,42 @@ app.post("/make-server-50b25a4f/signup", async (c) => {
       createdAt: new Date().toISOString(),
     };
 
-    await kv.set(`user:${data.user.id}`, userProfile);
-    await kv.set(`wallet:${data.user.id}`, {
-      userId: data.user.id,
-      availableBalance: 0,
-      pendingBalance: 0,
-      updatedAt: new Date().toISOString(),
-    });
+    await persistLocalAuthRecord(authRecord);
+    await kv.mset(
+      [`user:${userId}`, `wallet:${userId}`],
+      [
+        userProfile,
+        {
+          userId,
+          availableBalance: 0,
+          pendingBalance: 0,
+          updatedAt: new Date().toISOString(),
+        },
+      ],
+    );
+
+    let message = 'Account created successfully. No email confirmation is required. You can now log in.';
+    let confirmationLink: string | undefined;
+
+    if (emailVerificationRequired) {
+      const confirmationToken = await createEmailConfirmationSession(userId, normalizedEmail);
+      confirmationLink = await createEmailConfirmationLink(c.req.raw, confirmationToken);
+
+      try {
+        await sendAccountConfirmationEmail(normalizedEmail, confirmationLink);
+        message = 'Account created successfully. Check your email to confirm your account before logging in.';
+      } catch (error) {
+        console.error('Confirmation email error:', error);
+        message = 'Account created, but the confirmation email could not be sent. Use the confirmation link provided below or configure SMTP correctly.';
+      }
+    }
 
     return c.json({ 
       success: true, 
-      message: 'Account created! Please check your email to confirm your account before logging in.',
-      userId: data.user.id
+      message,
+      userId,
+      requiresEmailConfirmation: emailVerificationRequired,
+      ...(confirmationLink ? { confirmationLink } : {}),
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'An error occurred during signup';
@@ -1472,21 +1825,44 @@ app.post("/make-server-50b25a4f/signup", async (c) => {
 app.post("/make-server-50b25a4f/auth/forgot-password", async (c) => {
   try {
     const body = await c.req.json().catch(() => ({}));
-    const email = typeof body?.email === 'string' ? body.email.trim() : '';
+    const email = normalizeEmail(body?.email);
 
     if (!email) {
       return c.json({ error: 'Email is required' }, 400);
     }
 
-    const redirectTo = resolveFrontendRedirectTo(c.req.raw, '/reset-password');
-    const { error } = await supabase.auth.resetPasswordForEmail(email, redirectTo ? { redirectTo } : undefined);
+    const authRecord = await getLocalAuthRecordByEmail(email);
+    const profile = authRecord?.userId ? null : await findUserProfileByEmail(email);
+    const targetUserId = authRecord?.userId || profile?.id || "";
+    const targetEmail = authRecord?.email || profile?.email || email;
 
-    if (error) {
-      console.error('Forgot password error:', error.message);
-      return c.json({ error: error.message }, 400);
+    if (!targetUserId) {
+      return c.json({
+        success: true,
+        message: 'If an account exists for that email, a reset link will appear here.',
+      });
     }
 
-    return c.json({ success: true, message: 'Password reset email sent.' });
+    const resetToken = await createPasswordResetSession(targetUserId, targetEmail);
+    const resetLink = await createPasswordResetLink(c.req.raw, resetToken);
+
+    if (isEmailDeliveryConfigured) {
+      try {
+        await sendPasswordResetEmail(targetEmail, resetLink);
+        return c.json({
+          success: true,
+          message: 'Password reset email sent. Check your inbox.',
+        });
+      } catch (error) {
+        console.error('Password reset email error:', error);
+      }
+    }
+
+    return c.json({
+      success: true,
+      message: 'Reset link generated successfully. Email delivery is not configured here, so use the link below.',
+      resetLink,
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to send reset email';
     console.error('Forgot password error:', message);
@@ -1497,25 +1873,52 @@ app.post("/make-server-50b25a4f/auth/forgot-password", async (c) => {
 // Reset password using recovery token
 app.post("/make-server-50b25a4f/auth/reset-password", async (c) => {
   try {
-    const user = await verifyAuth(c.req.header('Authorization'));
-
-    if (!user) {
-      return c.json({ error: 'Unauthorized' }, 401);
-    }
-
     const body = await c.req.json().catch(() => ({}));
     const password = typeof body?.password === 'string' ? body.password : '';
+    const authHeader = c.req.header("Authorization");
+    const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.split(" ")[1] : "";
+    const resetToken = typeof body?.token === "string" && body.token ? body.token : bearerToken;
 
     if (!password || password.length < 6) {
       return c.json({ error: 'Password must be at least 6 characters' }, 400);
     }
 
-    const { error } = await supabaseAdmin.auth.admin.updateUserById(user.id, { password });
-
-    if (error) {
-      console.error('Reset password error:', error.message);
-      return c.json({ error: error.message }, 400);
+    if (!resetToken) {
+      return c.json({ error: 'Invalid or expired reset link.' }, 401);
     }
+
+    const resetTokenHash = await sha256Hex(resetToken);
+    const resetSession = await kv.get(authPasswordResetKey(resetTokenHash));
+    if (!resetSession?.userId) {
+      return c.json({ error: 'Invalid or expired reset link.' }, 401);
+    }
+
+    const expiresAt = typeof resetSession.expiresAt === "string" ? Date.parse(resetSession.expiresAt) : Number.NaN;
+    if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
+      await kv.del(authPasswordResetKey(resetTokenHash));
+      return c.json({ error: 'Invalid or expired reset link.' }, 401);
+    }
+
+    let authRecord = await getLocalAuthRecordByUserId(resetSession.userId);
+    if (!authRecord) {
+      const profile = await getUserProfile(resetSession.userId);
+      if (!profile?.email) {
+        await kv.del(authPasswordResetKey(resetTokenHash));
+        return c.json({ error: 'User account is not available for password reset.' }, 404);
+      }
+
+      authRecord = {
+        userId: resetSession.userId,
+        email: normalizeEmail(profile.email),
+        emailVerified: true,
+        emailConfirmedAt: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+      };
+    }
+
+    Object.assign(authRecord, await createPasswordRecord(password));
+    await persistLocalAuthRecord(authRecord);
+    await kv.del(authPasswordResetKey(resetTokenHash));
 
     return c.json({ success: true });
   } catch (error) {
@@ -1525,25 +1928,80 @@ app.post("/make-server-50b25a4f/auth/reset-password", async (c) => {
   }
 });
 
+app.post("/make-server-50b25a4f/auth/confirm-email", async (c) => {
+  try {
+    const body = await c.req.json().catch(() => ({}));
+    const token = typeof body?.token === "string" ? body.token.trim() : "";
+
+    if (!token) {
+      return c.json({ error: "Confirmation token is required" }, 400);
+    }
+
+    const tokenHash = await sha256Hex(token);
+    const confirmationSession = await kv.get(authEmailConfirmationKey(tokenHash));
+    if (!confirmationSession?.userId) {
+      return c.json({ error: "Invalid or expired confirmation link." }, 401);
+    }
+
+    const expiresAt = typeof confirmationSession.expiresAt === "string"
+      ? Date.parse(confirmationSession.expiresAt)
+      : Number.NaN;
+    if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
+      await kv.del(authEmailConfirmationKey(tokenHash));
+      return c.json({ error: "Invalid or expired confirmation link." }, 401);
+    }
+
+    const authRecord = await getLocalAuthRecordByUserId(confirmationSession.userId);
+    if (!authRecord) {
+      await kv.del(authEmailConfirmationKey(tokenHash));
+      return c.json({ error: "Account not found for this confirmation link." }, 404);
+    }
+
+    authRecord.emailVerified = true;
+    authRecord.emailConfirmedAt = new Date().toISOString();
+    await persistLocalAuthRecord(authRecord);
+    await kv.del(authEmailConfirmationKey(tokenHash));
+
+    return c.json({ success: true, message: "Email confirmed successfully. You can now log in." });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to confirm email";
+    console.error("Email confirmation error:", message);
+    return c.json({ error: message }, 500);
+  }
+});
+
 // Sign in endpoint
 app.post("/make-server-50b25a4f/signin", async (c) => {
   try {
     const body = await c.req.json();
-    const { email, password } = body;
+    const email = normalizeEmail(body?.email);
+    const password = typeof body?.password === "string" ? body.password : "";
 
-    // Use the anon client for sign in
-    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
-    const { data, error } = await supabaseClient.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) {
-      return c.json({ error: error.message }, 400);
+    if (!email || !password) {
+      return c.json({ error: 'Email and password are required' }, 400);
     }
 
-    // Get user profile
-    const profile = await getUserProfile(data.user.id);
+    const authRecord = await getLocalAuthRecordByEmail(email);
+    const validPassword = authRecord ? await verifyPassword(password, authRecord) : false;
+    if (!authRecord) {
+      const existingProfile = await findUserProfileByEmail(email);
+      if (existingProfile?.id) {
+        return c.json({
+          error: 'This account needs a password reset before first login. Use Forgot password to generate a setup link.',
+        }, 409);
+      }
+      return c.json({ error: 'Invalid email or password' }, 400);
+    }
+
+    if (!validPassword) {
+      return c.json({ error: 'Invalid email or password' }, 400);
+    }
+
+    if (authRecord.emailVerified === false) {
+      return c.json({ error: 'Please confirm your email before logging in.' }, 403);
+    }
+
+    const profile = await getUserProfile(authRecord.userId);
     
     if (!profile) {
       return c.json({ error: 'User profile not found' }, 404);
@@ -1553,11 +2011,13 @@ app.post("/make-server-50b25a4f/signin", async (c) => {
       return c.json({ error: 'Your account has been suspended. Contact support.' }, 403);
     }
 
+    const { accessToken, refreshToken } = await createSessionPair(profile.id, profile.email);
+
     return c.json({ 
       success: true, 
-      accessToken: data.session.access_token,
-      refreshToken: data.session.refresh_token,
-      user: profile
+      accessToken,
+      refreshToken,
+      user: profile,
     });
   } catch (error) {
     console.error('Signin error:', error);
@@ -1575,18 +2035,23 @@ app.post("/make-server-50b25a4f/auth/refresh", async (c) => {
       return c.json({ error: "Refresh token is required" }, 400);
     }
 
-    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
-    const { data, error } = await supabaseClient.auth.refreshSession({
-      refresh_token: refreshToken,
-    });
-
-    if (error || !data?.session?.access_token) {
+    const refreshSession = await getValidSession(refreshToken, "refresh");
+    if (!refreshSession) {
       return c.json({ error: "Unauthorized" }, 401);
     }
 
+    const profile = await getUserProfile(refreshSession.userId);
+    if (!profile || profile.isBanned) {
+      await kv.del(authRefreshKey(refreshToken));
+      return c.json({ error: "Unauthorized" }, 401);
+    }
+
+    const nextSession = await createSessionPair(refreshSession.userId, refreshSession.email || profile.email);
+    await kv.del(authRefreshKey(refreshToken));
+
     return c.json({
-      accessToken: data.session.access_token,
-      refreshToken: data.session.refresh_token || refreshToken,
+      accessToken: nextSession.accessToken,
+      refreshToken: nextSession.refreshToken,
     });
   } catch (error) {
     console.error("Token refresh error:", error);
@@ -1677,19 +2142,25 @@ app.post("/make-server-50b25a4f/auth/change-password", async (c) => {
 
   try {
     const body = await c.req.json().catch(() => ({}));
+    const currentPassword = typeof body?.currentPassword === "string" ? body.currentPassword : "";
     const newPassword = typeof body?.newPassword === "string" ? body.newPassword : "";
 
     if (!newPassword || newPassword.length < 6) {
       return c.json({ error: "New password must be at least 6 characters" }, 400);
     }
 
-    const { error } = await supabaseAdmin.auth.admin.updateUserById(user.id, {
-      password: newPassword,
-    });
-
-    if (error) {
-      return c.json({ error: error.message || "Failed to update password" }, 400);
+    const authRecord = await getLocalAuthRecordByUserId(user.id);
+    if (!authRecord) {
+      return c.json({ error: "Password login is not configured for this account" }, 404);
     }
+
+    const currentPasswordMatches = await verifyPassword(currentPassword, authRecord);
+    if (!currentPasswordMatches) {
+      return c.json({ error: "Current password is incorrect" }, 400);
+    }
+
+    Object.assign(authRecord, await createPasswordRecord(newPassword));
+    await persistLocalAuthRecord(authRecord);
 
     return c.json({ success: true, message: "Password updated successfully" });
   } catch (error) {
@@ -4050,11 +4521,9 @@ app.post("/make-server-50b25a4f/admin/deny-user/:userId", async (c) => {
       return c.json({ error: 'User not found' }, 404);
     }
 
-    // Delete user profile
+    // Delete local auth/profile records
+    await deleteLocalAuthRecord(userId);
     await kv.del(`user:${userId}`);
-    
-    // Delete user from Supabase Auth
-    await supabaseAdmin.auth.admin.deleteUser(userId);
 
     // TODO: Send email notification
     console.log(`User ${targetUser.email} has been denied`);
@@ -5108,14 +5577,7 @@ app.delete("/make-server-50b25a4f/admin/users/:id", async (c) => {
 
   const userIdToDelete = c.req.param('id');
   try {
-    // First, delete from Supabase Auth
-    const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userIdToDelete);
-    if (authError) {
-      // Still try to delete from KV even if auth deletion fails
-      console.error(`Auth deletion failed for ${userIdToDelete}:`, authError.message);
-    }
-
-    // Then, delete from KV store
+    await deleteLocalAuthRecord(userIdToDelete);
     await kv.del(`user:${userIdToDelete}`);
 
     return c.json({ success: true });
@@ -5127,6 +5589,32 @@ app.delete("/make-server-50b25a4f/admin/users/:id", async (c) => {
 
 
 // ============ IMAGE UPLOAD ROUTES ============
+
+app.get("/make-server-50b25a4f/files/:id", async (c) => {
+  try {
+    const fileId = c.req.param("id");
+    const storedFile = await kv.get(storedFileKey(fileId));
+
+    if (!storedFile?.dataBase64 || typeof storedFile.contentType !== "string") {
+      return c.json({ error: "File not found" }, 404);
+    }
+
+    const fileBytes = Buffer.from(String(storedFile.dataBase64), "base64");
+    const fileName = sanitizeFileName(storedFile.originalName);
+
+    return new Response(fileBytes, {
+      headers: {
+        "Content-Type": storedFile.contentType,
+        "Content-Length": String(fileBytes.byteLength),
+        "Cache-Control": "public, max-age=31536000, immutable",
+        "Content-Disposition": `inline; filename="${fileName}"`,
+      },
+    });
+  } catch (error) {
+    console.error("File read error:", error);
+    return c.json({ error: "Failed to load file" }, 500);
+  }
+});
 
 // Upload image
 app.post("/make-server-50b25a4f/upload", async (c) => {
@@ -5149,45 +5637,35 @@ app.post("/make-server-50b25a4f/upload", async (c) => {
     }
 
     // Validate file size (max 5MB)
-    if (file.size > 5242880) {
+    if (file.size > MAX_UPLOAD_SIZE_BYTES) {
       return c.json({ error: 'File size must be less than 5MB' }, 400);
     }
 
     // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) {
+    if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
       return c.json({ error: 'Only JPEG, PNG, and WebP images are allowed' }, 400);
     }
 
-    const bucketName = isProfileUpload
-      ? 'make-50b25a4f-profiles'
-      : (isDeliveryProofUpload ? 'make-50b25a4f-delivery-proofs' : 'make-50b25a4f-listings');
     const uploaderId = user?.id || `signup-${crypto.randomUUID()}`;
-    const fileName = `${uploaderId}/${Date.now()}-${file.name}`;
-    
+    const fileId = createEntityId("FILE");
     const fileBuffer = await file.arrayBuffer();
-    
-    const { data, error } = await supabaseAdmin.storage
-      .from(bucketName)
-      .upload(fileName, fileBuffer, {
-        contentType: file.type,
-        upsert: false,
-      });
+    const storedFile = {
+      id: fileId,
+      ownerId: uploaderId,
+      category: isProfileUpload ? "profile" : (isDeliveryProofUpload ? "delivery-proof" : "listing"),
+      originalName: sanitizeFileName(file.name),
+      contentType: file.type,
+      size: file.size,
+      uploadedAt: new Date().toISOString(),
+      dataBase64: Buffer.from(fileBuffer).toString("base64"),
+    };
 
-    if (error) {
-      console.error('Upload error:', error);
-      return c.json({ error: 'Failed to upload file' }, 500);
-    }
-
-    // Generate signed URL (valid for 1 year)
-    const { data: signedUrlData } = await supabaseAdmin.storage
-      .from(bucketName)
-      .createSignedUrl(data.path, 31536000);
+    await kv.set(storedFileKey(fileId), storedFile);
 
     return c.json({ 
       success: true, 
-      url: signedUrlData?.signedUrl,
-      path: data.path
+      url: buildStoredFileUrl(c.req.raw, fileId),
+      path: fileId,
     });
   } catch (error) {
     console.error('Upload error:', error);

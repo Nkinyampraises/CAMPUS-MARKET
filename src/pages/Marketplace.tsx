@@ -57,7 +57,7 @@ const MARKETPLACE_SORTS = new Set(['recent', 'price-low', 'price-high']);
 export function Marketplace() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { isAuthenticated, accessToken } = useAuth();
+  const { isAuthenticated, accessToken, refreshAuthToken } = useAuth();
   const { t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -191,6 +191,37 @@ export function Marketplace() {
     return rawLocation;
   };
 
+  const requestWithAuthRetry = async (path: string, init?: RequestInit) => {
+    const token = accessToken || localStorage.getItem('accessToken');
+    if (!token) {
+      return { response: null as Response | null, data: { error: 'Unauthorized' } };
+    }
+
+    const makeRequest = (authToken: string) =>
+      fetch(`${API_URL}${path}`, {
+        ...init,
+        headers: {
+          ...(init?.headers || {}),
+          Authorization: `Bearer ${authToken}`,
+        },
+      });
+
+    let response = await makeRequest(token);
+    let data = await response.json().catch(() => ({}));
+
+    if (response.status === 401) {
+      const refreshed = await refreshAuthToken();
+      if (!refreshed) {
+        return { response, data };
+      }
+
+      response = await makeRequest(refreshed);
+      data = await response.json().catch(() => ({}));
+    }
+
+    return { response, data };
+  };
+
   useEffect(() => {
     const fetchFavorites = async () => {
       if (!isAuthenticated || !accessToken) {
@@ -199,13 +230,12 @@ export function Marketplace() {
       }
 
       try {
-        const response = await fetch(`${API_URL}/favorites`, {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        });
-        const data = await response.json().catch(() => ({}));
+        const { response, data } = await requestWithAuthRetry('/favorites');
         if (!response.ok || !Array.isArray(data.favorites)) {
           if (response.status !== 401) {
             toast.error(data.error || t('marketplace.failedLoadLikes', 'Failed to load liked items'));
+          } else {
+            setSavedItems(new Set());
           }
           return;
         }
@@ -222,7 +252,7 @@ export function Marketplace() {
     };
 
     fetchFavorites();
-  }, [isAuthenticated, accessToken, t]);
+  }, [isAuthenticated, accessToken, refreshAuthToken, t]);
 
   const handleSaveItem = async (itemId: string) => {
     if (!isAuthenticated) {
@@ -236,22 +266,24 @@ export function Marketplace() {
     }
 
     const wasSaved = savedItems.has(itemId);
-    const endpoint = wasSaved ? `${API_URL}/favorites/${itemId}` : `${API_URL}/favorites`;
+    const endpoint = wasSaved ? `/favorites/${itemId}` : '/favorites';
     const method = wasSaved ? 'DELETE' : 'POST';
 
     try {
-      const response = await fetch(endpoint, {
+      const { response, data } = await requestWithAuthRetry(endpoint, {
         method,
         headers: {
           ...(wasSaved ? {} : { 'Content-Type': 'application/json' }),
-          Authorization: `Bearer ${accessToken}`,
         },
         ...(wasSaved ? {} : { body: JSON.stringify({ itemId }) }),
       });
-
-      const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        toast.error(data.error || t('marketplace.failedUpdateLike', 'Failed to update like'));
+        if (response.status === 401) {
+          toast.error(t('marketplace.loginToLike', 'Please login to like items'));
+          navigate('/login');
+        } else {
+          toast.error(data.error || t('marketplace.failedUpdateLike', 'Failed to update like'));
+        }
         return;
       }
 

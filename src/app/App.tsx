@@ -7,6 +7,7 @@ import { Login } from '@/pages/Login';
 import { Register } from '@/pages/Register';
 import { ForgotPassword } from '@/pages/ForgotPassword';
 import { ResetPassword } from '@/pages/ResetPassword';
+import { ConfirmEmail } from '@/pages/ConfirmEmail';
 import { Marketplace } from '@/pages/Marketplace';
 import { ItemDetails } from '@/pages/ItemDetails';
 import { Dashboard } from '@/pages/Dashboard';
@@ -67,6 +68,7 @@ export default function App() {
                   <Route path="/login" element={<Login />} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />
                   <Route path="/reset-password" element={<ResetPassword />} />
+                  <Route path="/confirm-email" element={<ConfirmEmail />} />
                   <Route path="/register" element={<Register />} />
                   <Route path="/marketplace" element={<Marketplace />} />
                   <Route path="/item/:id" element={<ItemDetails />} />

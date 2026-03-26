@@ -13,10 +13,12 @@ export function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [resetLink, setResetLink] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setResetLink('');
     setLoading(true);
 
     try {
@@ -30,7 +32,10 @@ export function ForgotPassword() {
         setError(data.error || 'Failed to send reset email');
         return;
       }
-      toast.success('Password reset email sent. Check your inbox.');
+      if (typeof data?.resetLink === 'string' && data.resetLink) {
+        setResetLink(data.resetLink);
+      }
+      toast.success(data.message || 'Reset link generated successfully. Use the link shown below.');
       setEmail('');
     } catch (err) {
       setError('An error occurred. Please try again.');
@@ -49,13 +54,21 @@ export function ForgotPassword() {
             </div>
           </div>
           <CardTitle>Reset your password</CardTitle>
-          <CardDescription>We’ll email you a link to set a new password.</CardDescription>
+          <CardDescription>When SMTP is configured, a reset email is sent to your inbox. In local/dev mode, the reset link can appear below instead.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
               <Alert variant="destructive">
                 <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            {resetLink && (
+              <Alert>
+                <AlertDescription>
+                  Reset link: <a href={resetLink} className="text-green-600 hover:underline break-all">{resetLink}</a>
+                </AlertDescription>
               </Alert>
             )}
 

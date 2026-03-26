@@ -587,12 +587,12 @@ export function Home() {
           {categoryShowcaseCards.map((card) => (
             <article
               key={card.id}
-              className="rounded-none border border-slate-200 bg-[#f3f3f3] p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900"
+              className="flex h-full flex-col rounded-none border border-slate-200 bg-[#f3f3f3] p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900"
             >
               {card.variant !== 'tiles-only' && (
-                <div className="mb-3 flex items-start justify-between gap-2">
-                  <div>
-                    <h3 className="text-3xl font-bold leading-tight text-slate-900 dark:text-slate-100">{card.title}</h3>
+                <div className="mb-1.5 flex min-h-[2.5rem] items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="truncate whitespace-nowrap text-xl font-bold leading-tight text-slate-900 dark:text-slate-100">{card.title}</h3>
                   </div>
                   <button
                     onClick={() => openMarketplace({ category: card.categoryId, section: card.id })}
@@ -602,13 +602,14 @@ export function Home() {
                   </button>
                 </div>
               )}
-              <div className="grid grid-cols-2 gap-x-3 gap-y-4">
+              {card.variant === 'tiles-only' && <div className="mb-1.5 min-h-[2.5rem]" />}
+              <div className="grid flex-1 grid-cols-2 content-start gap-x-3 gap-y-4">
                 {card.items.map((tile, tileIndex) => {
                   const tileImage = tile.image || getHomeDecorImage(tileIndex);
                   return (
                   <button
                     key={tile.id}
-                    className="group text-left"
+                    className="group flex flex-col text-left"
                     onClick={() => openMarketplace(tile.filters)}
                   >
                     <div className="aspect-square overflow-hidden border border-slate-300 bg-slate-200 transition group-hover:shadow-sm dark:border-slate-700 dark:bg-slate-700">
@@ -618,7 +619,7 @@ export function Home() {
                         <div className="h-full w-full bg-slate-200 dark:bg-slate-700" />
                       )}
                     </div>
-                    <p className="mt-1.5 line-clamp-2 text-sm font-medium leading-snug text-slate-900 dark:text-slate-100">
+                    <p className="mt-1.5 min-h-[2.75rem] line-clamp-2 text-sm font-medium leading-snug text-slate-900 dark:text-slate-100">
                       {tile.label}
                     </p>
                   </button>
@@ -627,7 +628,7 @@ export function Home() {
               </div>
               {card.variant !== 'tiles-only' && (
                 <button
-                  className="mt-4 text-sm font-medium text-[#1663c7] hover:underline"
+                  className="mt-2 text-sm font-medium text-[#1663c7] hover:underline"
                   onClick={() => openMarketplace({ category: card.categoryId, section: card.id })}
                 >
                   {card.linkLabel}

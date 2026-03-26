@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/app/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
-import { Input } from '@/app/components/ui/input';
+import { PasswordInput } from '@/app/components/ui/password-input';
 import { Label } from '@/app/components/ui/label';
 import { Switch } from '@/app/components/ui/switch';
 import { ArrowLeft } from 'lucide-react';
@@ -109,27 +109,24 @@ export function SellerSettings() {
         <CardContent className="space-y-3">
           <div className="space-y-1">
             <Label htmlFor="seller-current-password">Current Password</Label>
-            <Input
+            <PasswordInput
               id="seller-current-password"
-              type="password"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
             />
           </div>
           <div className="space-y-1">
             <Label htmlFor="seller-new-password">New Password</Label>
-            <Input
+            <PasswordInput
               id="seller-new-password"
-              type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
             />
           </div>
           <div className="space-y-1">
             <Label htmlFor="seller-confirm-password">Confirm New Password</Label>
-            <Input
+            <PasswordInput
               id="seller-confirm-password"
-              type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
             />
@@ -183,4 +180,3 @@ export function SellerSettings() {
     </div>
   );
 }
-

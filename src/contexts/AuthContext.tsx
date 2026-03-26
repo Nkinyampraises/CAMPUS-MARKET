@@ -37,7 +37,7 @@ interface AuthContextType {
   accessToken: string | null;
   refreshAuthToken: (tokenOverride?: string | null) => Promise<string | null>;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  register: (userData: RegisterData) => Promise<{ success: boolean; error?: string }>;
+  register: (userData: RegisterData) => Promise<{ success: boolean; error?: string; message?: string; confirmationLink?: string; requiresEmailConfirmation?: boolean }>;
   logout: () => void;
   isAuthenticated: boolean;
   updateProfile: (data: Partial<User>) => Promise<boolean>;
@@ -230,7 +230,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const register = async (userData: RegisterData): Promise<{ success: boolean; error?: string }> => {
+  const register = async (userData: RegisterData): Promise<{ success: boolean; error?: string; message?: string; confirmationLink?: string; requiresEmailConfirmation?: boolean }> => {
     try {
       const response = await fetch(`${API_URL}/signup`, {
         method: 'POST',
@@ -262,7 +262,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
       }
 
-      return { success: true };
+      return {
+        success: true,
+        message: typeof data?.message === 'string' ? data.message : undefined,
+        confirmationLink: typeof data?.confirmationLink === 'string' ? data.confirmationLink : undefined,
+        requiresEmailConfirmation: Boolean(data?.requiresEmailConfirmation),
+      };
     } catch (error) {
       console.error('Registration error:', error);
       return { success: false, error: 'An error occurred during registration' };

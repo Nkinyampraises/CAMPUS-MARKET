@@ -33,7 +33,7 @@ const VIEW_TRACKED_KEY = 'viewTrackedItemIds';
 export function ItemDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { currentUser, isAuthenticated, accessToken } = useAuth();
+  const { currentUser, isAuthenticated, accessToken, refreshAuthToken } = useAuth();
   const { t } = useLanguage();
   const [item, setItem] = useState<any>(null);
   const [relatedItems, setRelatedItems] = useState<any[]>([]);
@@ -153,15 +153,46 @@ export function ItemDetails() {
     fetchRelatedItems();
   }, [item?.id, item?.category]);
 
+  const requestWithAuthRetry = async (path: string, init?: RequestInit) => {
+    const token = accessToken || localStorage.getItem('accessToken');
+    if (!token) {
+      return { response: null as Response | null, data: { error: 'Unauthorized' } };
+    }
+
+    const makeRequest = (authToken: string) =>
+      fetch(`${API_URL}${path}`, {
+        ...init,
+        headers: {
+          ...(init?.headers || {}),
+          Authorization: `Bearer ${authToken}`,
+        },
+      });
+
+    let response = await makeRequest(token);
+    let data = await response.json().catch(() => ({}));
+
+    if (response.status === 401) {
+      const refreshed = await refreshAuthToken();
+      if (!refreshed) {
+        return { response, data };
+      }
+
+      response = await makeRequest(refreshed);
+      data = await response.json().catch(() => ({}));
+    }
+
+    return { response, data };
+  };
+
   // Check if item is in favorites
   useEffect(() => {
     const checkFavoriteStatus = async () => {
       if (currentUser && id) {
         try {
-          const response = await fetch(`${API_URL}/favorites`, {
-            headers: { Authorization: `Bearer ${accessToken}` }
-          });
-          const data = await response.json();
+          const { response, data } = await requestWithAuthRetry('/favorites');
+          if (!response?.ok) {
+            return;
+          }
           const isFav = data.favorites?.some((fav: any) => fav.id === id);
           setIsSaved(!!isFav);
         } catch (e) {
@@ -170,7 +201,7 @@ export function ItemDetails() {
       }
     };
     checkFavoriteStatus();
-  }, [currentUser, id, accessToken]);
+  }, [currentUser, id, accessToken, refreshAuthToken]);
 
   useEffect(() => {
     setSelectedImageIndex(0);
@@ -252,13 +283,16 @@ export function ItemDetails() {
       try {
         if (isSaved) {
           // Remove from favorites
-          const response = await fetch(`${API_URL}/favorites/${id}`, {
+          const { response, data } = await requestWithAuthRetry(`/favorites/${id}`, {
             method: 'DELETE',
-            headers: { Authorization: `Bearer ${accessToken}` }
           });
-          const data = await response.json().catch(() => ({}));
-          if (!response.ok) {
-            toast.error(data.error || t('item.removeFavoriteFailed', 'Failed to remove favorite'));
+          if (!response?.ok) {
+            if (response?.status === 401) {
+              toast.error(t('item.loginToSave', 'Please login to save items'));
+              navigate('/login');
+            } else {
+              toast.error(data.error || t('item.removeFavoriteFailed', 'Failed to remove favorite'));
+            }
             return;
           }
           setIsSaved(false);
@@ -275,17 +309,20 @@ export function ItemDetails() {
           toast.success(t('item.removedFavorites', 'Removed from favorites'));
         } else {
           // Add to favorites
-          const response = await fetch(`${API_URL}/favorites`, {
+          const { response, data } = await requestWithAuthRetry('/favorites', {
             method: 'POST',
             headers: { 
               'Content-Type': 'application/json',
-              Authorization: `Bearer ${accessToken}` 
             },
             body: JSON.stringify({ itemId: id })
           });
-          const data = await response.json().catch(() => ({}));
-          if (!response.ok) {
-            toast.error(data.error || t('item.addFavoriteFailed', 'Failed to add favorite'));
+          if (!response?.ok) {
+            if (response?.status === 401) {
+              toast.error(t('item.loginToSave', 'Please login to save items'));
+              navigate('/login');
+            } else {
+              toast.error(data.error || t('item.addFavoriteFailed', 'Failed to add favorite'));
+            }
             return;
           }
           setIsSaved(true);
