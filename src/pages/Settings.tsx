@@ -83,7 +83,7 @@ export function Settings() {
   const handleSavePreferences = async () => {
     setSavingPreferences(true);
     try {
-      const success = await updateProfile({
+      const result = await updateProfile({
         notificationPreferences,
         privacyOptions: {
           ...privacyOptions,
@@ -91,8 +91,8 @@ export function Settings() {
         },
       });
 
-      if (!success) {
-        toast.error('Failed to save settings');
+      if (!result.success) {
+        toast.error(result.error || 'Failed to save settings');
         return;
       }
       if (refreshCurrentUser) {

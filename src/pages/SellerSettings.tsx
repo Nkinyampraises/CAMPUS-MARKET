@@ -74,9 +74,9 @@ export function SellerSettings() {
   const handleSavePreferences = async () => {
     setSavingPreferences(true);
     try {
-      const success = await updateProfile({ notificationPreferences });
-      if (!success) {
-        toast.error('Failed to save notification preferences');
+      const result = await updateProfile({ notificationPreferences });
+      if (!result.success) {
+        toast.error(result.error || 'Failed to save notification preferences');
         return;
       }
       await refreshCurrentUser();

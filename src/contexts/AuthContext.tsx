@@ -40,7 +40,7 @@ interface AuthContextType {
   register: (userData: RegisterData) => Promise<{ success: boolean; error?: string; message?: string; confirmationLink?: string; requiresEmailConfirmation?: boolean }>;
   logout: () => void;
   isAuthenticated: boolean;
-  updateProfile: (data: Partial<User>) => Promise<boolean>;
+  updateProfile: (data: Partial<User>) => Promise<{ success: boolean; error?: string }>;
   refreshUser: () => Promise<void>;
   refreshCurrentUser: () => Promise<void>;
 }
@@ -283,31 +283,56 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem('refreshToken');
   };
 
-  const updateProfile = async (data: Partial<User>): Promise<boolean> => {
-    if (!accessToken) return false;
+  const updateProfile = async (data: Partial<User>): Promise<{ success: boolean; error?: string }> => {
+    const token = accessToken || localStorage.getItem('accessToken');
+    if (!token) {
+      return { success: false, error: 'Please log in again and try once more.' };
+    }
 
     try {
-      const response = await fetch(`${API_URL}/auth/profile`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify(data),
-      });
+      const makeRequest = (authToken: string) =>
+        fetch(`${API_URL}/auth/profile`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`,
+          },
+          body: JSON.stringify(data),
+        });
+
+      let response = await makeRequest(token);
+      let result = await response.json().catch(() => ({}));
+
+      if (response.status === 401) {
+        const refreshedToken = await refreshAuthToken();
+        if (refreshedToken) {
+          response = await makeRequest(refreshedToken);
+          result = await response.json().catch(() => ({}));
+        }
+      }
 
       if (response.ok) {
-        const result = await response.json();
         const normalizedUser = normalizeUser(result.user);
         setCurrentUser(normalizedUser);
         localStorage.setItem('currentUser', JSON.stringify(normalizedUser));
-        return true;
+        return { success: true };
       }
 
-      return false;
+      return {
+        success: false,
+        error:
+          result?.error ||
+          result?.message ||
+          (response.status === 401
+            ? 'Your session expired. Please log in again.'
+            : `Profile update failed (${response.status})`),
+      };
     } catch (error) {
       console.error('Profile update error:', error);
-      return false;
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to update profile',
+      };
     }
   };
 
