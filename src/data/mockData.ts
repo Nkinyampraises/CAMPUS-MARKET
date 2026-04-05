@@ -102,6 +102,13 @@ export const universities: University[] = [
   { id: '5', name: 'University of Bamenda', location: 'Bamenda, North-West Region' },
   { id: '6', name: 'University of Maroua', location: 'Maroua, Far North Region' },
   { id: '7', name: 'University of Ngaoundéré', location: 'Ngaoundéré, Adamawa Region' },
+  { id: '8', name: 'University of Yaoundé II (Soa)', location: 'Soa, Centre Region' },
+  { id: '9', name: 'ICT University', location: 'Yaoundé, Centre Region' },
+  { id: '10', name: 'Catholic University of Central Africa (UCAC)', location: 'Yaoundé, Centre Region' },
+  { id: '11', name: 'National Advanced School of Engineering Yaoundé', location: 'Yaoundé, Centre Region' },
+  { id: '12', name: 'IRIC - University of Yaoundé II', location: 'Yaoundé, Centre Region' },
+  { id: '13', name: 'Université Protestante d’Afrique Centrale', location: 'Yaoundé, Centre Region' },
+  { id: '14', name: 'Yaoundé School of Management', location: 'Yaoundé, Centre Region' },
 ];
 
 // Locations near universities
@@ -116,6 +123,13 @@ export const locations: Location[] = [
   { id: '8', name: 'Akwa', university: '3' },
   { id: '9', name: 'City Centre', university: '4' },
   { id: '10', name: 'Student Hostels', university: '5' },
+  { id: '11', name: 'Soa Campus', university: '8' },
+  { id: '12', name: 'Mendong', university: '9' },
+  { id: '13', name: 'Messa', university: '10' },
+  { id: '14', name: 'Nkolbisson', university: '11' },
+  { id: '15', name: 'Bastos', university: '12' },
+  { id: '16', name: 'Biyem-Assi', university: '13' },
+  { id: '17', name: 'Poste Centrale', university: '14' },
 ];
 
 // Item Categories

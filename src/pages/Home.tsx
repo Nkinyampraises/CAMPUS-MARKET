@@ -476,30 +476,30 @@ export function Home() {
   };
 
   return (
-    <div className="text-foreground">
-      <section className="relative overflow-hidden border-b border-emerald-200/70 bg-gradient-to-r from-emerald-100 via-green-100 to-lime-200 dark:border-slate-800 dark:from-emerald-950/60 dark:via-slate-900 dark:to-slate-800">
+    <div className="relative text-foreground">
+      <section className="relative overflow-hidden border-b border-border/70 bg-[linear-gradient(120deg,rgba(13,148,136,0.18),rgba(56,189,248,0.22),rgba(251,191,36,0.2))] dark:bg-[linear-gradient(120deg,rgba(20,184,166,0.2),rgba(14,116,144,0.35),rgba(250,204,21,0.16))]">
         <div className="container mx-auto px-4 py-10">
           <div>
-          <Badge className="mb-4 bg-white/80 text-slate-700 hover:bg-white dark:bg-slate-700 dark:text-slate-100">
+          <Badge className="mb-4 border border-white/70 bg-white/85 text-slate-700 shadow-sm hover:bg-white dark:border-white/20 dark:bg-slate-900/70 dark:text-slate-100">
             {t('home.badge', 'UNITRADE Picks')}
           </Badge>
-          <h1 className="text-3xl font-bold leading-tight text-slate-900 md:text-5xl dark:text-white">
+          <h1 className="text-3xl font-bold leading-tight text-foreground md:text-5xl">
             {t('home.heroTitle', 'Discover top student deals, rentals, and room essentials.')}
           </h1>
-          <p className="mt-4 max-w-2xl text-sm text-slate-700 md:text-base dark:text-slate-200">
+          <p className="mt-4 max-w-2xl text-sm text-muted-foreground md:text-base">
             {t(
               'home.heroSubtitle',
               'Browse marketplace sections like your reference layout. Every card and row opens the marketplace with related results.',
             )}
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
-            <Button className="bg-slate-900 text-white hover:bg-slate-800" onClick={() => openMarketplace()}>
+            <Button className="shadow-sm" onClick={() => openMarketplace()}>
               {t('home.exploreMarketplace', 'Explore marketplace')}
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
             <Button
               variant="outline"
-              className="bg-white/80 backdrop-blur hover:bg-white dark:bg-slate-900"
+              className="border-border/70 bg-background/70 backdrop-blur hover:bg-background"
               onClick={() => openMarketplace({ section: 'recommended-for-you', sort: 'recent' })}
             >
               {t('home.trendingNow', 'Trending now')}
@@ -509,7 +509,7 @@ export function Home() {
         </div>
       </section>
 
-      <div className="bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.12),_transparent_55%),radial-gradient(circle_at_30%_20%,_rgba(14,165,233,0.16),_transparent_50%),linear-gradient(120deg,_#f8fafc_0%,_#eefbf6_45%,_#f2f7ff_100%)] dark:bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.18),_transparent_55%),radial-gradient(circle_at_30%_20%,_rgba(14,165,233,0.2),_transparent_50%),linear-gradient(120deg,_#031b14_0%,_#051f2c_55%,_#041a21_100%)]">
+      <div className="relative">
         <div className="container mx-auto space-y-6 px-4 py-8">
           <section className="grid grid-cols-1 gap-6 md:grid-cols-2">
             {[
@@ -532,15 +532,15 @@ export function Home() {
             ].map((card) => (
               <button
                 key={card.id}
-                className="group relative overflow-hidden rounded-3xl border border-white/60 text-left shadow-sm transition hover:shadow-xl"
+                className="group relative overflow-hidden rounded-3xl border border-border/60 bg-card/45 text-left shadow-sm transition duration-300 hover:-translate-y-0.5 hover:shadow-lg"
                 onClick={() => openMarketplace(card.filters)}
               >
                 {card.image ? (
                   <img src={card.image} alt={card.title} className="h-80 w-full object-cover transition duration-500 group-hover:scale-105" />
                 ) : (
-                  <div className="h-80 w-full bg-gradient-to-r from-slate-300 to-slate-200 dark:from-slate-700 dark:to-slate-600" />
+                  <div className="h-80 w-full bg-gradient-to-r from-primary/35 via-secondary/40 to-amber-200/50 dark:from-primary/35 dark:via-secondary/35 dark:to-amber-300/20" />
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-black/10" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-black/10" />
                 <div className="absolute inset-x-0 bottom-0 p-6 text-white">
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/80">
                     {t('home.featuredSection', 'Featured Section')}
@@ -556,7 +556,7 @@ export function Home() {
             ))}
           </section>
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+        <section className="rounded-3xl border border-border/70 bg-card/85 p-5 shadow-sm backdrop-blur">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -574,7 +574,7 @@ export function Home() {
               <button
                 key={category.id}
                 onClick={() => openMarketplace({ section: 'quick-categories', category: category.id })}
-                className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-4 text-left transition hover:border-slate-400 hover:bg-white dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700"
+                className="rounded-2xl border border-border/70 bg-background/70 px-3 py-4 text-left transition hover:-translate-y-0.5 hover:border-primary/40 hover:bg-background"
               >
                 <p className="text-sm font-semibold">{category.name}</p>
                 <p className="mt-2 text-xs text-muted-foreground">{t('home.openRelatedItems', 'Open related items')}</p>
@@ -587,16 +587,16 @@ export function Home() {
           {categoryShowcaseCards.map((card) => (
             <article
               key={card.id}
-              className="flex h-full flex-col rounded-none border border-slate-200 bg-[#f3f3f3] p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900"
+              className="flex h-full flex-col rounded-3xl border border-border/70 bg-card/88 p-4 shadow-sm backdrop-blur"
             >
               {card.variant !== 'tiles-only' && (
                 <div className="mb-1.5 flex min-h-[2.5rem] items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <h3 className="truncate whitespace-nowrap text-xl font-bold leading-tight text-slate-900 dark:text-slate-100">{card.title}</h3>
+                    <h3 className="truncate whitespace-nowrap text-xl font-bold leading-tight text-foreground">{card.title}</h3>
                   </div>
                   <button
                     onClick={() => openMarketplace({ category: card.categoryId, section: card.id })}
-                    className="rounded-full bg-slate-100 p-2 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300"
+                    className="rounded-full bg-muted p-2 text-muted-foreground transition hover:bg-accent hover:text-foreground"
                   >
                     <ArrowRight className="h-4 w-4" />
                   </button>
@@ -612,14 +612,14 @@ export function Home() {
                     className="group flex flex-col text-left"
                     onClick={() => openMarketplace(tile.filters)}
                   >
-                    <div className="aspect-square overflow-hidden border border-slate-300 bg-slate-200 transition group-hover:shadow-sm dark:border-slate-700 dark:bg-slate-700">
+                    <div className="aspect-square overflow-hidden rounded-xl border border-border/70 bg-muted transition group-hover:shadow-sm">
                       {tileImage ? (
                         <img src={tileImage} alt={tile.label} className="h-full w-full object-cover" />
                       ) : (
-                        <div className="h-full w-full bg-slate-200 dark:bg-slate-700" />
+                        <div className="h-full w-full bg-muted" />
                       )}
                     </div>
-                    <p className="mt-1.5 min-h-[2.75rem] line-clamp-2 text-sm font-medium leading-snug text-slate-900 dark:text-slate-100">
+                    <p className="mt-1.5 min-h-[2.75rem] line-clamp-2 text-sm font-medium leading-snug text-foreground">
                       {tile.label}
                     </p>
                   </button>
@@ -628,7 +628,7 @@ export function Home() {
               </div>
               {card.variant !== 'tiles-only' && (
                 <button
-                  className="mt-2 text-sm font-medium text-[#1663c7] hover:underline"
+                  className="mt-2 text-sm font-semibold text-primary hover:underline"
                   onClick={() => openMarketplace({ category: card.categoryId, section: card.id })}
                 >
                   {card.linkLabel}
@@ -641,7 +641,7 @@ export function Home() {
         {productRails.map((rail) => (
           <section
             key={rail.id}
-            className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900"
+            className="rounded-3xl border border-border/70 bg-card/85 p-5 shadow-sm backdrop-blur"
           >
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div>
@@ -658,12 +658,12 @@ export function Home() {
                 <button
                   key={item.id}
                   onClick={() => openMarketplace(item.filters)}
-                  className="min-w-[140px] overflow-hidden rounded-2xl border border-slate-200 text-left transition hover:shadow-md dark:border-slate-700"
+                  className="min-w-[140px] overflow-hidden rounded-2xl border border-border/70 bg-background/75 text-left transition hover:shadow-md"
                 >
                   {item.image ? (
                     <img src={item.image} alt={item.label} className="h-28 w-full object-cover" />
                   ) : (
-                    <div className="h-28 w-full bg-slate-200 dark:bg-slate-700" />
+                    <div className="h-28 w-full bg-muted" />
                   )}
                   <div className="p-3">
                     <p className="line-clamp-2 text-xs font-semibold">{item.label}</p>
@@ -674,13 +674,13 @@ export function Home() {
           </section>
         ))}
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+        <section className="rounded-3xl border border-border/70 bg-card/85 p-6 shadow-sm backdrop-blur">
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.4fr_1fr] lg:items-start">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 {t('home.aboutLabel', 'About us')}
               </p>
-              <h3 className="mt-2 text-2xl font-bold text-slate-900 dark:text-slate-100">
+              <h3 className="mt-2 text-2xl font-bold text-foreground">
                 {t('home.aboutTitle', 'Built for students, by students.')}
               </h3>
               <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
@@ -690,7 +690,7 @@ export function Home() {
                 )}
               </p>
               <Button
-                className="mt-4 bg-green-600 hover:bg-green-700"
+                className="mt-4 shadow-sm"
                 onClick={() => openMarketplace({ sort: 'recent' })}
               >
                 {t('home.aboutCta', 'Explore marketplace community')}
@@ -698,19 +698,19 @@ export function Home() {
             </div>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-1">
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800">
+              <div className="rounded-2xl border border-border/70 bg-background/70 p-3">
                 <p className="text-sm font-semibold">{t('home.aboutPoint1Title', 'Affordable deals')}</p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {t('home.aboutPoint1Body', 'Student-friendly pricing on everyday essentials.')}
                 </p>
               </div>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800">
+              <div className="rounded-2xl border border-border/70 bg-background/70 p-3">
                 <p className="text-sm font-semibold">{t('home.aboutPoint2Title', 'Trusted community')}</p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {t('home.aboutPoint2Body', 'Verified users, transparent listings, and real reviews.')}
                 </p>
               </div>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800">
+              <div className="rounded-2xl border border-border/70 bg-background/70 p-3">
                 <p className="text-sm font-semibold">{t('home.aboutPoint3Title', 'Campus-focused')}</p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {t('home.aboutPoint3Body', 'Designed around university life, rentals, and quick exchanges.')}
@@ -720,7 +720,7 @@ export function Home() {
           </div>
         </section>
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+        <section className="rounded-3xl border border-border/70 bg-card/85 p-6 shadow-sm backdrop-blur">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="mb-1 inline-flex items-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -733,7 +733,7 @@ export function Home() {
               </p>
             </div>
             <Button
-              className="bg-emerald-600 hover:bg-emerald-700"
+              className="shadow-sm"
               onClick={() => openMarketplace({ section: 'local-focus', sort: 'recent' })}
             >
               <Sparkles className="mr-2 h-4 w-4" />
@@ -743,12 +743,12 @@ export function Home() {
         </section>
 
           {!loading && availableListings.length === 0 && (
-            <section className="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center dark:border-slate-700 dark:bg-slate-900">
+            <section className="rounded-3xl border border-dashed border-border/80 bg-card/75 p-8 text-center backdrop-blur">
               <h3 className="text-lg font-semibold">{t('home.noListings', 'No listings available')}</h3>
               <p className="mt-2 text-sm text-muted-foreground">
                 {t('home.noListingsSub', 'Add listings and this home layout will populate automatically with live data.')}
               </p>
-              <Button className="mt-4 bg-green-600 hover:bg-green-700" onClick={() => openMarketplace()}>
+              <Button className="mt-4 shadow-sm" onClick={() => openMarketplace()}>
                 {t('home.exploreMarketplace', 'Explore marketplace')}
               </Button>
             </section>
@@ -758,4 +758,6 @@ export function Home() {
     </div>
   );
 }
+
+
 

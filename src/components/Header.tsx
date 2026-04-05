@@ -54,25 +54,27 @@ export function Header() {
   };
 
   return (
-    <header className="border-b border-border bg-background shadow-sm">
+    <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur-xl supports-[backdrop-filter]:bg-background/70">
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent" />
       <div className="container mx-auto px-4 py-3">
-        <div className="flex items-center justify-between">
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <img src={appLogo} alt="UNITRADE logo" className="h-12 w-12 rounded-lg object-cover" />
+        <div className="flex items-center justify-between gap-2 lg:gap-4">
+          <Link to="/" className="group flex items-center gap-3 transition-transform hover:scale-[1.01]">
+            <span className="relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl border border-white/70 bg-white/85 shadow-sm dark:border-white/15 dark:bg-white/10">
+              <span className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(20,184,166,0.22),rgba(56,189,248,0.22))]" />
+              <img src={appLogo} alt="UNITRADE logo" className="relative h-10 w-10 rounded-xl object-cover" />
+            </span>
             <div className="hidden sm:block">
               <h1 className="text-xl font-bold text-foreground">UNITRADE</h1>
               <p className="text-xs text-muted-foreground">{t('brand.universities', 'Cameroon Universities')}</p>
             </div>
           </Link>
 
-          {/* Navigation */}
-          <nav className="flex items-center gap-2">
+          <nav className="flex items-center gap-1.5 lg:gap-2">
             <Button
               variant={isActive('/') ? 'default' : 'ghost'}
               size="sm"
               onClick={() => navigate('/')}
-              className={isActive('/') ? 'bg-green-600 hover:bg-green-700' : ''}
+              className={isActive('/') ? 'shadow-sm' : ''}
             >
               <Home className="h-4 w-4 sm:mr-2" />
               <span className="hidden sm:inline">{t('nav.home', 'Home')}</span>
@@ -82,7 +84,7 @@ export function Header() {
               variant={isActive('/marketplace') ? 'default' : 'ghost'}
               size="sm"
               onClick={() => navigate('/marketplace')}
-              className={isActive('/marketplace') ? 'bg-green-600 hover:bg-green-700' : ''}
+              className={isActive('/marketplace') ? 'shadow-sm' : ''}
             >
               <ShoppingBag className="h-4 w-4 sm:mr-2" />
               <span className="hidden sm:inline">{t('nav.marketplace', 'Marketplace')}</span>
@@ -90,7 +92,6 @@ export function Header() {
 
             {isAuthenticated ? (
               <>
-                {/* Show "List Item" button only for sellers */}
                 {currentUser?.userType === 'seller' && (
                   <Button
                     variant="ghost"
@@ -103,7 +104,6 @@ export function Header() {
                   </Button>
                 )}
 
-                {/* Show "Favorites" button only for buyers */}
                 {currentUser?.userType === 'buyer' && (
                   <Button
                     variant="ghost"
@@ -120,31 +120,28 @@ export function Header() {
                   variant="ghost"
                   size="sm"
                   onClick={() => navigate('/messages')}
-                  className="relative"
+                  className="relative rounded-full"
                 >
                   <MessageSquare className="h-4 w-4" />
-                  {/* Unread badge placeholder */}
-                  {/* <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 rounded-full text-xs text-white flex items-center justify-center">3</span> */}
                 </Button>
 
-                {/* User Dropdown */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="gap-2">
-                      <Avatar className="h-6 w-6">
+                    <Button variant="ghost" size="sm" className="gap-2 rounded-full border border-transparent px-2 hover:border-border/70">
+                      <Avatar className="h-7 w-7">
                         {currentUser?.profilePicture ? (
                           <AvatarImage src={currentUser.profilePicture} alt={currentUser.name} />
                         ) : null}
-                        <AvatarFallback className="text-xs bg-green-100 text-green-700">
+                        <AvatarFallback className="text-xs bg-primary/15 text-primary">
                           {currentUser?.name?.charAt(0).toUpperCase() || 'U'}
                         </AvatarFallback>
                       </Avatar>
-                      <span className="hidden md:inline max-w-[100px] truncate">
+                      <span className="hidden md:inline max-w-[120px] truncate">
                         {currentUser?.name}
                       </span>
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuContent align="end" className="w-56 rounded-xl">
                     <DropdownMenuItem onClick={() => navigate('/dashboard')}>
                       <LayoutDashboard className="h-4 w-4 mr-2" />
                       {t('nav.dashboard', 'My Dashboard')}
@@ -263,7 +260,7 @@ export function Header() {
                       </>
                     )}
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleLogout} className="text-red-600">
+                    <DropdownMenuItem onClick={handleLogout} variant="destructive">
                       <LogOut className="h-4 w-4 mr-2" />
                       {t('nav.logout', 'Logout')}
                     </DropdownMenuItem>
@@ -282,7 +279,6 @@ export function Header() {
                 <Button
                   size="sm"
                   onClick={() => navigate('/register')}
-                  className="bg-green-600 hover:bg-green-700"
                 >
                   {t('auth.signup', 'Sign Up')}
                 </Button>
@@ -294,14 +290,14 @@ export function Header() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="gap-1.5"
+                  className="gap-1.5 rounded-full"
                   title={t('language.select', 'Select language')}
                 >
                   <Languages className="h-4 w-4" />
                   <span className="hidden sm:inline">{language.toUpperCase()}</span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-40">
+              <DropdownMenuContent align="end" className="w-40 rounded-xl">
                 <DropdownMenuItem onClick={() => setLanguage('en')} className="flex items-center justify-between">
                   <span>{t('language.en', 'English')}</span>
                   {language === 'en' && <Check className="h-4 w-4" />}
@@ -319,4 +315,3 @@ export function Header() {
     </header>
   );
 }
-

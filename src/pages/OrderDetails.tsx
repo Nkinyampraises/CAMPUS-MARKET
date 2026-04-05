@@ -10,6 +10,7 @@ import { Textarea } from '@/app/components/ui/textarea';
 import { Badge } from '@/app/components/ui/badge';
 import { Alert, AlertDescription } from '@/app/components/ui/alert';
 import { ArrowLeft, Loader2, Upload } from 'lucide-react';
+import { MeetupMap } from '@/components/MeetupMap';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
@@ -257,6 +258,19 @@ export function OrderDetails() {
                 <p className="font-medium">{order.pickupLocation || '-'}</p>
               </div>
             </div>
+
+            {order.pickupLocation ? (
+              <div className="space-y-2">
+                <Label className="text-sm">Pickup Location Map</Label>
+                <MeetupMap
+                  compact
+                  locationName={order.pickupLocation}
+                  address={order.pickupAddress}
+                  latitude={order.pickupLatitude}
+                  longitude={order.pickupLongitude}
+                />
+              </div>
+            ) : null}
 
             <Alert>
               <AlertDescription>

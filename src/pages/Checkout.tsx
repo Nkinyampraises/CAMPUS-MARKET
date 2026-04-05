@@ -15,6 +15,7 @@ import {
 } from '@/app/components/ui/select';
 import { Alert, AlertDescription } from '@/app/components/ui/alert';
 import { ArrowLeft, Loader2, MapPin } from 'lucide-react';
+import { MeetupMap } from '@/components/MeetupMap';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
@@ -22,13 +23,34 @@ const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string |
 
 const fallbackPickupLocations = [
   { name: 'University of Yaounde I', lat: 3.848, lng: 11.502 },
+  { name: 'University of Yaounde II (Soa)', lat: 4.0, lng: 11.59 },
+  { name: 'ICT University, Yaounde', lat: 3.87, lng: 11.5 },
+  { name: 'Catholic University of Central Africa (UCAC)', lat: 3.88, lng: 11.53 },
+  { name: 'National Advanced School of Engineering Yaounde', lat: 3.86, lng: 11.5 },
+  { name: 'IRIC Yaounde', lat: 3.87, lng: 11.52 },
   { name: 'University of Douala', lat: 4.053, lng: 9.704 },
   { name: 'Ngoa Ekelle', lat: 3.864, lng: 11.5 },
+  { name: 'Poste Centrale Yaounde Roundabout', lat: 3.87, lng: 11.52 },
+  { name: 'Elig-Essono Roundabout', lat: 3.89, lng: 11.51 },
   { name: 'Bonamoussadi Roundabout', lat: 4.088, lng: 9.758 },
   { name: 'Bambili Campus', lat: 5.959, lng: 10.197 },
 ];
 
-const pickupKeywords = ['university', 'campus', 'roundabout', 'ngoa ekelle', 'bonamoussadi', 'bambili'];
+const pickupKeywords = [
+  'university',
+  'campus',
+  'roundabout',
+  'ngoa ekelle',
+  'bonamoussadi',
+  'bambili',
+  'yaounde',
+  'soa',
+  'ict',
+  'ucac',
+  'iric',
+  'poste centrale',
+  'elig essono',
+];
 
 interface ListingItem {
   id: string;
@@ -421,6 +443,18 @@ export function Checkout() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {pickupLocation.name ? (
+                <div className="space-y-2">
+                  <Label className="text-sm">Meeting Point Map</Label>
+                  <MeetupMap
+                    locationName={pickupLocation.name}
+                    address={pickupLocation.address}
+                    latitude={pickupLocation.lat}
+                    longitude={pickupLocation.lng}
+                  />
+                </div>
+              ) : null}
 
               {errorText ? (
                 <Alert variant="destructive">

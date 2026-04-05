@@ -5,6 +5,7 @@ import { Button } from '@/app/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
 import { ArrowLeft, Flag, MessageSquare } from 'lucide-react';
+import { MeetupMap } from '@/components/MeetupMap';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
@@ -224,6 +225,17 @@ export function SellerOrderDetails() {
               <p><span className="text-muted-foreground">Created:</span> {order.createdAt ? new Date(order.createdAt).toLocaleString() : '-'}</p>
               <p><span className="text-muted-foreground">Pickup:</span> {order.pickupDate || '-'} {order.pickupTime || '-'}</p>
               <p><span className="text-muted-foreground">Location:</span> {order.pickupLocation || '-'}</p>
+              {order.pickupLocation ? (
+                <div className="pt-2">
+                  <MeetupMap
+                    compact
+                    locationName={order.pickupLocation}
+                    address={order.pickupAddress}
+                    latitude={order.pickupLatitude}
+                    longitude={order.pickupLongitude}
+                  />
+                </div>
+              ) : null}
             </CardContent>
           </Card>
 
@@ -281,4 +293,3 @@ export function SellerOrderDetails() {
     </div>
   );
 }
-

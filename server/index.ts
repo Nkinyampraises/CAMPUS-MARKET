@@ -521,7 +521,13 @@ const DEFAULT_ADMIN_UNIVERSITIES = [
   "University of Buea",
   "University of Bamenda",
   "University of Yaounde I",
-  "University of Yaounde II",
+  "University of Yaounde II (Soa)",
+  "ICT University",
+  "Catholic University of Central Africa (UCAC)",
+  "National Advanced School of Engineering Yaounde",
+  "IRIC - University of Yaounde II",
+  "Universite Protestante d'Afrique Centrale",
+  "Yaounde School of Management",
   "University of Douala",
   "University of Dschang",
   "University of Ngaoundere",
@@ -614,8 +620,15 @@ const CAMEROON_GEO_BOUNDS = {
 
 const ALLOWED_PICKUP_LOCATIONS = [
   { name: "University of Yaounde I", lat: 3.848, lng: 11.502, type: "campus" },
+  { name: "University of Yaounde II (Soa)", lat: 3.985, lng: 11.597, type: "campus" },
+  { name: "ICT University, Yaounde", lat: 3.87, lng: 11.515, type: "campus" },
+  { name: "Catholic University of Central Africa (UCAC)", lat: 3.877, lng: 11.531, type: "campus" },
+  { name: "National Advanced School of Engineering Yaounde", lat: 3.861, lng: 11.501, type: "campus" },
+  { name: "IRIC Yaounde", lat: 3.878, lng: 11.535, type: "campus" },
   { name: "University of Douala", lat: 4.053, lng: 9.704, type: "campus" },
   { name: "Ngoa Ekelle", lat: 3.864, lng: 11.5, type: "roundabout" },
+  { name: "Poste Centrale Yaounde Roundabout", lat: 3.865, lng: 11.515, type: "roundabout" },
+  { name: "Elig-Essono Roundabout", lat: 3.881, lng: 11.513, type: "roundabout" },
   { name: "Bonamoussadi Roundabout", lat: 4.088, lng: 9.758, type: "roundabout" },
   { name: "Bambili Campus", lat: 5.959, lng: 10.197, type: "campus" },
 ];
@@ -625,6 +638,12 @@ const ALLOWED_PICKUP_KEYWORDS = [
   "campus",
   "roundabout",
   "ngoa ekelle",
+  "soa",
+  "ict",
+  "ucac",
+  "iric",
+  "poste centrale",
+  "elig essono",
   "bonamoussadi",
   "bambili",
   "yaounde",
@@ -743,6 +762,21 @@ async function ensureAdminUniversities() {
       .map((entry: any) => normalizeUniversityEntry(entry))
       .filter((entry: any) => entry !== null);
     if (normalized.length > 0) {
+      const now = new Date().toISOString();
+      const existing = new Set(
+        normalized.map((entry: any) => String(entry?.name || "").trim().toLowerCase()).filter(Boolean),
+      );
+      for (const name of DEFAULT_ADMIN_UNIVERSITIES) {
+        const key = String(name || "").trim().toLowerCase();
+        if (!key || existing.has(key)) continue;
+        normalized.push({
+          id: createEntityId("UNI"),
+          name,
+          isActive: true,
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
       await kv.set("admin:universities", normalized);
       return normalized;
     }

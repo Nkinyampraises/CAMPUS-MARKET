@@ -359,8 +359,8 @@ export function Marketplace() {
           </p>
         </div>
 
-        <div className="bg-card rounded-lg border border-border shadow-sm p-4 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="bg-card rounded-lg border border-border shadow-sm p-3 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
             <div className="lg:col-span-2 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -368,12 +368,12 @@ export function Marketplace() {
                 placeholder={t('marketplace.searchPlaceholder', 'Search items...')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
+                className="pl-10 h-9"
               />
             </div>
 
             <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger>
+              <SelectTrigger size="sm">
                 <SelectValue placeholder={t('marketplace.allCategories', 'All Categories')} />
               </SelectTrigger>
               <SelectContent>
@@ -387,7 +387,7 @@ export function Marketplace() {
             </Select>
 
             <Select value={selectedType} onValueChange={setSelectedType}>
-              <SelectTrigger>
+              <SelectTrigger size="sm">
                 <SelectValue placeholder={t('marketplace.allTypes', 'All Types')} />
               </SelectTrigger>
               <SelectContent>
@@ -398,7 +398,7 @@ export function Marketplace() {
             </Select>
 
             <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger>
+              <SelectTrigger size="sm">
                 <SelectValue placeholder={t('marketplace.sortBy', 'Sort by')} />
               </SelectTrigger>
               <SelectContent>
@@ -409,7 +409,7 @@ export function Marketplace() {
             </Select>
           </div>
 
-          <div className="flex flex-wrap gap-2 mt-4">
+          <div className="flex flex-wrap gap-2 mt-3">
             {searchQuery && (
               <Badge variant="secondary" className="cursor-pointer" onClick={() => setSearchQuery('')}>
                 {t('marketplace.searchLabel', 'Search')}: {searchQuery} x
@@ -534,3 +534,4 @@ export function Marketplace() {
     </div>
   );
 }
+
