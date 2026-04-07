@@ -7,7 +7,7 @@
  * );
  */
 
-import pg from "../node_modules/pg/esm/index.mjs";
+import pg from "npm:pg";
 
 const { Pool } = pg;
 
