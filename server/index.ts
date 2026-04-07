@@ -545,6 +545,164 @@ const DEFAULT_ADMIN_CATEGORIES = [
   "Shelves & Storage",
 ];
 
+const DEFAULT_DEMO_SELLERS = [
+  {
+    id: "USR-DEMO-001",
+    name: "Amina Ngoma",
+    email: "amina.ngoma@student.ub.cm",
+    phone: "+237670123456",
+    university: "University of Buea",
+    studentId: "UB2024001",
+    rating: 4.8,
+    reviewCount: 12,
+    isVerified: true,
+    isApproved: true,
+    role: "student",
+    userType: "seller",
+    profilePicture: "",
+    avatar: "",
+    isBanned: false,
+    createdAt: "2026-01-10T09:00:00.000Z",
+  },
+  {
+    id: "USR-DEMO-002",
+    name: "Jean-Paul Fotso",
+    email: "jeanpaul.fotso@student.uy1.cm",
+    phone: "+237655234567",
+    university: "University of Yaounde I",
+    studentId: "UY1-2023-456",
+    rating: 4.6,
+    reviewCount: 8,
+    isVerified: true,
+    isApproved: true,
+    role: "student",
+    userType: "seller",
+    profilePicture: "",
+    avatar: "",
+    isBanned: false,
+    createdAt: "2026-01-12T09:00:00.000Z",
+  },
+  {
+    id: "USR-DEMO-003",
+    name: "Grace Mbah",
+    email: "grace.mbah@student.uds.cm",
+    phone: "+237678345678",
+    university: "University of Dschang",
+    studentId: "UDS-2022-991",
+    rating: 4.9,
+    reviewCount: 15,
+    isVerified: true,
+    isApproved: true,
+    role: "student",
+    userType: "seller",
+    profilePicture: "",
+    avatar: "",
+    isBanned: false,
+    createdAt: "2026-01-14T09:00:00.000Z",
+  },
+];
+
+const DEFAULT_DEMO_LISTINGS = [
+  {
+    id: "LST-DEMO-001",
+    title: "Comfortable Single Bed with Mattress",
+    description:
+      "Good quality single bed frame with a fairly used mattress. Perfect for student accommodation. Used for 1 year only.",
+    category: "1",
+    price: 45000,
+    type: "sell",
+    images: ["https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=800"],
+    sellerId: "USR-DEMO-001",
+    location: "Molyko, Buea",
+    condition: "good",
+    status: "available",
+    views: 124,
+    likesCount: 3,
+    createdAt: "2026-01-15T10:00:00.000Z",
+  },
+  {
+    id: "LST-DEMO-002",
+    title: "Study Desk and Chair Set",
+    description: "Wooden study desk with a comfortable chair. Great for studying. Selling because I'm graduating.",
+    category: "5",
+    price: 35000,
+    type: "sell",
+    images: ["https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?w=800"],
+    sellerId: "USR-DEMO-002",
+    location: "Ngoa-Ekelle, Yaounde",
+    condition: "like-new",
+    status: "available",
+    views: 89,
+    likesCount: 2,
+    createdAt: "2026-01-20T14:30:00.000Z",
+  },
+  {
+    id: "LST-DEMO-003",
+    title: "Mini Fridge - 120L",
+    description: "Small fridge perfect for keeping drinks and snacks cold. Available for rent per month.",
+    category: "4",
+    price: 15000,
+    type: "rent",
+    rentalPeriod: "monthly",
+    images: ["https://images.unsplash.com/photo-1571175443880-49e1d25b2bc5?w=800"],
+    sellerId: "USR-DEMO-003",
+    location: "Dschang Campus",
+    condition: "good",
+    status: "available",
+    views: 156,
+    likesCount: 4,
+    createdAt: "2026-01-25T09:15:00.000Z",
+  },
+  {
+    id: "LST-DEMO-004",
+    title: "Complete Kitchen Utensil Set",
+    description: "Pots, pans, plates, cups, spoons, and more. Everything a student needs for cooking.",
+    category: "3",
+    price: 18000,
+    type: "sell",
+    images: ["https://images.unsplash.com/photo-1556911220-bff31c812dba?w=800"],
+    sellerId: "USR-DEMO-001",
+    location: "Molyko, Buea",
+    condition: "good",
+    status: "available",
+    views: 67,
+    likesCount: 1,
+    createdAt: "2026-01-28T11:00:00.000Z",
+  },
+  {
+    id: "LST-DEMO-005",
+    title: "Standing Fan",
+    description: "Powerful standing fan. Essential for hot weather in Cameroon. Works perfectly.",
+    category: "4",
+    price: 12000,
+    type: "sell",
+    images: ["https://images.unsplash.com/photo-1632207691143-643e2f17ac0e?w=800"],
+    sellerId: "USR-DEMO-002",
+    location: "Cite Verte, Yaounde",
+    condition: "good",
+    status: "available",
+    views: 92,
+    likesCount: 5,
+    createdAt: "2026-01-30T16:45:00.000Z",
+  },
+  {
+    id: "LST-DEMO-006",
+    title: "Plastic Wardrobe",
+    description: "Large plastic wardrobe with shelves. Good for storing clothes. Lightweight and easy to move.",
+    category: "6",
+    price: 25000,
+    type: "sell",
+    images: ["https://images.unsplash.com/photo-1595428774223-ef52624120d2?w=800"],
+    sellerId: "USR-DEMO-003",
+    location: "Dschang Centre",
+    condition: "like-new",
+    status: "available",
+    views: 78,
+    likesCount: 1,
+    createdAt: "2026-02-01T08:30:00.000Z",
+  },
+];
+
 const SUBSCRIPTION_PLAN_PRICING = {
   buyer: {
     monthly: 24,
@@ -817,6 +975,56 @@ async function ensureAdminCategories() {
   await kv.set("admin:categories", seeded);
   return seeded;
 }
+
+async function ensureDemoMarketplaceData() {
+  const existingListings = await kv.getByPrefix("listing:");
+  if (Array.isArray(existingListings) && existingListings.length > 0) {
+    return;
+  }
+
+  const now = new Date().toISOString();
+
+  for (const seller of DEFAULT_DEMO_SELLERS) {
+    const existingProfile = await kv.get(`user:${seller.id}`);
+    if (!existingProfile) {
+      await kv.set(`user:${seller.id}`, seller);
+    }
+
+    const existingWallet = await kv.get(`wallet:${seller.id}`);
+    if (!existingWallet) {
+      await kv.set(`wallet:${seller.id}`, {
+        userId: seller.id,
+        availableBalance: 0,
+        pendingBalance: 0,
+        updatedAt: now,
+      });
+    }
+  }
+
+  for (const listing of DEFAULT_DEMO_LISTINGS) {
+    await kv.set(`listing:${listing.id}`, listing);
+  }
+
+  for (const seller of DEFAULT_DEMO_SELLERS) {
+    const sellerListingIds = DEFAULT_DEMO_LISTINGS
+      .filter((entry) => entry.sellerId === seller.id)
+      .map((entry) => entry.id);
+    const existing = await kv.get(`user:${seller.id}:listings`);
+    const merged = Array.isArray(existing) ? [...existing] : [];
+    for (const listingId of sellerListingIds) {
+      if (!merged.includes(listingId)) {
+        merged.push(listingId);
+      }
+    }
+    await kv.set(`user:${seller.id}:listings`, merged);
+  }
+
+  console.log(`Seeded ${DEFAULT_DEMO_LISTINGS.length} demo listings into database.`);
+}
+
+ensureDemoMarketplaceData().catch((error) => {
+  console.error("Failed to seed demo marketplace data:", error);
+});
 
 const toDayKey = (value: any) => {
   if (!value) return "";
@@ -2271,7 +2479,11 @@ app.post("/make-server-50b25a4f/listings", async (c) => {
 // Get all listings
 app.get("/make-server-50b25a4f/listings", async (c) => {
   try {
-    const listings = await kv.getByPrefix('listing:');
+    let listings = await kv.getByPrefix('listing:');
+    if (!Array.isArray(listings) || listings.length === 0) {
+      await ensureDemoMarketplaceData();
+      listings = await kv.getByPrefix('listing:');
+    }
     const sellerCache = new Map<string, any | null>();
     const enriched: any[] = [];
 
