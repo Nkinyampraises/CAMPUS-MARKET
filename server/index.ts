@@ -5708,6 +5708,7 @@ app.post("/make-server-50b25a4f/upload", async (c) => {
 });
 
 const serverPort = Math.max(1, toSafeNumber(Deno.env.get("PORT"), 8000));
+const isDenoDeployRuntime = Boolean((Deno.env.get("DENO_DEPLOYMENT_ID") || "").trim());
 
 async function isHealthEndpointReachable(port: number) {
   const controller = new AbortController();
@@ -5731,6 +5732,12 @@ async function isHealthEndpointReachable(port: number) {
 }
 
 async function startServer() {
+  if (isDenoDeployRuntime) {
+    console.log("Server running on Deno Deploy runtime");
+    Deno.serve(app.fetch);
+    return;
+  }
+
   console.log(`Server listening on port ${serverPort}`);
   try {
     Deno.serve({ port: serverPort }, app.fetch);
