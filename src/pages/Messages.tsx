@@ -8,7 +8,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/app/components/ui/avatar'
 import { Badge } from '@/app/components/ui/badge';
 import { Separator } from '@/app/components/ui/separator';
 import { 
+  ArrowDownLeft,
   ArrowLeft, 
+  ArrowUpRight,
   Send, 
   Loader2, 
   Package, 
@@ -164,26 +166,57 @@ const formatCallDuration = (durationSeconds: number) => {
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 };
 
+const formatCallDurationLabel = (durationSeconds: number) => {
+  const safeSeconds = Math.max(1, Math.floor(durationSeconds));
+  if (safeSeconds < 60) {
+    return `${safeSeconds}s`;
+  }
+  const totalMinutes = Math.floor(safeSeconds / 60);
+  const remSeconds = safeSeconds % 60;
+  if (totalMinutes < 60) {
+    if (remSeconds === 0) {
+      return `${totalMinutes} min`;
+    }
+    return `${totalMinutes} min ${remSeconds}s`;
+  }
+  const hours = Math.floor(totalMinutes / 60);
+  const remMinutes = totalMinutes % 60;
+  if (remMinutes === 0) {
+    return `${hours} hr`;
+  }
+  return `${hours} hr ${remMinutes} min`;
+};
+
+const getCallLogStatusText = (payload: CallLogPayload, viewerId?: string) => {
+  const isCaller = Boolean(viewerId && viewerId === payload.callerId);
+  if (payload.outcome === 'no_answer') {
+    return isCaller ? 'No answer' : 'Missed call';
+  }
+  if (payload.outcome === 'declined') {
+    return isCaller ? 'Declined' : 'Call declined';
+  }
+  if (payload.outcome === 'completed') {
+    if (typeof payload.durationSeconds === 'number') {
+      return formatCallDurationLabel(payload.durationSeconds);
+    }
+    return 'Answered';
+  }
+  if (payload.outcome === 'started') {
+    return isCaller ? 'Calling...' : 'Incoming call';
+  }
+  return 'Call';
+};
+
 const getCallLogText = (payload: CallLogPayload, viewerId?: string) => {
   const modeLabel = getCallModeLabel(payload.mode);
   const isCaller = Boolean(viewerId && viewerId === payload.callerId);
+  if (payload.outcome === 'completed' && typeof payload.durationSeconds === 'number') {
+    return `${modeLabel} call • ${formatCallDurationLabel(payload.durationSeconds)}`;
+  }
   if (payload.outcome === 'started') {
     return `${isCaller ? 'Outgoing' : 'Incoming'} ${modeLabel.toLowerCase()} call`;
   }
-  if (payload.outcome === 'no_answer') {
-    return isCaller ? `No answer (${modeLabel.toLowerCase()} call)` : `Missed ${modeLabel.toLowerCase()} call`;
-  }
-  if (payload.outcome === 'declined') {
-    return isCaller ? `${modeLabel} call declined` : `Declined ${modeLabel.toLowerCase()} call`;
-  }
-  if (payload.outcome === 'completed') {
-    const base = `${isCaller ? 'Outgoing' : 'Incoming'} ${modeLabel.toLowerCase()} call`;
-    if (typeof payload.durationSeconds === 'number') {
-      return `${base} • ${formatCallDuration(payload.durationSeconds)}`;
-    }
-    return base;
-  }
-  return `${modeLabel} call`;
+  return `${modeLabel} call • ${getCallLogStatusText(payload, viewerId)}`;
 };
 
 const serializeSessionDescription = (
@@ -2625,34 +2658,45 @@ export function Messages() {
                                 const callLog = parseCallLog(msg.content);
 
                                 if (callLog) {
-                                  const label = getCallLogText(callLog, currentUser?.id) || `${getCallModeLabel(callLog.mode)} call`;
-                                  const toneClass =
-                                    callLog.outcome === 'no_answer'
-                                      ? 'border-red-200 bg-red-50 text-red-800'
-                                      : callLog.outcome === 'declined'
-                                        ? 'border-amber-200 bg-amber-50 text-amber-800'
-                                        : callLog.outcome === 'completed'
-                                          ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                                          : 'border-slate-300 bg-slate-100 text-slate-900';
-                                  const icon =
-                                    callLog.mode === 'video'
-                                      ? <Video className="h-4 w-4" />
-                                      : callLog.outcome === 'no_answer'
-                                        ? <PhoneOff className="h-4 w-4" />
-                                        : <Phone className="h-4 w-4" />;
+                                  const isOutgoingCall = Boolean(currentUser?.id && currentUser.id === callLog.callerId);
+                                  const title = `${getCallModeLabel(callLog.mode)} call`;
+                                  const statusText = getCallLogStatusText(callLog, currentUser?.id);
+                                  const timeText = new Date(msg.timestamp).toLocaleTimeString([], {
+                                    hour: 'numeric',
+                                    minute: '2-digit',
+                                  });
+                                  const bubbleClass = isOutgoingCall
+                                    ? 'bg-[#0A6550] border-emerald-300/20 rounded-tr-none'
+                                    : 'bg-[#1C2636] border-white/10 rounded-tl-none';
                                   return (
-                                    <div key={msg.id} className="flex justify-center">
-                                      <div className={`w-full max-w-[94%] rounded-xl border px-3 py-2 shadow-sm ${toneClass}`}>
-                                        <div className="flex items-center justify-center gap-2 text-sm font-semibold">
-                                          {icon}
-                                          <span>{label}</span>
+                                    <div
+                                      key={msg.id}
+                                      className={`flex items-end ${isOutgoingCall ? 'justify-end' : 'justify-start'}`}
+                                    >
+                                      <div className={`relative max-w-[86%] rounded-2xl border p-3 text-white shadow-md sm:max-w-[78%] md:max-w-[70%] ${bubbleClass}`}>
+                                        <div className="flex items-center gap-3">
+                                          <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/10">
+                                            {callLog.mode === 'video' ? (
+                                              <Video className="h-5 w-5" />
+                                            ) : (
+                                              <Phone className="h-5 w-5" />
+                                            )}
+                                            <span className="absolute -bottom-1 -right-1 rounded-full bg-black/35 p-0.5">
+                                              {isOutgoingCall ? (
+                                                <ArrowUpRight className="h-3 w-3" />
+                                              ) : (
+                                                <ArrowDownLeft className="h-3 w-3" />
+                                              )}
+                                            </span>
+                                          </div>
+                                          <div className="min-w-0 flex-1">
+                                            <p className="text-[clamp(1rem,2.9vw,1.2rem)] font-semibold leading-tight">{title}</p>
+                                            <div className="mt-1 flex items-end justify-between gap-3">
+                                              <p className="text-sm text-white/85">{statusText}</p>
+                                              <p className="shrink-0 text-sm text-white/70">{timeText}</p>
+                                            </div>
+                                          </div>
                                         </div>
-                                        <p className="mt-1 text-center text-[11px] font-medium opacity-80">
-                                          {new Date(msg.timestamp).toLocaleTimeString([], {
-                                            hour: '2-digit',
-                                            minute: '2-digit',
-                                          })}
-                                        </p>
                                       </div>
                                     </div>
                                   );
