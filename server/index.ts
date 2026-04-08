@@ -15,9 +15,23 @@ const app = new Hono();
 
 const frontendUrl = (Deno.env.get('FRONTEND_URL') || Deno.env.get('SITE_URL') || Deno.env.get('PUBLIC_SITE_URL') || '').trim();
 
+const isLocalHostValue = (value: string) => {
+  const normalized = String(value || "").toLowerCase();
+  return (
+    normalized.includes("localhost") ||
+    normalized.includes("127.0.0.1") ||
+    normalized.includes("0.0.0.0")
+  );
+};
+
 const resolveFrontendBase = (req: Request) => {
+  const forwardedHost = (req.headers.get('x-forwarded-host') || req.headers.get('host') || '').trim();
+
   if (frontendUrl) {
-    return frontendUrl.replace(/\/+$/, '');
+    // Protect production emails from localhost links when env is left in local mode.
+    if (!(isLocalHostValue(frontendUrl) && forwardedHost && !isLocalHostValue(forwardedHost))) {
+      return frontendUrl.replace(/\/+$/, '');
+    }
   }
 
   const origin = req.headers.get('origin');
@@ -25,7 +39,6 @@ const resolveFrontendBase = (req: Request) => {
     return origin.replace(/\/+$/, '');
   }
 
-  const forwardedHost = req.headers.get('x-forwarded-host') || req.headers.get('host');
   if (!forwardedHost) {
     return undefined;
   }
