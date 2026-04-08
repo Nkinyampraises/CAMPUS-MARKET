@@ -13,6 +13,7 @@ import {
   Loader2, 
   Package, 
   Mic, 
+  MicOff,
   Square, 
   Play, 
   Pause, 
@@ -24,8 +25,14 @@ import {
   Eye,
   Search,
   MoreVertical,
+  MoreHorizontal,
   Phone,
+  PhoneOff,
   Video,
+  VideoOff,
+  Volume2,
+  VolumeX,
+  RefreshCcw,
   Info,
   ChevronLeft,
   Trash2,
@@ -35,7 +42,12 @@ import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
 const ENABLE_MESSAGES_WEBSOCKET = String(import.meta.env.VITE_ENABLE_MESSAGES_WS || '').toLowerCase() === 'true';
-const CALL_PLATFORM_BASE_URL = String(import.meta.env.VITE_CALL_BASE_URL || 'https://meet.jit.si').replace(/\/+$/, '');
+const WEBRTC_CONFIGURATION: RTCConfiguration = {
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+  ],
+};
 
 interface Message {
   id: string;
@@ -75,26 +87,32 @@ interface Conversation {
 
 type CallMode = 'audio' | 'video';
 
-interface CallInvitePayload {
+type CallSignalType = 'invite' | 'offer' | 'answer' | 'ice' | 'end' | 'decline';
+
+interface CallSignalPayload {
+  signalType: CallSignalType;
+  callId: string;
   mode: CallMode;
-  roomUrl: string;
   callerId: string;
   callerName: string;
   createdAt: string;
+  sdp?: RTCSessionDescriptionInit;
+  candidate?: RTCIceCandidateInit;
 }
 
-const CALL_INVITE_PREFIX = '__CALL_INVITE__::';
+const CALL_SIGNAL_PREFIX = '__CALL_SIGNAL__::';
 
-const buildCallInviteContent = (payload: CallInvitePayload) =>
-  `${CALL_INVITE_PREFIX}${JSON.stringify(payload)}`;
+const buildCallSignalContent = (payload: CallSignalPayload) =>
+  `${CALL_SIGNAL_PREFIX}${JSON.stringify(payload)}`;
 
-const parseCallInvite = (content?: string | null): CallInvitePayload | null => {
-  if (!content || !content.startsWith(CALL_INVITE_PREFIX)) return null;
+const parseCallSignal = (content?: string | null): CallSignalPayload | null => {
+  if (!content || !content.startsWith(CALL_SIGNAL_PREFIX)) return null;
   try {
-    const parsed = JSON.parse(content.slice(CALL_INVITE_PREFIX.length));
+    const parsed = JSON.parse(content.slice(CALL_SIGNAL_PREFIX.length));
     if (!parsed || typeof parsed !== 'object') return null;
-    if (!parsed.roomUrl || (parsed.mode !== 'audio' && parsed.mode !== 'video')) return null;
-    return parsed as CallInvitePayload;
+    if (!parsed.callId || (parsed.mode !== 'audio' && parsed.mode !== 'video')) return null;
+    if (!parsed.signalType) return null;
+    return parsed as CallSignalPayload;
   } catch {
     return null;
   }
@@ -122,18 +140,26 @@ export function Messages() {
   const [editContent, setEditContent] = useState('');
   const [incomingCall, setIncomingCall] = useState<{
     messageId: string;
+    callId: string;
     senderId: string;
     senderName: string;
     mode: CallMode;
-    roomUrl: string;
     itemId?: string;
   } | null>(null);
   const [activeCall, setActiveCall] = useState<{
-    roomUrl: string;
+    callId: string;
+    peerId: string;
+    peerName: string;
     mode: CallMode;
-    participantName: string;
-    embedUrl: string;
+    itemId?: string;
+    status: 'calling' | 'ringing' | 'connecting' | 'connected';
+    cameraFacing: 'user' | 'environment';
+    speakerOn: boolean;
+    isMuted: boolean;
+    videoEnabled: boolean;
   } | null>(null);
+  const [localCallStream, setLocalCallStream] = useState<MediaStream | null>(null);
+  const [remoteCallStream, setRemoteCallStream] = useState<MediaStream | null>(null);
   
   // Ref for selectedConversation to avoid dependency cycles in fetchMessages
   const selectedConversationRef = useRef<Conversation | null>(null);
@@ -157,6 +183,15 @@ export function Messages() {
   const hasCompletedInitialSyncRef = useRef(false);
   const knownMessageIdsRef = useRef<Set<string>>(new Set());
   const notifiedMessageIdsRef = useRef<Set<string>>(new Set());
+  const activeCallRef = useRef<typeof activeCall>(null);
+  const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
+  const localStreamRef = useRef<MediaStream | null>(null);
+  const remoteStreamRef = useRef<MediaStream | null>(null);
+  const localVideoRef = useRef<HTMLVideoElement | null>(null);
+  const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
+  const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
+  const queuedSignalsRef = useRef<Map<string, CallSignalPayload[]>>(new Map());
+  const queuedIceRef = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
   // Cache for user and item data to prevent re-fetching on every poll
   const userCache = useRef<Map<string, any>>(new Map());
   const itemCache = useRef<Map<string, any>>(new Map());
@@ -181,6 +216,27 @@ export function Messages() {
       Notification.requestPermission().catch(() => {});
     }
   }, []);
+
+  useEffect(() => {
+    activeCallRef.current = activeCall;
+  }, [activeCall]);
+
+  useEffect(() => {
+    localStreamRef.current = localCallStream;
+    if (localVideoRef.current) {
+      localVideoRef.current.srcObject = localCallStream;
+    }
+  }, [localCallStream]);
+
+  useEffect(() => {
+    remoteStreamRef.current = remoteCallStream;
+    if (remoteVideoRef.current) {
+      remoteVideoRef.current.srcObject = remoteCallStream;
+    }
+    if (remoteAudioRef.current) {
+      remoteAudioRef.current.srcObject = remoteCallStream;
+    }
+  }, [remoteCallStream]);
 
   // Calculate total unread messages
   const totalUnread = useMemo(() => 
@@ -277,48 +333,330 @@ export function Messages() {
 
   const getMessagePreviewText = useCallback((message: Message) => {
     if (message.isDeleted) return 'This message was deleted';
-    const callInvite = parseCallInvite(message.content);
-    if (callInvite) {
-      return callInvite.mode === 'video' ? 'Video call invite' : 'Audio call invite';
+    const callSignal = parseCallSignal(message.content);
+    if (callSignal?.signalType === 'invite') {
+      return callSignal.mode === 'video' ? 'Video call invite' : 'Audio call invite';
     }
     if (message.messageType === 'voice') return 'Voice message';
     if (message.messageType === 'image') return 'Image';
     return message.content || 'New message';
   }, []);
 
+  const markMessageAsReadSilently = useCallback(async (messageId: string) => {
+    if (!accessToken) return;
+    try {
+      await fetch(`${API_URL}/messages/${messageId}/read`, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+    } catch (_error) {
+      // noop
+    }
+  }, [accessToken]);
+
+  const stopStreamTracks = (stream: MediaStream | null) => {
+    if (!stream) return;
+    stream.getTracks().forEach((track) => track.stop());
+  };
+
+  const clearCallResources = useCallback((callId?: string) => {
+    if (peerConnectionRef.current) {
+      peerConnectionRef.current.onicecandidate = null;
+      peerConnectionRef.current.ontrack = null;
+      peerConnectionRef.current.onconnectionstatechange = null;
+      peerConnectionRef.current.close();
+      peerConnectionRef.current = null;
+    }
+
+    stopStreamTracks(localStreamRef.current);
+    stopStreamTracks(remoteStreamRef.current);
+
+    localStreamRef.current = null;
+    remoteStreamRef.current = null;
+    setLocalCallStream(null);
+    setRemoteCallStream(null);
+    setActiveCall(null);
+    setIncomingCall(null);
+
+    if (callId) {
+      queuedSignalsRef.current.delete(callId);
+      queuedIceRef.current.delete(callId);
+    } else {
+      queuedSignalsRef.current.clear();
+      queuedIceRef.current.clear();
+    }
+  }, []);
+
+  const sendCallSignalMessage = useCallback(async (
+    receiverId: string,
+    payload: CallSignalPayload,
+    itemId?: string,
+  ) => {
+    if (!accessToken) return false;
+
+    try {
+      const response = await fetch(`${API_URL}/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          receiverId,
+          itemId,
+          content: buildCallSignalContent(payload),
+          messageType: 'text',
+        }),
+      });
+      return response.ok;
+    } catch (_error) {
+      return false;
+    }
+  }, [accessToken]);
+
+  const buildSignalBase = useCallback((signalType: CallSignalType, callId: string, mode: CallMode) => ({
+    signalType,
+    callId,
+    mode,
+    callerId: currentUser?.id || '',
+    callerName: currentUser?.name || 'UNITRADE User',
+    createdAt: new Date().toISOString(),
+  }), [currentUser?.id, currentUser?.name]);
+
+  const flushQueuedIceCandidates = useCallback(async (callId: string, peerConnection: RTCPeerConnection) => {
+    const pending = queuedIceRef.current.get(callId) || [];
+    if (!pending.length) return;
+    queuedIceRef.current.delete(callId);
+
+    for (const candidate of pending) {
+      try {
+        await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+      } catch (error) {
+        console.error('Queued ICE candidate error:', error);
+      }
+    }
+  }, []);
+
+  const ensurePeerConnection = useCallback((
+    callId: string,
+    peerId: string,
+    mode: CallMode,
+    itemId?: string,
+  ) => {
+    if (peerConnectionRef.current) {
+      return peerConnectionRef.current;
+    }
+
+    const peerConnection = new RTCPeerConnection(WEBRTC_CONFIGURATION);
+    peerConnectionRef.current = peerConnection;
+
+    peerConnection.onicecandidate = (event) => {
+      if (!event.candidate) return;
+      const active = activeCallRef.current;
+      if (!active) return;
+
+      void sendCallSignalMessage(
+        peerId,
+        {
+          ...buildSignalBase('ice', callId, mode),
+          candidate: event.candidate.toJSON(),
+        },
+        itemId,
+      );
+    };
+
+    peerConnection.ontrack = (event) => {
+      const [stream] = event.streams;
+      if (stream) {
+        setRemoteCallStream(stream);
+        setActiveCall((prev) => (prev ? { ...prev, status: 'connected' } : prev));
+      }
+    };
+
+    peerConnection.onconnectionstatechange = () => {
+      const state = peerConnection.connectionState;
+      if (state === 'connected') {
+        setActiveCall((prev) => (prev ? { ...prev, status: 'connected' } : prev));
+        return;
+      }
+
+      if (state === 'failed' || state === 'closed') {
+        const active = activeCallRef.current;
+        if (active) {
+          clearCallResources(active.callId);
+          toast.error('Call ended');
+        }
+      }
+    };
+
+    return peerConnection;
+  }, [buildSignalBase, clearCallResources, sendCallSignalMessage]);
+
+  const getCallMediaStream = useCallback(async (
+    mode: CallMode,
+    facingMode: 'user' | 'environment' = 'user',
+  ) => {
+    return await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+      },
+      video: mode === 'video' ? { facingMode } : false,
+    });
+  }, []);
+
+  const applySignalingPayload = useCallback(async (
+    signal: CallSignalPayload,
+    senderId: string,
+    itemId?: string,
+  ) => {
+    const active = activeCallRef.current;
+    if (!active || active.callId !== signal.callId) {
+      const queued = queuedSignalsRef.current.get(signal.callId) || [];
+      queued.push(signal);
+      queuedSignalsRef.current.set(signal.callId, queued);
+      return;
+    }
+
+    const peerConnection = peerConnectionRef.current;
+    if (!peerConnection) {
+      const queued = queuedSignalsRef.current.get(signal.callId) || [];
+      queued.push(signal);
+      queuedSignalsRef.current.set(signal.callId, queued);
+      return;
+    }
+
+    if (signal.signalType === 'offer' && signal.sdp) {
+      await peerConnection.setRemoteDescription(new RTCSessionDescription(signal.sdp));
+      await flushQueuedIceCandidates(signal.callId, peerConnection);
+      const answer = await peerConnection.createAnswer();
+      await peerConnection.setLocalDescription(answer);
+      await sendCallSignalMessage(
+        senderId,
+        {
+          ...buildSignalBase('answer', signal.callId, active.mode),
+          sdp: answer.toJSON(),
+        },
+        itemId,
+      );
+      setActiveCall((prev) => (prev ? { ...prev, status: 'connecting' } : prev));
+      return;
+    }
+
+    if (signal.signalType === 'answer' && signal.sdp) {
+      await peerConnection.setRemoteDescription(new RTCSessionDescription(signal.sdp));
+      await flushQueuedIceCandidates(signal.callId, peerConnection);
+      setActiveCall((prev) => (prev ? { ...prev, status: 'connecting' } : prev));
+      return;
+    }
+
+    if (signal.signalType === 'ice' && signal.candidate) {
+      if (!peerConnection.remoteDescription) {
+        const pending = queuedIceRef.current.get(signal.callId) || [];
+        pending.push(signal.candidate);
+        queuedIceRef.current.set(signal.callId, pending);
+        return;
+      }
+
+      try {
+        await peerConnection.addIceCandidate(new RTCIceCandidate(signal.candidate));
+      } catch (error) {
+        console.error('Add ICE candidate error:', error);
+      }
+    }
+  }, [buildSignalBase, flushQueuedIceCandidates, sendCallSignalMessage]);
+
+  const handleCallSignalMessage = useCallback((message: Message, signal: CallSignalPayload) => {
+    if (!currentUser || message.senderId === currentUser.id) return;
+
+    if (message.receiverId === currentUser.id && !message.read) {
+      void markMessageAsReadSilently(message.id);
+    }
+
+    if (signal.signalType === 'invite') {
+      if (activeCallRef.current && activeCallRef.current.callId !== signal.callId) {
+        void sendCallSignalMessage(
+          message.senderId,
+          {
+            ...buildSignalBase('decline', signal.callId, signal.mode),
+          },
+          message.itemId,
+        );
+        return;
+      }
+
+      setIncomingCall({
+        messageId: message.id,
+        callId: signal.callId,
+        senderId: message.senderId,
+        senderName: signal.callerName || userCache.current.get(message.senderId)?.name || 'Incoming call',
+        mode: signal.mode,
+        itemId: message.itemId,
+      });
+
+      toast.info(`${signal.callerName || 'Someone'} is calling`, {
+        description: `${signal.mode === 'video' ? 'Video' : 'Audio'} call incoming`,
+      });
+      showBrowserNotification(
+        'Incoming call',
+        `${signal.callerName || 'Someone'} is ${signal.mode} calling`,
+      );
+      return;
+    }
+
+    if (signal.signalType === 'decline') {
+      const active = activeCallRef.current;
+      if (active?.callId === signal.callId) {
+        clearCallResources(signal.callId);
+        toast.info(`${active.peerName} declined the call`);
+      }
+      return;
+    }
+
+    if (signal.signalType === 'end') {
+      const active = activeCallRef.current;
+      if (active?.callId === signal.callId) {
+        clearCallResources(signal.callId);
+        toast.info('Call ended');
+      }
+      if (incomingCall?.callId === signal.callId) {
+        setIncomingCall(null);
+      }
+      return;
+    }
+
+    void applySignalingPayload(signal, message.senderId, message.itemId);
+  }, [
+    applySignalingPayload,
+    buildSignalBase,
+    clearCallResources,
+    currentUser,
+    incomingCall?.callId,
+    markMessageAsReadSilently,
+    sendCallSignalMessage,
+    showBrowserNotification,
+  ]);
+
   const notifyIncomingMessage = useCallback((message: Message) => {
     if (!currentUser || message.senderId === currentUser.id) return;
     if (notifiedMessageIdsRef.current.has(message.id)) return;
     notifiedMessageIdsRef.current.add(message.id);
 
-    const senderName = userCache.current.get(message.senderId)?.name || 'New message';
-    const callInvite = parseCallInvite(message.content);
-
-    if (callInvite) {
-      setIncomingCall({
-        messageId: message.id,
-        senderId: message.senderId,
-        senderName: callInvite.callerName || senderName,
-        mode: callInvite.mode,
-        roomUrl: callInvite.roomUrl,
-        itemId: message.itemId,
-      });
-      toast.info(`${callInvite.callerName || senderName} is calling`, {
-        description: `${callInvite.mode === 'video' ? 'Video' : 'Audio'} call incoming`,
-      });
-      showBrowserNotification(
-        'Incoming call',
-        `${callInvite.callerName || senderName} is ${callInvite.mode} calling`,
-      );
+    const callSignal = parseCallSignal(message.content);
+    if (callSignal) {
+      handleCallSignalMessage(message, callSignal);
       return;
     }
 
+    const senderName = userCache.current.get(message.senderId)?.name || 'New message';
     const preview = getMessagePreviewText(message);
     toast.info(`New message from ${senderName}`, {
       description: preview,
     });
     showBrowserNotification(`New message from ${senderName}`, preview);
-  }, [currentUser, getMessagePreviewText, showBrowserNotification]);
+  }, [currentUser, getMessagePreviewText, handleCallSignalMessage, showBrowserNotification]);
 
   // Helper to mark messages as read
   const markMessagesAsRead = useCallback(async (messages: Message[]) => {
@@ -364,6 +702,7 @@ export function Messages() {
       if (response.ok) {
         const data = await response.json();
         const messages: Message[] = data.messages;
+        const visibleMessages = messages.filter((msg) => !parseCallSignal(msg.content));
 
         if (!hasCompletedInitialSyncRef.current) {
           messages.forEach((message) => knownMessageIdsRef.current.add(message.id));
@@ -385,7 +724,7 @@ export function Messages() {
         const userIdsToFetch = new Set<string>();
         const itemIdsToFetch = new Set<string>();
 
-        messages.forEach(msg => {
+        visibleMessages.forEach(msg => {
           if (currentUser.role === 'admin') {
             if (!userCache.current.has(msg.senderId)) userIdsToFetch.add(msg.senderId);
             if (!userCache.current.has(msg.receiverId)) userIdsToFetch.add(msg.receiverId);
@@ -436,7 +775,7 @@ export function Messages() {
         const conversationMap = new Map<string, Message[]>();
 
         if (currentUser.role === 'admin') {
-          for (const msg of messages) {
+          for (const msg of visibleMessages) {
             const participants = [msg.senderId, msg.receiverId].sort();
             const key = participants.join('::');
             if (!conversationMap.has(key)) {
@@ -445,7 +784,7 @@ export function Messages() {
             conversationMap.get(key)!.push(msg);
           }
         } else {
-          for (const msg of messages) {
+          for (const msg of visibleMessages) {
             const otherUserId = msg.senderId === currentUser.id ? msg.receiverId : msg.senderId;
             const key = otherUserId;
             
@@ -726,10 +1065,30 @@ export function Messages() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [newMessage, recordedAudio, attachment, isRecording]);
 
+  useEffect(() => {
+    return () => {
+      const active = activeCallRef.current;
+      if (active) {
+        void sendCallSignalMessage(
+          active.peerId,
+          {
+            ...buildSignalBase('end', active.callId, active.mode),
+          },
+          active.itemId,
+        );
+      }
+      clearCallResources(active?.callId);
+    };
+  }, [buildSignalBase, clearCallResources, sendCallSignalMessage]);
+
   const handleNewMessage = (message: Message) => {
     if (knownMessageIdsRef.current.has(message.id)) return;
     knownMessageIdsRef.current.add(message.id);
     notifyIncomingMessage(message);
+
+    if (parseCallSignal(message.content)) {
+      return;
+    }
 
     // Update conversations with new message
     setConversations(prev => {
@@ -1356,161 +1715,248 @@ export function Messages() {
     }
   };
 
-  const callRoomName = useMemo(() => {
-    if (!selectedConversation || !currentUser?.id) return '';
-    const participants = [currentUser.id, selectedConversation.otherUser.id].sort().join('-');
-    const itemPart = selectedConversation.item?.id ? `-${selectedConversation.item.id}` : '';
-    return `unitrade-${participants}${itemPart}`.replace(/[^a-zA-Z0-9-]/g, '').toLowerCase();
-  }, [selectedConversation, currentUser?.id]);
+  const startCall = async (mode: CallMode) => {
+    if (!selectedConversation || !currentUser || !accessToken) return;
+    if (activeCallRef.current) {
+      toast.error('Finish your current call first');
+      return;
+    }
 
-  const callRoomUrl = useMemo(() => {
-    if (!callRoomName) return '';
-    return `${CALL_PLATFORM_BASE_URL}/${callRoomName}`;
-  }, [callRoomName]);
+    const peerId = selectedConversation.otherUser.id;
+    const peerName = selectedConversation.otherUser.name || 'Participant';
+    const itemId = selectedConversation.item?.id;
+    const callId = `call-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
-  const openInAppCallRoom = (roomUrl: string, mode: CallMode, participantName: string) => {
-    if (!currentUser || !roomUrl) return;
-
-    const displayName = encodeURIComponent(currentUser.name || 'UNITRADE User');
-    const audioOnly = mode === 'audio';
-    const callUrl = `${roomUrl}#config.startWithVideoMuted=${audioOnly ? 'true' : 'false'}&config.startAudioOnly=${audioOnly ? 'true' : 'false'}&config.prejoinPageEnabled=false&userInfo.displayName=%22${displayName}%22`;
-    setActiveCall({
-      roomUrl,
-      mode,
-      participantName,
-      embedUrl: callUrl,
-    });
-  };
-
-  const sendCallInvite = async (mode: CallMode) => {
-    if (!selectedConversation || !currentUser || !accessToken || !callRoomUrl) return false;
-
-    const tempMessageId = `temp-call-${Date.now()}`;
-    const callInviteContent = buildCallInviteContent({
-      mode,
-      roomUrl: callRoomUrl,
-      callerId: currentUser.id,
-      callerName: currentUser.name || 'UNITRADE User',
-      createdAt: new Date().toISOString(),
-    });
-
-    const optimisticMessage: Message = {
-      id: tempMessageId,
-      senderId: currentUser.id,
-      receiverId: selectedConversation.otherUser.id,
-      itemId: selectedConversation.item?.id,
-      content: callInviteContent,
-      messageType: 'text',
-      timestamp: new Date().toISOString(),
-      read: false,
-      status: 'sending',
-    };
-
-    setSelectedConversation((prev) => (prev ? { ...prev, messages: [...prev.messages, optimisticMessage] } : null));
     setPlacingCall(true);
-
     try {
-      const response = await fetch(`${API_URL}/messages`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({
-          receiverId: selectedConversation.otherUser.id,
-          itemId: selectedConversation.item?.id,
-          content: callInviteContent,
-          messageType: 'text',
-        }),
+      const stream = await getCallMediaStream(mode, 'user');
+      setLocalCallStream(stream);
+
+      const peerConnection = ensurePeerConnection(callId, peerId, mode, itemId);
+      stream.getTracks().forEach((track) => peerConnection.addTrack(track, stream));
+
+      setActiveCall({
+        callId,
+        peerId,
+        peerName,
+        mode,
+        itemId,
+        status: 'calling',
+        cameraFacing: 'user',
+        speakerOn: true,
+        isMuted: false,
+        videoEnabled: mode === 'video',
       });
 
-      if (!response.ok) {
-        setSelectedConversation((prev) =>
-          prev
-            ? {
-                ...prev,
-                messages: prev.messages.map((msg) =>
-                  msg.id === tempMessageId ? { ...msg, status: 'failed' } : msg,
-                ),
-              }
-            : null,
-        );
-        const text = await response.text();
-        toast.error(text || 'Failed to send call invite');
-        return false;
-      }
-
-      const data = await response.json();
-      const sentMessage = data.message;
-
-      setSelectedConversation((prev) =>
-        prev
-          ? {
-              ...prev,
-              messages: prev.messages.map((msg) =>
-                msg.id === tempMessageId ? { ...sentMessage, status: 'sent' } : msg,
-              ),
-            }
-          : null,
+      const inviteSent = await sendCallSignalMessage(
+        peerId,
+        {
+          ...buildSignalBase('invite', callId, mode),
+        },
+        itemId,
       );
 
-      setConversations((prev) => {
-        const updated = prev.map((convo) =>
-          convo.otherUser.id === selectedConversation.otherUser.id
-            ? {
-                ...convo,
-                messages: [...convo.messages, sentMessage],
-                lastMessageTime: sentMessage.timestamp,
-              }
-            : convo,
-        );
-        updated.sort((a, b) => new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime());
-        return updated;
-      });
-
-      if (wsRef.current?.readyState === WebSocket.OPEN) {
-        wsRef.current.send(JSON.stringify({
-          type: 'new_message',
-          message: { ...sentMessage, status: 'sent' },
-        }));
+      if (!inviteSent) {
+        throw new Error('Failed to send call invite');
       }
 
-      toast.success(`${mode === 'audio' ? 'Audio' : 'Video'} call invite sent`);
-      return true;
+      const offer = await peerConnection.createOffer();
+      await peerConnection.setLocalDescription(offer);
+      await sendCallSignalMessage(
+        peerId,
+        {
+          ...buildSignalBase('offer', callId, mode),
+          sdp: offer.toJSON(),
+        },
+        itemId,
+      );
+
+      setActiveCall((prev) => (prev ? { ...prev, status: 'ringing' } : prev));
+      toast.success(`${mode === 'video' ? 'Video' : 'Audio'} calling...`);
     } catch (error) {
-      console.error('Send call invite error:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to send call invite');
-      return false;
+      console.error('Start call error:', error);
+      clearCallResources(callId);
+      toast.error(error instanceof Error ? error.message : 'Unable to start call');
     } finally {
       setPlacingCall(false);
     }
   };
 
-  const openCallRoom = async (mode: CallMode) => {
-    if (!selectedConversation || !currentUser || !callRoomUrl) return;
-    const sent = await sendCallInvite(mode);
-    if (!sent) return;
-    openInAppCallRoom(callRoomUrl, mode, selectedConversation.otherUser.name || 'Participant');
-    toast.success(`${mode === 'audio' ? 'Audio' : 'Video'} call opened in app`);
-  };
+  const endActiveCall = useCallback(async (notifyPeer = true) => {
+    const active = activeCallRef.current;
+    if (!active) return;
+
+    if (notifyPeer) {
+      await sendCallSignalMessage(
+        active.peerId,
+        {
+          ...buildSignalBase('end', active.callId, active.mode),
+        },
+        active.itemId,
+      );
+    }
+
+    clearCallResources(active.callId);
+    toast.info('Call ended');
+  }, [buildSignalBase, clearCallResources, sendCallSignalMessage]);
 
   const acceptIncomingCall = async () => {
-    if (!incomingCall) return;
+    if (!incomingCall || !currentUser) return;
 
-    const existingConversation = conversations.find((conversation) => conversation.otherUser.id === incomingCall.senderId);
+    const existingConversation = conversations.find(
+      (conversation) => conversation.otherUser.id === incomingCall.senderId,
+    );
     if (existingConversation) {
       handleSelectConversation(existingConversation);
     } else if (incomingCall.itemId) {
       await handleStartNewConversation(incomingCall.senderId, incomingCall.itemId);
     }
 
-    openInAppCallRoom(incomingCall.roomUrl, incomingCall.mode, incomingCall.senderName || 'Participant');
-    setIncomingCall(null);
+    setPlacingCall(true);
+    try {
+      const stream = await getCallMediaStream(incomingCall.mode, 'user');
+      setLocalCallStream(stream);
+
+      const peerConnection = ensurePeerConnection(
+        incomingCall.callId,
+        incomingCall.senderId,
+        incomingCall.mode,
+        incomingCall.itemId,
+      );
+      stream.getTracks().forEach((track) => peerConnection.addTrack(track, stream));
+
+      setActiveCall({
+        callId: incomingCall.callId,
+        peerId: incomingCall.senderId,
+        peerName: incomingCall.senderName || 'Participant',
+        mode: incomingCall.mode,
+        itemId: incomingCall.itemId,
+        status: 'connecting',
+        cameraFacing: 'user',
+        speakerOn: true,
+        isMuted: false,
+        videoEnabled: incomingCall.mode === 'video',
+      });
+
+      const queuedSignals = queuedSignalsRef.current.get(incomingCall.callId) || [];
+      queuedSignalsRef.current.delete(incomingCall.callId);
+      for (const signal of queuedSignals) {
+        await applySignalingPayload(signal, incomingCall.senderId, incomingCall.itemId);
+      }
+
+      setIncomingCall(null);
+    } catch (error) {
+      console.error('Accept call error:', error);
+      clearCallResources(incomingCall.callId);
+      toast.error('Unable to join this call');
+    } finally {
+      setPlacingCall(false);
+    }
   };
 
-  const declineIncomingCall = () => {
+  const declineIncomingCall = async () => {
+    if (!incomingCall) return;
+
+    await sendCallSignalMessage(
+      incomingCall.senderId,
+      {
+        ...buildSignalBase('decline', incomingCall.callId, incomingCall.mode),
+      },
+      incomingCall.itemId,
+    );
+
+    queuedSignalsRef.current.delete(incomingCall.callId);
+    queuedIceRef.current.delete(incomingCall.callId);
     setIncomingCall(null);
     toast.info('Call declined');
+  };
+
+  const toggleMute = () => {
+    setActiveCall((prev) => {
+      if (!prev) return prev;
+      const nextMuted = !prev.isMuted;
+      localStreamRef.current?.getAudioTracks().forEach((track) => {
+        track.enabled = !nextMuted;
+      });
+      return {
+        ...prev,
+        isMuted: nextMuted,
+      };
+    });
+  };
+
+  const toggleVideoTrack = () => {
+    setActiveCall((prev) => {
+      if (!prev || prev.mode !== 'video') return prev;
+      const nextVideoEnabled = !prev.videoEnabled;
+      localStreamRef.current?.getVideoTracks().forEach((track) => {
+        track.enabled = nextVideoEnabled;
+      });
+      return {
+        ...prev,
+        videoEnabled: nextVideoEnabled,
+      };
+    });
+  };
+
+  const switchCamera = async () => {
+    const active = activeCallRef.current;
+    if (!active || active.mode !== 'video') return;
+
+    const nextFacing: 'user' | 'environment' = active.cameraFacing === 'user' ? 'environment' : 'user';
+
+    try {
+      const replacement = await getCallMediaStream('video', nextFacing);
+      const replacementVideoTrack = replacement.getVideoTracks()[0];
+      if (!replacementVideoTrack) {
+        throw new Error('Video track not available');
+      }
+
+      const peerConnection = peerConnectionRef.current;
+      const videoSender = peerConnection?.getSenders().find((sender) => sender.track?.kind === 'video');
+      if (videoSender) {
+        await videoSender.replaceTrack(replacementVideoTrack);
+      }
+
+      const currentStream = localStreamRef.current;
+      if (currentStream) {
+        currentStream.getVideoTracks().forEach((track) => {
+          currentStream.removeTrack(track);
+          track.stop();
+        });
+        currentStream.addTrack(replacementVideoTrack);
+        setLocalCallStream(new MediaStream(currentStream.getTracks()));
+      } else {
+        setLocalCallStream(new MediaStream([replacementVideoTrack]));
+      }
+
+      replacement.getAudioTracks().forEach((track) => track.stop());
+      setActiveCall((prev) => (prev ? { ...prev, cameraFacing: nextFacing } : prev));
+    } catch (error) {
+      console.error('Switch camera error:', error);
+      toast.error('Unable to switch camera');
+    }
+  };
+
+  const toggleSpeaker = async () => {
+    const active = activeCallRef.current;
+    if (!active) return;
+    const nextSpeakerOn = !active.speakerOn;
+
+    const remoteAudio = remoteAudioRef.current;
+    if (remoteAudio) {
+      remoteAudio.volume = nextSpeakerOn ? 1 : 0.55;
+      const candidateAudio = remoteAudio as HTMLAudioElement & { setSinkId?: (value: string) => Promise<void> };
+      if (typeof candidateAudio.setSinkId === 'function') {
+        try {
+          await candidateAudio.setSinkId('default');
+        } catch (_error) {
+          // ignore: output routing depends on device/browser support
+        }
+      }
+    }
+
+    setActiveCall((prev) => (prev ? { ...prev, speakerOn: nextSpeakerOn } : prev));
   };
 
   return (
@@ -1758,8 +2204,8 @@ export function Messages() {
                               <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                                 Calls
                               </p>
-                              <p className="text-xs text-muted-foreground break-all">
-                                {callRoomUrl}
+                              <p className="text-xs text-muted-foreground">
+                                Audio and video calls stay inside UNITRADE.
                               </p>
                             </div>
                             <div className="flex w-full gap-2 sm:w-auto">
@@ -1767,8 +2213,8 @@ export function Messages() {
                                 size="sm"
                                 variant="outline"
                                 className="flex-1 sm:flex-none"
-                                onClick={() => openCallRoom('audio')}
-                                disabled={placingCall || currentUser?.role === 'admin' || !callRoomUrl}
+                                onClick={() => startCall('audio')}
+                                disabled={placingCall || currentUser?.role === 'admin' || Boolean(activeCall)}
                               >
                                 <Phone className="mr-1 h-4 w-4" />
                                 {placingCall ? 'Calling...' : 'Audio Call'}
@@ -1776,8 +2222,8 @@ export function Messages() {
                               <Button
                                 size="sm"
                                 className="flex-1 bg-green-600 hover:bg-green-700 sm:flex-none"
-                                onClick={() => openCallRoom('video')}
-                                disabled={placingCall || currentUser?.role === 'admin' || !callRoomUrl}
+                                onClick={() => startCall('video')}
+                                disabled={placingCall || currentUser?.role === 'admin' || Boolean(activeCall)}
                               >
                                 <Video className="mr-1 h-4 w-4" />
                                 {placingCall ? 'Calling...' : 'Video Call'}
@@ -1820,7 +2266,6 @@ export function Messages() {
                                 const isAdmin = currentUser?.role === 'admin';
                                 const isVoice = msg.messageType === 'voice';
                                 const isImage = msg.messageType === 'image';
-                                const callInvite = parseCallInvite(msg.content);
                                 const isDeleted = msg.isDeleted;
                                 const senderProfile = userCache.current.get(msg.senderId);
 
@@ -1906,29 +2351,6 @@ export function Messages() {
                                             </p>
                                           )}
                                         </div>
-                                      ) : callInvite ? (
-                                        <div className="space-y-2">
-                                          <p className="text-sm font-semibold">
-                                            {callInvite.mode === 'video' ? 'Video call invite' : 'Audio call invite'}
-                                          </p>
-                                          <p className={`text-xs ${isMe || (isAdmin && isRightAligned) ? 'text-green-100' : 'text-muted-foreground'}`}>
-                                            {callInvite.callerName || 'Someone'} wants to start a call.
-                                          </p>
-                                          <Button
-                                            size="sm"
-                                            variant={isMe || (isAdmin && isRightAligned) ? 'secondary' : 'outline'}
-                                            onClick={() =>
-                                              openInAppCallRoom(
-                                                callInvite.roomUrl,
-                                                callInvite.mode,
-                                                callInvite.callerName || 'Participant',
-                                              )
-                                            }
-                                          >
-                                            {callInvite.mode === 'video' ? <Video className="mr-1 h-4 w-4" /> : <Phone className="mr-1 h-4 w-4" />}
-                                            Join Call
-                                          </Button>
-                                        </div>
                                       ) : (
                                         <div>
                                           {editingMessageId === msg.id ? (
@@ -1977,7 +2399,7 @@ export function Messages() {
                                     )}
                                     {isMe && !isDeleted && !editingMessageId && currentUser?.role !== 'admin' && msg.status !== 'sending' && (
                                       <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        {msg.messageType === 'text' && !parseCallInvite(msg.content) && (
+                                        {msg.messageType === 'text' && !parseCallSignal(msg.content) && (
                                           <Button 
                                             size="icon" 
                                             variant="ghost" 
@@ -2212,35 +2634,108 @@ export function Messages() {
         )}
 
         {activeCall && (
-          <div className="fixed inset-0 z-[100] bg-black/85 backdrop-blur-sm">
-            <div className="flex h-full flex-col">
-              <div className="flex items-center justify-between border-b border-white/10 bg-black/50 px-3 py-2 text-white sm:px-4">
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold">
-                    {activeCall.mode === 'video' ? 'Video call' : 'Audio call'} with {activeCall.participantName}
-                  </p>
-                  <p className="truncate text-xs text-white/70">{activeCall.roomUrl}</p>
+          <div className="fixed inset-0 z-[100] overflow-hidden bg-black text-white">
+            <audio ref={remoteAudioRef} autoPlay playsInline />
+
+            <div className="absolute inset-0">
+              {activeCall.mode === 'video' ? (
+                remoteCallStream ? (
+                  <video
+                    ref={remoteVideoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+                    <p className="text-sm text-white/80">Waiting for video...</p>
+                  </div>
+                )
+              ) : (
+                <div className="flex h-full w-full flex-col items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(34,197,94,0.18),_transparent_55%),linear-gradient(180deg,_#081322_0%,_#030712_100%)] px-4 text-center">
+                  <Avatar className="mb-6 h-36 w-36 border border-white/20 shadow-2xl">
+                    <AvatarImage src={selectedConversation?.otherUser.avatar} />
+                    <AvatarFallback className="bg-white/10 text-4xl text-white">
+                      {(activeCall.peerName || '?').charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
                 </div>
+              )}
+
+              {activeCall.mode === 'video' && localCallStream && (
+                <video
+                  ref={localVideoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="absolute right-3 top-20 h-40 w-28 rounded-xl border border-white/25 bg-black/60 object-cover shadow-xl sm:right-5 sm:h-48 sm:w-36"
+                />
+              )}
+
+              <div className="pointer-events-none absolute inset-x-0 top-10 text-center">
+                <p className="text-2xl font-semibold drop-shadow">{activeCall.peerName}</p>
+                <p className="mt-1 text-sm text-white/80">
+                  {activeCall.status === 'calling' && 'Calling...'}
+                  {activeCall.status === 'ringing' && 'Ringing...'}
+                  {activeCall.status === 'connecting' && 'Connecting...'}
+                  {activeCall.status === 'connected' && 'Connected'}
+                </p>
+              </div>
+
+              {activeCall.mode === 'video' && (
+                <div className="absolute right-4 top-36 flex flex-col gap-3">
+                  <Button
+                    type="button"
+                    size="icon"
+                    className="h-12 w-12 rounded-full bg-black/45 text-white hover:bg-black/65"
+                    onClick={switchCamera}
+                  >
+                    <RefreshCcw className="h-5 w-5" />
+                  </Button>
+                  <Button
+                    type="button"
+                    size="icon"
+                    className="h-12 w-12 rounded-full bg-black/45 text-white hover:bg-black/65"
+                    onClick={toggleVideoTrack}
+                  >
+                    {activeCall.videoEnabled ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
+                  </Button>
+                </div>
+              )}
+
+              <div className="absolute bottom-8 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-2xl bg-black/55 p-2 shadow-xl backdrop-blur">
                 <Button
                   type="button"
-                  className="bg-red-600 hover:bg-red-700"
-                  onClick={() => {
-                    setActiveCall(null);
-                    toast.info('Call ended');
-                  }}
+                  size="icon"
+                  className="h-12 w-12 rounded-full bg-white/10 text-white hover:bg-white/20"
                 >
-                  <X className="mr-1 h-4 w-4" />
-                  End Call
+                  <MoreHorizontal className="h-5 w-5" />
                 </Button>
-              </div>
-              <div className="min-h-0 flex-1">
-                <iframe
-                  title={`UNITRADE ${activeCall.mode} call`}
-                  src={activeCall.embedUrl}
-                  className="h-full w-full border-0"
-                  allow="camera; microphone; fullscreen; display-capture; clipboard-read; clipboard-write; autoplay"
-                  allowFullScreen
-                />
+                <Button
+                  type="button"
+                  size="icon"
+                  className="h-12 w-12 rounded-full bg-white/10 text-white hover:bg-white/20"
+                  onClick={toggleSpeaker}
+                >
+                  {activeCall.speakerOn ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
+                </Button>
+                <Button
+                  type="button"
+                  size="icon"
+                  className="h-12 w-12 rounded-full bg-white/10 text-white hover:bg-white/20"
+                  onClick={toggleMute}
+                >
+                  {activeCall.isMuted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+                </Button>
+                <Button
+                  type="button"
+                  size="icon"
+                  className="h-12 w-12 rounded-full bg-red-600 text-white hover:bg-red-700"
+                  onClick={() => endActiveCall(true)}
+                >
+                  <PhoneOff className="h-5 w-5" />
+                </Button>
               </div>
             </div>
           </div>

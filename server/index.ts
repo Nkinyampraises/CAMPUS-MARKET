@@ -2463,27 +2463,6 @@ app.post("/make-server-50b25a4f/signin", async (c) => {
       return c.json({ error: 'Your account has been suspended. Contact support.' }, 403);
     }
 
-    if (isTwoFactorEnabled(authRecord)) {
-      try {
-        const twoFactorSession = await createTwoFactorSession(profile.id, profile.email || authRecord.email);
-        return c.json({
-          success: true,
-          requiresTwoFactor: true,
-          twoFactorToken: twoFactorSession.token,
-          message:
-            twoFactorSession.deliveryMethod === "email"
-              ? "We sent a 6-digit verification code to your email."
-              : "Enter the 6-digit verification code to finish signing in.",
-          ...(twoFactorSession.deliveryMethod === "fallback" && twoFactorSession.fallbackCode
-            ? { verificationCode: twoFactorSession.fallbackCode }
-            : {}),
-        });
-      } catch (error) {
-        console.error("Two-factor code delivery error:", error);
-        return c.json({ error: "Unable to send a verification code right now. Please try again." }, 503);
-      }
-    }
-
     const { accessToken, refreshToken } = await createSessionPair(profile.id, profile.email);
 
     return c.json({ 
