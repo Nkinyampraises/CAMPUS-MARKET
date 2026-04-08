@@ -2100,11 +2100,6 @@ export function Messages() {
       setActiveCall((prev) => (prev ? { ...prev, status: 'ringing' } : prev));
       startOutgoingRingtone();
       scheduleNoAnswerTimeout(callId, peerId, mode, itemId);
-      void sendCallLogMessage(
-        peerId,
-        buildCallLogBase(callId, mode, 'started'),
-        itemId,
-      );
       toast.success(`${mode === 'video' ? 'Video' : 'Audio'} calling...`);
     } catch (error) {
       console.error('Start call error:', error);
@@ -2630,23 +2625,34 @@ export function Messages() {
                                 const callLog = parseCallLog(msg.content);
 
                                 if (callLog) {
+                                  const label = getCallLogText(callLog, currentUser?.id) || `${getCallModeLabel(callLog.mode)} call`;
+                                  const toneClass =
+                                    callLog.outcome === 'no_answer'
+                                      ? 'border-red-200 bg-red-50 text-red-800'
+                                      : callLog.outcome === 'declined'
+                                        ? 'border-amber-200 bg-amber-50 text-amber-800'
+                                        : callLog.outcome === 'completed'
+                                          ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                                          : 'border-slate-300 bg-slate-100 text-slate-900';
                                   const icon =
                                     callLog.mode === 'video'
-                                      ? <Video className="h-3.5 w-3.5" />
+                                      ? <Video className="h-4 w-4" />
                                       : callLog.outcome === 'no_answer'
-                                        ? <PhoneOff className="h-3.5 w-3.5" />
-                                        : <Phone className="h-3.5 w-3.5" />;
+                                        ? <PhoneOff className="h-4 w-4" />
+                                        : <Phone className="h-4 w-4" />;
                                   return (
                                     <div key={msg.id} className="flex justify-center">
-                                      <div className="flex max-w-[94%] items-center gap-1.5 rounded-full border border-slate-200 bg-slate-100/95 px-3 py-1.5 text-[11px] text-slate-700 shadow-sm">
-                                        {icon}
-                                        <span>{getCallLogText(callLog, currentUser?.id)}</span>
-                                        <span className="text-slate-500">
+                                      <div className={`w-full max-w-[94%] rounded-xl border px-3 py-2 shadow-sm ${toneClass}`}>
+                                        <div className="flex items-center justify-center gap-2 text-sm font-semibold">
+                                          {icon}
+                                          <span>{label}</span>
+                                        </div>
+                                        <p className="mt-1 text-center text-[11px] font-medium opacity-80">
                                           {new Date(msg.timestamp).toLocaleTimeString([], {
                                             hour: '2-digit',
                                             minute: '2-digit',
                                           })}
-                                        </span>
+                                        </p>
                                       </div>
                                     </div>
                                   );
