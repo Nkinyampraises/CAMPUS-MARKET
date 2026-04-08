@@ -101,9 +101,13 @@ interface CallSignalPayload {
 }
 
 const CALL_SIGNAL_PREFIX = '__CALL_SIGNAL__::';
+const LEGACY_CALL_INVITE_PREFIX = '__CALL_INVITE__::';
 
 const buildCallSignalContent = (payload: CallSignalPayload) =>
   `${CALL_SIGNAL_PREFIX}${JSON.stringify(payload)}`;
+
+const isLegacyCallInviteContent = (content?: string | null) =>
+  typeof content === 'string' && content.startsWith(LEGACY_CALL_INVITE_PREFIX);
 
 const parseCallSignal = (content?: string | null): CallSignalPayload | null => {
   if (!content || !content.startsWith(CALL_SIGNAL_PREFIX)) return null;
@@ -119,7 +123,7 @@ const parseCallSignal = (content?: string | null): CallSignalPayload | null => {
 };
 
 export function Messages() {
-  const { currentUser, isAuthenticated, accessToken } = useAuth();
+  const { currentUser, isAuthenticated, accessToken, refreshAuthToken } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
@@ -337,6 +341,7 @@ export function Messages() {
     if (callSignal?.signalType === 'invite') {
       return callSignal.mode === 'video' ? 'Video call invite' : 'Audio call invite';
     }
+    if (isLegacyCallInviteContent(message.content)) return 'Call invite';
     if (message.messageType === 'voice') return 'Voice message';
     if (message.messageType === 'image') return 'Image';
     return message.content || 'New message';
@@ -393,15 +398,13 @@ export function Messages() {
     receiverId: string,
     payload: CallSignalPayload,
     itemId?: string,
-  ) => {
-    if (!accessToken) return false;
-
-    try {
-      const response = await fetch(`${API_URL}/messages`, {
+  ): Promise<{ success: boolean; error?: string }> => {
+    const postSignal = (token: string) =>
+      fetch(`${API_URL}/messages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           receiverId,
@@ -410,11 +413,47 @@ export function Messages() {
           messageType: 'text',
         }),
       });
-      return response.ok;
-    } catch (_error) {
-      return false;
+
+    let token = accessToken;
+    if (!token) {
+      token = await refreshAuthToken();
     }
-  }, [accessToken]);
+    if (!token) {
+      return { success: false, error: 'Session expired. Please log in again.' };
+    }
+
+    try {
+      let response = await postSignal(token);
+
+      if (response.status === 401) {
+        const refreshedToken = await refreshAuthToken();
+        if (!refreshedToken) {
+          return { success: false, error: 'Session expired. Please log in again.' };
+        }
+        response = await postSignal(refreshedToken);
+      }
+
+      if (!response.ok) {
+        const bodyText = await response.text();
+        try {
+          const bodyJson = JSON.parse(bodyText);
+          return {
+            success: false,
+            error: bodyJson?.error || bodyJson?.message || `Failed to send call signal (${response.status})`,
+          };
+        } catch {
+          return {
+            success: false,
+            error: bodyText || `Failed to send call signal (${response.status})`,
+          };
+        }
+      }
+
+      return { success: true };
+    } catch (_error) {
+      return { success: false, error: 'Network error while sending call signal.' };
+    }
+  }, [accessToken, refreshAuthToken]);
 
   const buildSignalBase = useCallback((signalType: CallSignalType, callId: string, mode: CallMode) => ({
     signalType,
@@ -649,6 +688,9 @@ export function Messages() {
       handleCallSignalMessage(message, callSignal);
       return;
     }
+    if (isLegacyCallInviteContent(message.content)) {
+      return;
+    }
 
     const senderName = userCache.current.get(message.senderId)?.name || 'New message';
     const preview = getMessagePreviewText(message);
@@ -702,7 +744,9 @@ export function Messages() {
       if (response.ok) {
         const data = await response.json();
         const messages: Message[] = data.messages;
-        const visibleMessages = messages.filter((msg) => !parseCallSignal(msg.content));
+        const visibleMessages = messages.filter((msg) =>
+          !parseCallSignal(msg.content) && !isLegacyCallInviteContent(msg.content),
+        );
 
         if (!hasCompletedInitialSyncRef.current) {
           messages.forEach((message) => knownMessageIdsRef.current.add(message.id));
@@ -1086,7 +1130,7 @@ export function Messages() {
     knownMessageIdsRef.current.add(message.id);
     notifyIncomingMessage(message);
 
-    if (parseCallSignal(message.content)) {
+    if (parseCallSignal(message.content) || isLegacyCallInviteContent(message.content)) {
       return;
     }
 
@@ -1756,13 +1800,13 @@ export function Messages() {
         itemId,
       );
 
-      if (!inviteSent) {
-        throw new Error('Failed to send call invite');
+      if (!inviteSent.success) {
+        throw new Error(inviteSent.error || 'Failed to send call invite');
       }
 
       const offer = await peerConnection.createOffer();
       await peerConnection.setLocalDescription(offer);
-      await sendCallSignalMessage(
+      const offerSent = await sendCallSignalMessage(
         peerId,
         {
           ...buildSignalBase('offer', callId, mode),
@@ -1770,6 +1814,9 @@ export function Messages() {
         },
         itemId,
       );
+      if (!offerSent.success) {
+        throw new Error(offerSent.error || 'Failed to send call offer');
+      }
 
       setActiveCall((prev) => (prev ? { ...prev, status: 'ringing' } : prev));
       toast.success(`${mode === 'video' ? 'Video' : 'Audio'} calling...`);
@@ -2200,12 +2247,9 @@ export function Messages() {
 
                         <div className="border-b bg-muted/30 px-3 py-2 sm:px-4">
                           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                            <div className="min-w-0">
+                            <div>
                               <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                                 Calls
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                Audio and video calls stay inside UNITRADE.
                               </p>
                             </div>
                             <div className="flex w-full gap-2 sm:w-auto">
