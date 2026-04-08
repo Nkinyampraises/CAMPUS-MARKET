@@ -88,6 +88,7 @@ interface Conversation {
 type CallMode = 'audio' | 'video';
 
 type CallSignalType = 'invite' | 'offer' | 'answer' | 'ice' | 'end' | 'decline';
+type CallLogOutcome = 'started' | 'no_answer' | 'declined' | 'completed';
 
 interface CallSignalPayload {
   signalType: CallSignalType;
@@ -100,11 +101,26 @@ interface CallSignalPayload {
   candidate?: RTCIceCandidateInit;
 }
 
+interface CallLogPayload {
+  callId: string;
+  mode: CallMode;
+  outcome: CallLogOutcome;
+  callerId: string;
+  callerName: string;
+  createdAt: string;
+  durationSeconds?: number;
+}
+
 const CALL_SIGNAL_PREFIX = '__CALL_SIGNAL__::';
 const LEGACY_CALL_INVITE_PREFIX = '__CALL_INVITE__::';
+const CALL_LOG_PREFIX = '__CALL_LOG__::';
+const CALL_NO_ANSWER_TIMEOUT_MS = 30000;
 
 const buildCallSignalContent = (payload: CallSignalPayload) =>
   `${CALL_SIGNAL_PREFIX}${JSON.stringify(payload)}`;
+
+const buildCallLogContent = (payload: CallLogPayload) =>
+  `${CALL_LOG_PREFIX}${JSON.stringify(payload)}`;
 
 const isLegacyCallInviteContent = (content?: string | null) =>
   typeof content === 'string' && content.startsWith(LEGACY_CALL_INVITE_PREFIX);
@@ -120,6 +136,54 @@ const parseCallSignal = (content?: string | null): CallSignalPayload | null => {
   } catch {
     return null;
   }
+};
+
+const parseCallLog = (content?: string | null): CallLogPayload | null => {
+  if (!content || !content.startsWith(CALL_LOG_PREFIX)) return null;
+  try {
+    const parsed = JSON.parse(content.slice(CALL_LOG_PREFIX.length));
+    if (!parsed || typeof parsed !== 'object') return null;
+    if (!parsed.callId || (parsed.mode !== 'audio' && parsed.mode !== 'video')) return null;
+    if (!parsed.outcome || !parsed.callerId) return null;
+    return parsed as CallLogPayload;
+  } catch {
+    return null;
+  }
+};
+
+const getCallModeLabel = (mode: CallMode) => (mode === 'video' ? 'Video' : 'Audio');
+
+const formatCallDuration = (durationSeconds: number) => {
+  const safeSeconds = Math.max(0, Math.floor(durationSeconds));
+  const hours = Math.floor(safeSeconds / 3600);
+  const minutes = Math.floor((safeSeconds % 3600) / 60);
+  const seconds = safeSeconds % 60;
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  }
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+};
+
+const getCallLogText = (payload: CallLogPayload, viewerId?: string) => {
+  const modeLabel = getCallModeLabel(payload.mode);
+  const isCaller = Boolean(viewerId && viewerId === payload.callerId);
+  if (payload.outcome === 'started') {
+    return `${isCaller ? 'Outgoing' : 'Incoming'} ${modeLabel.toLowerCase()} call`;
+  }
+  if (payload.outcome === 'no_answer') {
+    return isCaller ? `No answer (${modeLabel.toLowerCase()} call)` : `Missed ${modeLabel.toLowerCase()} call`;
+  }
+  if (payload.outcome === 'declined') {
+    return isCaller ? `${modeLabel} call declined` : `Declined ${modeLabel.toLowerCase()} call`;
+  }
+  if (payload.outcome === 'completed') {
+    const base = `${isCaller ? 'Outgoing' : 'Incoming'} ${modeLabel.toLowerCase()} call`;
+    if (typeof payload.durationSeconds === 'number') {
+      return `${base} • ${formatCallDuration(payload.durationSeconds)}`;
+    }
+    return base;
+  }
+  return `${modeLabel} call`;
 };
 
 const serializeSessionDescription = (
@@ -169,6 +233,8 @@ export function Messages() {
     callId: string;
     peerId: string;
     peerName: string;
+    callerId: string;
+    callerName: string;
     mode: CallMode;
     itemId?: string;
     status: 'calling' | 'ringing' | 'connecting' | 'connected';
@@ -176,6 +242,7 @@ export function Messages() {
     speakerOn: boolean;
     isMuted: boolean;
     videoEnabled: boolean;
+    connectedAt: number | null;
   } | null>(null);
   const [localCallStream, setLocalCallStream] = useState<MediaStream | null>(null);
   const [remoteCallStream, setRemoteCallStream] = useState<MediaStream | null>(null);
@@ -211,6 +278,9 @@ export function Messages() {
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
   const queuedSignalsRef = useRef<Map<string, CallSignalPayload[]>>(new Map());
   const queuedIceRef = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
+  const outgoingRingContextRef = useRef<AudioContext | null>(null);
+  const outgoingRingIntervalRef = useRef<number | null>(null);
+  const callTimeoutRef = useRef<number | null>(null);
   // Cache for user and item data to prevent re-fetching on every poll
   const userCache = useRef<Map<string, any>>(new Map());
   const itemCache = useRef<Map<string, any>>(new Map());
@@ -352,6 +422,10 @@ export function Messages() {
 
   const getMessagePreviewText = useCallback((message: Message) => {
     if (message.isDeleted) return 'This message was deleted';
+    const callLog = parseCallLog(message.content);
+    if (callLog) {
+      return getCallLogText(callLog, currentUser?.id);
+    }
     const callSignal = parseCallSignal(message.content);
     if (callSignal?.signalType === 'invite') {
       return callSignal.mode === 'video' ? 'Video call invite' : 'Audio call invite';
@@ -360,7 +434,7 @@ export function Messages() {
     if (message.messageType === 'voice') return 'Voice message';
     if (message.messageType === 'image') return 'Image';
     return message.content || 'New message';
-  }, []);
+  }, [currentUser?.id]);
 
   const markMessageAsReadSilently = useCallback(async (messageId: string) => {
     if (!accessToken) return;
@@ -381,7 +455,74 @@ export function Messages() {
     stream.getTracks().forEach((track) => track.stop());
   };
 
+  const clearCallTimeout = useCallback(() => {
+    if (callTimeoutRef.current !== null) {
+      window.clearTimeout(callTimeoutRef.current);
+      callTimeoutRef.current = null;
+    }
+  }, []);
+
+  const stopOutgoingRingtone = useCallback(() => {
+    if (outgoingRingIntervalRef.current !== null) {
+      window.clearInterval(outgoingRingIntervalRef.current);
+      outgoingRingIntervalRef.current = null;
+    }
+    const context = outgoingRingContextRef.current;
+    if (context && context.state === 'running') {
+      void context.suspend().catch(() => {});
+    }
+  }, []);
+
+  const playOutgoingRingBurst = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    const AudioContextClass =
+      window.AudioContext ||
+      (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextClass) return;
+
+    if (!outgoingRingContextRef.current) {
+      outgoingRingContextRef.current = new AudioContextClass();
+    }
+    const context = outgoingRingContextRef.current;
+    if (!context) return;
+    if (context.state === 'suspended') {
+      void context.resume().catch(() => {});
+    }
+
+    const startAt = context.currentTime;
+    const gain = context.createGain();
+    gain.connect(context.destination);
+    gain.gain.setValueAtTime(0.0001, startAt);
+    gain.gain.exponentialRampToValueAtTime(0.06, startAt + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, startAt + 0.36);
+
+    const oscillatorA = context.createOscillator();
+    oscillatorA.type = 'sine';
+    oscillatorA.frequency.setValueAtTime(440, startAt);
+    oscillatorA.connect(gain);
+    oscillatorA.start(startAt);
+    oscillatorA.stop(startAt + 0.18);
+
+    const oscillatorB = context.createOscillator();
+    oscillatorB.type = 'sine';
+    oscillatorB.frequency.setValueAtTime(520, startAt + 0.2);
+    oscillatorB.connect(gain);
+    oscillatorB.start(startAt + 0.2);
+    oscillatorB.stop(startAt + 0.36);
+  }, []);
+
+  const startOutgoingRingtone = useCallback(() => {
+    if (outgoingRingIntervalRef.current !== null) return;
+    playOutgoingRingBurst();
+    outgoingRingIntervalRef.current = window.setInterval(() => {
+      playOutgoingRingBurst();
+    }, 1500);
+  }, [playOutgoingRingBurst]);
+
   const clearCallResources = useCallback((callId?: string) => {
+    clearCallTimeout();
+    stopOutgoingRingtone();
+
     if (peerConnectionRef.current) {
       peerConnectionRef.current.onicecandidate = null;
       peerConnectionRef.current.ontrack = null;
@@ -407,7 +548,7 @@ export function Messages() {
       queuedSignalsRef.current.clear();
       queuedIceRef.current.clear();
     }
-  }, []);
+  }, [clearCallTimeout, stopOutgoingRingtone]);
 
   const sendCallSignalMessage = useCallback(async (
     receiverId: string,
@@ -470,6 +611,67 @@ export function Messages() {
     }
   }, [accessToken, refreshAuthToken]);
 
+  const sendCallLogMessage = useCallback(async (
+    receiverId: string,
+    payload: CallLogPayload,
+    itemId?: string,
+  ): Promise<{ success: boolean; error?: string }> => {
+    const postLog = (token: string) =>
+      fetch(`${API_URL}/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          receiverId,
+          itemId,
+          content: buildCallLogContent(payload),
+          messageType: 'text',
+        }),
+      });
+
+    let token = accessToken;
+    if (!token) {
+      token = await refreshAuthToken();
+    }
+    if (!token) {
+      return { success: false, error: 'Session expired. Please log in again.' };
+    }
+
+    try {
+      let response = await postLog(token);
+
+      if (response.status === 401) {
+        const refreshedToken = await refreshAuthToken();
+        if (!refreshedToken) {
+          return { success: false, error: 'Session expired. Please log in again.' };
+        }
+        response = await postLog(refreshedToken);
+      }
+
+      if (!response.ok) {
+        const bodyText = await response.text();
+        try {
+          const bodyJson = JSON.parse(bodyText);
+          return {
+            success: false,
+            error: bodyJson?.error || bodyJson?.message || `Failed to send call log (${response.status})`,
+          };
+        } catch {
+          return {
+            success: false,
+            error: bodyText || `Failed to send call log (${response.status})`,
+          };
+        }
+      }
+
+      return { success: true };
+    } catch (_error) {
+      return { success: false, error: 'Network error while sending call log.' };
+    }
+  }, [accessToken, refreshAuthToken]);
+
   const buildSignalBase = useCallback((signalType: CallSignalType, callId: string, mode: CallMode) => ({
     signalType,
     callId,
@@ -477,6 +679,21 @@ export function Messages() {
     callerId: currentUser?.id || '',
     callerName: currentUser?.name || 'UNITRADE User',
     createdAt: new Date().toISOString(),
+  }), [currentUser?.id, currentUser?.name]);
+
+  const buildCallLogBase = useCallback((
+    callId: string,
+    mode: CallMode,
+    outcome: CallLogOutcome,
+    extra: Partial<CallLogPayload> = {},
+  ): CallLogPayload => ({
+    callId,
+    mode,
+    outcome,
+    callerId: currentUser?.id || '',
+    callerName: currentUser?.name || 'UNITRADE User',
+    createdAt: new Date().toISOString(),
+    ...extra,
   }), [currentUser?.id, currentUser?.name]);
 
   const flushQueuedIceCandidates = useCallback(async (callId: string, peerConnection: RTCPeerConnection) => {
@@ -492,6 +709,18 @@ export function Messages() {
       }
     }
   }, []);
+
+  const markCallConnected = useCallback(() => {
+    clearCallTimeout();
+    stopOutgoingRingtone();
+    setActiveCall((prev) => {
+      if (!prev) return prev;
+      if (prev.connectedAt) {
+        return { ...prev, status: 'connected' };
+      }
+      return { ...prev, status: 'connected', connectedAt: Date.now() };
+    });
+  }, [clearCallTimeout, stopOutgoingRingtone]);
 
   const ensurePeerConnection = useCallback((
     callId: string,
@@ -525,14 +754,14 @@ export function Messages() {
       const [stream] = event.streams;
       if (stream) {
         setRemoteCallStream(stream);
-        setActiveCall((prev) => (prev ? { ...prev, status: 'connected' } : prev));
+        markCallConnected();
       }
     };
 
     peerConnection.onconnectionstatechange = () => {
       const state = peerConnection.connectionState;
       if (state === 'connected') {
-        setActiveCall((prev) => (prev ? { ...prev, status: 'connected' } : prev));
+        markCallConnected();
         return;
       }
 
@@ -546,7 +775,7 @@ export function Messages() {
     };
 
     return peerConnection;
-  }, [buildSignalBase, clearCallResources, sendCallSignalMessage]);
+  }, [buildSignalBase, clearCallResources, markCallConnected, sendCallSignalMessage]);
 
   const getCallMediaStream = useCallback(async (
     mode: CallMode,
@@ -602,6 +831,8 @@ export function Messages() {
     if (signal.signalType === 'answer' && signal.sdp) {
       await peerConnection.setRemoteDescription(new RTCSessionDescription(signal.sdp));
       await flushQueuedIceCandidates(signal.callId, peerConnection);
+      clearCallTimeout();
+      stopOutgoingRingtone();
       setActiveCall((prev) => (prev ? { ...prev, status: 'connecting' } : prev));
       return;
     }
@@ -620,7 +851,7 @@ export function Messages() {
         console.error('Add ICE candidate error:', error);
       }
     }
-  }, [buildSignalBase, flushQueuedIceCandidates, sendCallSignalMessage]);
+  }, [buildSignalBase, clearCallTimeout, flushQueuedIceCandidates, sendCallSignalMessage, stopOutgoingRingtone]);
 
   const handleCallSignalMessage = useCallback((message: Message, signal: CallSignalPayload) => {
     if (!currentUser || message.senderId === currentUser.id) return;
@@ -1774,6 +2005,36 @@ export function Messages() {
     }
   };
 
+  const scheduleNoAnswerTimeout = useCallback((
+    callId: string,
+    peerId: string,
+    mode: CallMode,
+    itemId?: string,
+  ) => {
+    clearCallTimeout();
+    callTimeoutRef.current = window.setTimeout(() => {
+      const active = activeCallRef.current;
+      if (!active || active.callId !== callId || active.status === 'connected' || active.connectedAt) {
+        return;
+      }
+
+      void sendCallSignalMessage(
+        peerId,
+        {
+          ...buildSignalBase('end', callId, mode),
+        },
+        itemId,
+      );
+      void sendCallLogMessage(
+        peerId,
+        buildCallLogBase(callId, mode, 'no_answer'),
+        itemId,
+      );
+      clearCallResources(callId);
+      toast.info('No answer');
+    }, CALL_NO_ANSWER_TIMEOUT_MS);
+  }, [buildCallLogBase, buildSignalBase, clearCallResources, clearCallTimeout, sendCallLogMessage, sendCallSignalMessage]);
+
   const startCall = async (mode: CallMode) => {
     if (!selectedConversation || !currentUser || !accessToken) return;
     if (activeCallRef.current) {
@@ -1798,6 +2059,8 @@ export function Messages() {
         callId,
         peerId,
         peerName,
+        callerId: currentUser.id,
+        callerName: currentUser.name || 'UNITRADE User',
         mode,
         itemId,
         status: 'calling',
@@ -1805,6 +2068,7 @@ export function Messages() {
         speakerOn: true,
         isMuted: false,
         videoEnabled: mode === 'video',
+        connectedAt: null,
       });
 
       const inviteSent = await sendCallSignalMessage(
@@ -1834,6 +2098,13 @@ export function Messages() {
       }
 
       setActiveCall((prev) => (prev ? { ...prev, status: 'ringing' } : prev));
+      startOutgoingRingtone();
+      scheduleNoAnswerTimeout(callId, peerId, mode, itemId);
+      void sendCallLogMessage(
+        peerId,
+        buildCallLogBase(callId, mode, 'started'),
+        itemId,
+      );
       toast.success(`${mode === 'video' ? 'Video' : 'Audio'} calling...`);
     } catch (error) {
       console.error('Start call error:', error);
@@ -1847,6 +2118,9 @@ export function Messages() {
   const endActiveCall = useCallback(async (notifyPeer = true) => {
     const active = activeCallRef.current;
     if (!active) return;
+    const connectedAt = active.connectedAt;
+    const hasConnected = Boolean(connectedAt || active.status === 'connected');
+    const durationSeconds = connectedAt ? Math.max(1, Math.round((Date.now() - connectedAt) / 1000)) : undefined;
 
     if (notifyPeer) {
       await sendCallSignalMessage(
@@ -1858,9 +2132,24 @@ export function Messages() {
       );
     }
 
+    await sendCallLogMessage(
+      active.peerId,
+      hasConnected
+        ? buildCallLogBase(active.callId, active.mode, 'completed', {
+            durationSeconds,
+            callerId: active.callerId,
+            callerName: active.callerName,
+          })
+        : buildCallLogBase(active.callId, active.mode, 'no_answer', {
+            callerId: active.callerId,
+            callerName: active.callerName,
+          }),
+      active.itemId,
+    );
+
     clearCallResources(active.callId);
-    toast.info('Call ended');
-  }, [buildSignalBase, clearCallResources, sendCallSignalMessage]);
+    toast.info(hasConnected ? 'Call ended' : 'No answer');
+  }, [buildCallLogBase, buildSignalBase, clearCallResources, sendCallLogMessage, sendCallSignalMessage]);
 
   const acceptIncomingCall = async () => {
     if (!incomingCall || !currentUser) return;
@@ -1891,6 +2180,8 @@ export function Messages() {
         callId: incomingCall.callId,
         peerId: incomingCall.senderId,
         peerName: incomingCall.senderName || 'Participant',
+        callerId: incomingCall.senderId,
+        callerName: incomingCall.senderName || 'UNITRADE User',
         mode: incomingCall.mode,
         itemId: incomingCall.itemId,
         status: 'connecting',
@@ -1898,6 +2189,7 @@ export function Messages() {
         speakerOn: true,
         isMuted: false,
         videoEnabled: incomingCall.mode === 'video',
+        connectedAt: null,
       });
 
       const queuedSignals = queuedSignalsRef.current.get(incomingCall.callId) || [];
@@ -1924,6 +2216,14 @@ export function Messages() {
       {
         ...buildSignalBase('decline', incomingCall.callId, incomingCall.mode),
       },
+      incomingCall.itemId,
+    );
+    await sendCallLogMessage(
+      incomingCall.senderId,
+      buildCallLogBase(incomingCall.callId, incomingCall.mode, 'declined', {
+        callerId: incomingCall.senderId,
+        callerName: incomingCall.senderName || 'UNITRADE User',
+      }),
       incomingCall.itemId,
     );
 
@@ -2327,6 +2627,30 @@ export function Messages() {
                                 const isImage = msg.messageType === 'image';
                                 const isDeleted = msg.isDeleted;
                                 const senderProfile = userCache.current.get(msg.senderId);
+                                const callLog = parseCallLog(msg.content);
+
+                                if (callLog) {
+                                  const icon =
+                                    callLog.mode === 'video'
+                                      ? <Video className="h-3.5 w-3.5" />
+                                      : callLog.outcome === 'no_answer'
+                                        ? <PhoneOff className="h-3.5 w-3.5" />
+                                        : <Phone className="h-3.5 w-3.5" />;
+                                  return (
+                                    <div key={msg.id} className="flex justify-center">
+                                      <div className="flex max-w-[94%] items-center gap-1.5 rounded-full border border-slate-200 bg-slate-100/95 px-3 py-1.5 text-[11px] text-slate-700 shadow-sm">
+                                        {icon}
+                                        <span>{getCallLogText(callLog, currentUser?.id)}</span>
+                                        <span className="text-slate-500">
+                                          {new Date(msg.timestamp).toLocaleTimeString([], {
+                                            hour: '2-digit',
+                                            minute: '2-digit',
+                                          })}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  );
+                                }
 
                                 // Determine alignment and styling
                                 let isRightAligned = isMe;
