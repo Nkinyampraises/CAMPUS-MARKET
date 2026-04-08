@@ -231,7 +231,7 @@ export function AdminNotifications() {
             </div>
           </div>
           <Button
-            className="bg-green-600 hover:bg-green-700"
+            className="w-full bg-green-600 hover:bg-green-700 sm:w-auto"
             onClick={handleSend}
             disabled={submitting}
           >
@@ -279,10 +279,11 @@ export function AdminNotifications() {
                 {report.adminNote ? (
                   <p className="text-xs text-muted-foreground mb-2">Admin note: {report.adminNote}</p>
                 ) : null}
-                <div className="flex flex-wrap gap-2">
+                <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap">
                   <Button
                     size="sm"
                     variant="outline"
+                    className="w-full sm:w-auto"
                     disabled={actioningReportId === report.id}
                     onClick={() => updateSupportReportStatus(report.id, 'reviewed')}
                   >
@@ -291,6 +292,7 @@ export function AdminNotifications() {
                   <Button
                     size="sm"
                     variant="outline"
+                    className="w-full sm:w-auto"
                     disabled={actioningReportId === report.id}
                     onClick={() => updateSupportReportStatus(report.id, 'resolved')}
                   >
@@ -299,6 +301,7 @@ export function AdminNotifications() {
                   <Button
                     size="sm"
                     variant="outline"
+                    className="w-full sm:w-auto"
                     disabled={actioningReportId === report.id}
                     onClick={() => updateSupportReportStatus(report.id, 'rejected')}
                   >
@@ -324,9 +327,9 @@ export function AdminNotifications() {
           ) : (
             broadcasts.map((broadcast) => (
               <div key={broadcast.id} className="border rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="font-medium">{broadcast.title}</div>
-                  <div className="flex gap-2">
+                <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="font-medium break-words">{broadcast.title}</div>
+                  <div className="flex flex-wrap gap-2">
                     <Badge variant="outline">{broadcast.target}</Badge>
                     <Badge
                       variant={broadcast.priority === 'urgent' ? 'destructive' : 'secondary'}

@@ -56,8 +56,8 @@ export function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur-xl supports-[backdrop-filter]:bg-background/70">
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent" />
-      <div className="container mx-auto px-4 py-3">
-        <div className="flex items-center justify-between gap-2 lg:gap-4">
+      <div className="container mx-auto px-3 py-2 sm:px-4 sm:py-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between lg:gap-4">
           <Link to="/" className="group flex items-center gap-3 transition-transform hover:scale-[1.01]">
             <span className="relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl border border-white/70 bg-white/85 shadow-sm dark:border-white/15 dark:bg-white/10">
               <span className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(20,184,166,0.22),rgba(56,189,248,0.22))]" />
@@ -69,7 +69,7 @@ export function Header() {
             </div>
           </Link>
 
-          <nav className="flex items-center gap-1.5 lg:gap-2">
+          <nav className="flex w-full flex-wrap items-center justify-end gap-1.5 sm:w-auto sm:flex-nowrap lg:gap-2">
             <Button
               variant={isActive('/') ? 'default' : 'ghost'}
               size="sm"
@@ -272,12 +272,14 @@ export function Header() {
                 <Button
                   variant="ghost"
                   size="sm"
+                  className="px-2 sm:px-3"
                   onClick={() => navigate('/login')}
                 >
                   {t('auth.login', 'Login')}
                 </Button>
                 <Button
                   size="sm"
+                  className="px-2 sm:px-3"
                   onClick={() => navigate('/register')}
                 >
                   {t('auth.signup', 'Sign Up')}
@@ -290,7 +292,7 @@ export function Header() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="gap-1.5 rounded-full"
+                  className="gap-1.5 rounded-full max-[420px]:hidden"
                   title={t('language.select', 'Select language')}
                 >
                   <Languages className="h-4 w-4" />

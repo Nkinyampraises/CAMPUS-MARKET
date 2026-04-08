@@ -115,8 +115,8 @@ export function AdminInbox() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-7xl space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="container mx-auto max-w-7xl space-y-6 px-3 py-8 sm:px-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <Button variant="ghost" onClick={() => navigate('/admin')}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Admin
@@ -184,18 +184,19 @@ export function AdminInbox() {
                         {report.createdAt ? new Date(report.createdAt).toLocaleString() : '-'}
                       </span>
                     </div>
-                    <p className="text-sm mb-2">{report.description || '-'}</p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-sm mb-2 break-words">{report.description || '-'}</p>
+                    <p className="text-xs text-muted-foreground break-words">
                       From: {report.reporterName || report.reporterId || '-'}
                       {report.targetUserName ? ` | Target: ${report.targetUserName}` : ''}
                     </p>
                     {report.adminNote ? (
                       <p className="text-xs text-muted-foreground mt-1">Admin note: {report.adminNote}</p>
                     ) : null}
-                    <div className="flex flex-wrap gap-2 mt-3">
+                    <div className="mt-3 grid grid-cols-1 gap-2 sm:flex sm:flex-wrap">
                       <Button
                         size="sm"
                         variant="outline"
+                        className="w-full sm:w-auto"
                         disabled={actioningReportId === report.id}
                         onClick={() => updateReportStatus(report.id, 'reviewed')}
                       >
@@ -204,6 +205,7 @@ export function AdminInbox() {
                       <Button
                         size="sm"
                         variant="outline"
+                        className="w-full sm:w-auto"
                         disabled={actioningReportId === report.id}
                         onClick={() => updateReportStatus(report.id, 'resolved')}
                       >
@@ -212,6 +214,7 @@ export function AdminInbox() {
                       <Button
                         size="sm"
                         variant="outline"
+                        className="w-full sm:w-auto"
                         disabled={actioningReportId === report.id}
                         onClick={() => updateReportStatus(report.id, 'rejected')}
                       >
@@ -228,4 +231,3 @@ export function AdminInbox() {
     </div>
   );
 }
-

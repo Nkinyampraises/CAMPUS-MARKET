@@ -38,8 +38,8 @@ export function PaymentReview() {
     merchantNumber: '671562474',
     feePercent: 2,
     feeFlat: 0,
-    sampleBaseAmount: 24,
-    sampleFee: 1,
+    sampleBaseAmount: 500,
+    sampleFee: 0,
   });
 
   useEffect(() => {
@@ -57,8 +57,8 @@ export function PaymentReview() {
           merchantNumber: data?.merchant?.number || paymentMeta.merchantNumber,
           feePercent: Number(data?.transactionFee?.percent) || paymentMeta.feePercent,
           feeFlat: Number(data?.transactionFee?.flat) || 0,
-          sampleBaseAmount: Number(data?.transactionFee?.sampleBaseAmount) || 24,
-          sampleFee: Number(data?.transactionFee?.sampleFee) || 1,
+          sampleBaseAmount: Number(data?.transactionFee?.sampleBaseAmount) || 500,
+          sampleFee: Number(data?.transactionFee?.sampleFee) || 0,
         });
       } catch (_error) {
         // Keep fallback.
@@ -76,6 +76,18 @@ export function PaymentReview() {
   }, [state?.amount, state?.feeOverride, paymentMeta.feePercent, paymentMeta.feeFlat]);
 
   const totalAmount = useMemo(() => Math.round(Number(state?.amount || 0) + feeAmount), [state?.amount, feeAmount]);
+  const feeHintBaseAmount = useMemo(() => {
+    if (state?.context === 'subscription') {
+      return Math.round(Number(state?.amount || 0));
+    }
+    return Math.round(Number(paymentMeta.sampleBaseAmount || 0));
+  }, [state?.context, state?.amount, paymentMeta.sampleBaseAmount]);
+  const feeHintAmount = useMemo(() => {
+    if (state?.context === 'subscription') {
+      return feeAmount;
+    }
+    return Math.round(Number(paymentMeta.sampleFee || 0));
+  }, [state?.context, feeAmount, paymentMeta.sampleFee]);
   const ussdCode = useMemo(
     () => `*126*9*${String(paymentMeta.merchantNumber || '').replace(/[^\d]/g, '')}*${totalAmount}#`,
     [paymentMeta.merchantNumber, totalAmount],
@@ -138,8 +150,7 @@ export function PaymentReview() {
       } catch (_error) {
         // Keep flow available even if dialer launch fails.
       }
-      toast.info('Dial completed payment in Mobile Money, then tap Confirm and Pay again.');
-      return;
+      toast.info('Mobile Money opened. Finalizing your subscription on the platform...');
     }
 
     setSubmitting(true);
@@ -220,14 +231,14 @@ export function PaymentReview() {
         <CardContent className="space-y-5">
           <Alert>
             <AlertDescription>
-              For {paymentMeta.sampleBaseAmount} XAF, fee is {paymentMeta.sampleFee} XAF. Fees are auto-calculated.
+              For {feeHintBaseAmount} XAF, fee is {feeHintAmount} XAF. Fees are auto-calculated.
             </AlertDescription>
           </Alert>
 
           {state.paymentMethod === 'mtn-momo' ? (
             <Alert>
               <AlertDescription>
-                USSD: <span className="font-mono">{ussdCode}</span>. First tap opens Mobile Money; second tap confirms in escrow.
+                USSD: <span className="font-mono break-all">{ussdCode}</span>. First tap opens Mobile Money; second tap confirms in escrow.
               </AlertDescription>
             </Alert>
           ) : null}

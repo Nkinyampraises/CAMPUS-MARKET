@@ -1,3 +1,4 @@
+import "./runtime.js";
 /* Postgres-backed key-value store for app data.
  *
  * Expected table schema:
@@ -7,7 +8,7 @@
  * );
  */
 
-import pg from "npm:pg";
+import pg from "pg";
 
 const { Pool } = pg;
 

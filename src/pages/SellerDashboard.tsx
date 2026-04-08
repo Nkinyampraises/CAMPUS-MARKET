@@ -255,12 +255,12 @@ export function SellerDashboard() {
   return (
     <div className="bg-background min-h-screen py-8">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between mb-8">
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold">Seller Dashboard</h1>
             <p className="text-muted-foreground">Manage listings, delivery proofs, and escrow releases.</p>
           </div>
-          <Button className="bg-green-600 hover:bg-green-700" onClick={() => navigate('/add-listing')}>
+          <Button className="w-full bg-green-600 hover:bg-green-700 sm:w-auto" onClick={() => navigate('/add-listing')}>
             <Plus className="mr-2 h-4 w-4" />
             Add New Listing
           </Button>
@@ -374,7 +374,7 @@ export function SellerDashboard() {
                           {new Date(order.createdAt || '').toLocaleString()} • {order.paymentMethod === 'mtn-momo' ? 'MTN MoMo' : 'Orange Money'}
                         </p>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <p className="font-bold text-green-600">{formatMoney(order.amount || 0)}</p>
                         <Button variant="outline" size="sm" onClick={() => navigate(`/seller/order-details/${order.id}`)}>
                           Open Order
@@ -473,7 +473,7 @@ export function SellerDashboard() {
                     </select>
                   </div>
                 </div>
-                <Button className="bg-green-600 hover:bg-green-700" disabled={withdrawing} onClick={handleWithdraw}>
+                <Button className="w-full bg-green-600 hover:bg-green-700 sm:w-auto" disabled={withdrawing} onClick={handleWithdraw}>
                   {withdrawing ? 'Processing...' : 'Withdraw to Mobile Money'}
                 </Button>
               </CardContent>

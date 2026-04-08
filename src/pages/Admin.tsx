@@ -183,7 +183,7 @@ export function Admin() {
 
   return (
     <div className="bg-background min-h-screen py-8">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-3 sm:px-4">
           {/* Check if user is admin */}
           {currentUser?.role !== 'admin' ? (
             <div>
@@ -197,7 +197,7 @@ export function Admin() {
 
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
+          <h1 className="mb-2 text-2xl font-bold sm:text-3xl">Admin Dashboard</h1>
           <p className="text-muted-foreground">
             Manage users, listings, and monitor platform activity
           </p>
@@ -290,30 +290,30 @@ export function Admin() {
 
         {/* Tabs */}
         <Tabs defaultValue="users" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="users">Users</TabsTrigger>
-            <TabsTrigger value="listings">Listings</TabsTrigger>
-            <TabsTrigger value="transactions">Transactions</TabsTrigger>
-            <TabsTrigger value="messages">Messages</TabsTrigger>
-            <TabsTrigger value="payouts">Payouts</TabsTrigger>
-            <TabsTrigger value="notifications">Broadcasts</TabsTrigger>
-            <TabsTrigger value="settings">Settings</TabsTrigger>
+          <TabsList className="w-full overflow-x-auto">
+            <TabsTrigger value="users" className="px-2 text-xs sm:px-3 sm:text-sm">Users</TabsTrigger>
+            <TabsTrigger value="listings" className="px-2 text-xs sm:px-3 sm:text-sm">Listings</TabsTrigger>
+            <TabsTrigger value="transactions" className="px-2 text-xs sm:px-3 sm:text-sm">Transactions</TabsTrigger>
+            <TabsTrigger value="messages" className="px-2 text-xs sm:px-3 sm:text-sm">Messages</TabsTrigger>
+            <TabsTrigger value="payouts" className="px-2 text-xs sm:px-3 sm:text-sm">Payouts</TabsTrigger>
+            <TabsTrigger value="notifications" className="px-2 text-xs sm:px-3 sm:text-sm">Broadcasts</TabsTrigger>
+            <TabsTrigger value="settings" className="px-2 text-xs sm:px-3 sm:text-sm">Settings</TabsTrigger>
           </TabsList>
 
           {/* Users Tab */}
           <TabsContent value="users" className="space-y-4">
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
                   <div>
                     <CardTitle>User Management</CardTitle>
                     <CardDescription>Manage student accounts and verifications</CardDescription>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Button onClick={() => navigate('/admin/user-management')}>User Management</Button>
-                    <Button onClick={() => navigate('/admin-approvals')}>Pending Approvals</Button>
+                  <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2 xl:w-auto xl:grid-cols-none xl:flex">
+                    <Button className="w-full sm:w-auto" onClick={() => navigate('/admin/user-management')}>User Management</Button>
+                    <Button className="w-full sm:w-auto" onClick={() => navigate('/admin-approvals')}>Pending Approvals</Button>
                   </div>
-                  <div className="relative w-64">
+                  <div className="relative w-full xl:w-64">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       type="text"
@@ -329,7 +329,7 @@ export function Admin() {
                 <div className="space-y-4">
 
                   {filteredUsers.map((user) => (
-                    <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div key={user.id} className="flex flex-col gap-3 rounded-lg border p-3 sm:p-4 md:flex-row md:items-center md:justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <p className="font-medium">{user.name}</p>
@@ -341,15 +341,16 @@ export function Admin() {
                           )}
                         </div>
 
-                        <p className="text-sm text-muted-foreground">{user.email}</p>
-                        <p className="text-xs text-muted-foreground mt-1">
+                        <p className="text-sm text-muted-foreground break-all">{user.email}</p>
+                        <p className="text-xs text-muted-foreground mt-1 break-words">
                           {user.phone} • Student ID: {user.studentId || 'N/A'}
                         </p>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="grid w-full grid-cols-2 gap-2 sm:w-auto sm:grid-cols-none sm:flex sm:flex-wrap">
                         <Button
                           size="sm"
                           variant="outline"
+                          className="w-full justify-center text-xs sm:w-auto sm:text-sm"
                           onClick={() => navigate(`/admin/user-details/${user.id}`)}
                         >
                           <Eye className="mr-1 h-3 w-3" />
@@ -360,6 +361,7 @@ export function Admin() {
                             size="sm"
                             disabled={!accessToken}
                             variant="outline"
+                            className="w-full justify-center text-xs sm:w-auto sm:text-sm"
                             onClick={() => handleApproveUser(user.id)}
                           >
                             <CheckCircle className="mr-1 h-3 w-3" />
@@ -370,6 +372,7 @@ export function Admin() {
                           size="sm"
                            disabled={!accessToken}
                           variant="outline"
+                          className="w-full justify-center text-xs sm:w-auto sm:text-sm"
                           onClick={() => handleSuspendUser(user.id)}
                         >
                           <XCircle className="mr-1 h-3 w-3" />
@@ -398,7 +401,7 @@ export function Admin() {
                     const seller = users.find(u => u.id === item.sellerId);
 
                     return (
-                      <div key={item.id} className="flex items-start gap-4 p-4 border rounded-lg">
+                      <div key={item.id} className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-start sm:gap-4">
                         <div className="w-24 h-24 rounded overflow-hidden bg-muted flex-shrink-0">
                           <img
                             src={item.images[0]}
@@ -407,7 +410,7 @@ export function Admin() {
                           />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between mb-2">
+                          <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                             <div>
                               <p className="font-medium line-clamp-1">{item.title}</p>
                               <p className="text-sm text-muted-foreground">
@@ -479,7 +482,7 @@ export function Admin() {
                     const grossAmount = Number(txn.totalCharged ?? txn.amount ?? 0);
 
                     return (
-                      <div key={txn.id} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div key={txn.id} className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             <p className="font-medium">{title}</p>
@@ -489,17 +492,17 @@ export function Admin() {
                               {statusLabel}
                             </Badge>
                           </div>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-sm text-muted-foreground break-words">
                             Buyer: {buyer?.name || (isSubscription ? 'Subscriber' : 'Unknown Buyer')} -&gt; Seller: {isSubscription ? 'Platform Account' : (seller?.name || 'Unknown Seller')}
                           </p>
-                          <p className="text-xs text-muted-foreground mt-1">
+                          <p className="text-xs text-muted-foreground mt-1 break-words">
                             {new Date(txn.timestamp || txn.createdAt).toLocaleString()} • {txn.transactionRef || txn.orderId}
                           </p>
                           <p className="text-xs text-muted-foreground">
                             Method: {methodLabel}
                           </p>
                         </div>
-                        <div className="text-right">
+                        <div className="text-left sm:text-right">
                           <p className="font-bold text-green-600">
                             {formatCurrency(grossAmount)}
                           </p>
@@ -536,8 +539,8 @@ export function Admin() {
                         className="p-4 border rounded-lg hover:bg-accent cursor-pointer transition-colors"
                         onClick={() => navigate('/messages')}
                       >
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2 text-sm">
+                        <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="flex flex-wrap items-center gap-2 text-sm">
                             <span className="font-bold text-blue-600">{user1Name}</span>
                             <span className="text-muted-foreground text-xs">and</span>
                             <span className="font-bold text-blue-600">{user2Name}</span>

@@ -192,6 +192,11 @@
     @apply border-border outline-ring/50;
   }
 
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
   html {
     font-size: var(--font-size);
     scroll-behavior: smooth;
@@ -206,6 +211,50 @@
     min-height: 100vh;
     position: relative;
     overflow-x: hidden;
+  }
+
+  img,
+  video,
+  canvas,
+  svg {
+    max-width: 100%;
+    height: auto;
+  }
+
+  input,
+  textarea,
+  select {
+    max-width: 100%;
+  }
+
+  .container {
+    width: 100%;
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+
+  @media (max-width: 640px) {
+    h1 {
+      font-size: 1.65rem;
+      line-height: 1.2;
+    }
+
+    h2 {
+      font-size: 1.35rem;
+      line-height: 1.25;
+    }
+
+    .flex.items-center.justify-between,
+    .flex.items-start.justify-between {
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .overflow-x-auto > table {
+      min-width: 640px;
+    }
   }
 
   body::before,

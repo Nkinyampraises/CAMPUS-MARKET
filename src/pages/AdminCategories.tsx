@@ -198,7 +198,7 @@ export function AdminCategories() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-5xl">
+    <div className="container mx-auto max-w-5xl px-3 py-8 sm:px-4">
       <Button variant="ghost" className="mb-4" onClick={() => navigate('/admin')}>
         <ArrowLeft className="h-4 w-4 mr-2" />
         Back to Admin
@@ -210,14 +210,14 @@ export function AdminCategories() {
           <CardDescription>Add, edit, delete, or disable listing categories.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <input
               className="flex-1 border rounded-md h-10 px-3 text-sm"
               placeholder="Add category name"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
             />
-            <Button className="bg-green-600 hover:bg-green-700" onClick={addCategory} disabled={saving}>
+            <Button className="w-full bg-green-600 hover:bg-green-700 sm:w-auto" onClick={addCategory} disabled={saving}>
               Add
             </Button>
           </div>
@@ -229,17 +229,18 @@ export function AdminCategories() {
           ) : (
             <div className="space-y-3">
               {categories.map((category) => (
-                <div key={category.id} className="border rounded-lg p-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                  <div className="flex items-center gap-2">
+                <div key={category.id} className="flex flex-col gap-3 rounded-lg border p-3 md:flex-row md:items-center md:justify-between">
+                  <div className="flex flex-wrap items-center gap-2">
                     <p className="font-medium">{category.name}</p>
                     <Badge variant={category.isActive ? 'default' : 'secondary'}>
                       {category.isActive ? 'active' : 'disabled'}
                     </Badge>
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="grid w-full grid-cols-1 gap-2 sm:w-auto sm:grid-cols-none sm:flex sm:flex-wrap">
                     <Button
                       size="sm"
                       variant="outline"
+                      className="w-full sm:w-auto"
                       disabled={saving}
                       onClick={() => {
                         const updatedName = (prompt('Edit category name', category.name) || '').trim();
@@ -252,12 +253,13 @@ export function AdminCategories() {
                     <Button
                       size="sm"
                       variant="outline"
+                      className="w-full sm:w-auto"
                       disabled={saving}
                       onClick={() => updateCategory(category.id, { isActive: !category.isActive })}
                     >
                       {category.isActive ? 'Disable' : 'Enable'}
                     </Button>
-                    <Button size="sm" variant="outline" disabled={saving} onClick={() => deleteCategory(category.id)}>
+                    <Button size="sm" variant="outline" className="w-full sm:w-auto" disabled={saving} onClick={() => deleteCategory(category.id)}>
                       Delete
                     </Button>
                   </div>

@@ -129,7 +129,7 @@ export function AdminPayouts() {
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <CardTitle>Payout Queue</CardTitle>
               <CardDescription>Process payouts from seller available wallet balances.</CardDescription>
@@ -147,14 +147,14 @@ export function AdminPayouts() {
           ) : (
             payouts.map((payout) => (
               <div key={payout.sellerId} className="border rounded-lg p-4">
-                <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <div className="font-medium">{payout.sellerName}</div>
-                    <div className="text-xs text-muted-foreground">{payout.sellerEmail}</div>
+                    <div className="text-xs text-muted-foreground break-all">{payout.sellerEmail}</div>
                   </div>
                   <Badge variant={payout.status === 'paid' ? 'secondary' : 'outline'}>{payout.status}</Badge>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm mb-3">
+                <div className="mb-3 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2 md:grid-cols-5">
                   <div>
                     <p className="text-muted-foreground">Transactions</p>
                     <p className="font-medium">{payout.transactionCount}</p>
@@ -177,13 +177,13 @@ export function AdminPayouts() {
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="text-xs text-muted-foreground">
+                  <div className="text-xs text-muted-foreground break-words">
                     Last payout:{' '}
                     {payout.lastPaidAt ? `${new Date(payout.lastPaidAt).toLocaleString()} (${formatMoney(payout.lastPaidAmount)})` : 'Never'}
                   </div>
                   <Button
                     size="sm"
-                    className="bg-green-600 hover:bg-green-700"
+                    className="w-full bg-green-600 hover:bg-green-700 sm:w-auto"
                     disabled={processingId === payout.sellerId || payout.pendingAmount <= 0 || !payout.canBePaid}
                     onClick={() => handleMarkPaid(payout)}
                   >

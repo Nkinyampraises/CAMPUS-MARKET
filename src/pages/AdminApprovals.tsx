@@ -126,9 +126,9 @@ export function AdminApprovals() {
 
   return (
     <div className="bg-background min-h-screen py-8">
-      <div className="container mx-auto px-4">
+      <div className="container mx-auto px-3 sm:px-4">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Account Approvals</h1>
+          <h1 className="mb-2 text-2xl font-bold sm:text-3xl">Account Approvals</h1>
           <p className="text-muted-foreground">
             Review and approve or deny student account registrations
           </p>
@@ -136,7 +136,7 @@ export function AdminApprovals() {
 
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <CardTitle>Pending Approvals</CardTitle>
                 <CardDescription>
@@ -157,13 +157,13 @@ export function AdminApprovals() {
                   const university = getUniversityById(user.university);
                   
                   return (
-                    <div key={user.id} className="flex items-start gap-4 p-4 border border-border rounded-lg bg-card">
+                    <div key={user.id} className="flex flex-col gap-3 rounded-lg border border-border bg-card p-3 sm:p-4 md:flex-row md:items-start md:gap-4">
                       <div className="h-12 w-12 rounded-full bg-orange-100 dark:bg-orange-900/35 flex items-center justify-center flex-shrink-0">
                         <Clock className="h-6 w-6 text-orange-600" />
                       </div>
                       
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-2">
+                        <div className="mb-2 flex flex-wrap items-center gap-2">
                           <h3 className="font-semibold text-lg">{user.name}</h3>
                           <Badge variant="secondary" className="bg-orange-100 dark:bg-orange-900/35 text-orange-700 dark:text-orange-200">
                             Pending
@@ -182,10 +182,10 @@ export function AdminApprovals() {
                           )}
                         </div>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-muted-foreground mb-3">
+                        <div className="mb-3 grid grid-cols-1 gap-2 text-sm text-muted-foreground md:grid-cols-2">
                           <div className="flex items-center gap-2">
                             <Mail className="h-4 w-4" />
-                            {user.email}
+                            <span className="break-all">{user.email}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <Phone className="h-4 w-4" />
@@ -203,15 +203,15 @@ export function AdminApprovals() {
                           )}
                         </div>
                         
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-muted-foreground break-words">
                           Registered: {new Date(user.createdAt).toLocaleString()}
                         </p>
                       </div>
                       
-                      <div className="flex flex-col gap-2">
+                      <div className="grid w-full grid-cols-2 gap-2 md:w-auto md:grid-cols-1">
                         <Button
                           size="sm"
-                          className="bg-green-600 hover:bg-green-700"
+                          className="w-full bg-green-600 hover:bg-green-700"
                           onClick={() => handleApproveUser(user.id)}
                           disabled={actionLoading === user.id}
                         >
@@ -227,7 +227,7 @@ export function AdminApprovals() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="text-red-600 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/40"
+                          className="w-full text-red-600 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/40"
                           onClick={() => handleDenyUser(user.id)}
                           disabled={actionLoading === user.id}
                         >

@@ -60,7 +60,7 @@ export function AdminUserDetails() {
   const reportsAgainstUser = details?.reportsAgainstUser || [];
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-7xl space-y-6">
+    <div className="container mx-auto max-w-7xl space-y-6 px-3 py-8 sm:px-4">
       <Button variant="ghost" onClick={() => navigate('/admin')}>
         <ArrowLeft className="h-4 w-4 mr-2" />
         Back to Admin
@@ -77,15 +77,15 @@ export function AdminUserDetails() {
               <CardTitle>Full Profile View</CardTitle>
               <CardDescription>{user.name}</CardDescription>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-              <p><span className="text-muted-foreground">Name:</span> {user.name || '-'}</p>
-              <p><span className="text-muted-foreground">Email:</span> {user.email || '-'}</p>
-              <p><span className="text-muted-foreground">Phone:</span> {user.phone || '-'}</p>
-              <p><span className="text-muted-foreground">University:</span> {user.university || '-'}</p>
-              <p><span className="text-muted-foreground">Student ID:</span> {user.studentId || '-'}</p>
-              <p><span className="text-muted-foreground">Role:</span> {user.userType || '-'}</p>
-              <p><span className="text-muted-foreground">Rating:</span> {Number(user.rating || 0).toFixed(2)} ({user.reviewCount || 0} reviews)</p>
-              <p><span className="text-muted-foreground">Status:</span> {user.isBanned ? 'Banned' : 'Active'}</p>
+            <CardContent className="grid grid-cols-1 gap-3 text-sm md:grid-cols-2">
+              <p className="break-words"><span className="text-muted-foreground">Name:</span> {user.name || '-'}</p>
+              <p className="break-all"><span className="text-muted-foreground">Email:</span> {user.email || '-'}</p>
+              <p className="break-words"><span className="text-muted-foreground">Phone:</span> {user.phone || '-'}</p>
+              <p className="break-words"><span className="text-muted-foreground">University:</span> {user.university || '-'}</p>
+              <p className="break-words"><span className="text-muted-foreground">Student ID:</span> {user.studentId || '-'}</p>
+              <p className="break-words"><span className="text-muted-foreground">Role:</span> {user.userType || '-'}</p>
+              <p className="break-words"><span className="text-muted-foreground">Rating:</span> {Number(user.rating || 0).toFixed(2)} ({user.reviewCount || 0} reviews)</p>
+              <p className="break-words"><span className="text-muted-foreground">Status:</span> {user.isBanned ? 'Banned' : 'Active'}</p>
             </CardContent>
           </Card>
 
@@ -102,13 +102,13 @@ export function AdminUserDetails() {
                   <div className="space-y-3 max-h-[420px] overflow-auto pr-1">
                     {activityLog.slice(0, 100).map((entry: any, index: number) => (
                       <div key={`${entry.type}-${entry.createdAt}-${index}`} className="border rounded p-3">
-                        <div className="flex items-center justify-between gap-2 mb-1">
+                        <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
                           <Badge variant="secondary">{entry.type || 'activity'}</Badge>
                           <span className="text-xs text-muted-foreground">
                             {entry.createdAt ? new Date(entry.createdAt).toLocaleString() : '-'}
                           </span>
                         </div>
-                        <p className="text-sm">{entry.message || '-'}</p>
+                        <p className="text-sm break-words">{entry.message || '-'}</p>
                       </div>
                     ))}
                   </div>
@@ -127,8 +127,8 @@ export function AdminUserDetails() {
                   <div className="space-y-3 max-h-[420px] overflow-auto pr-1">
                     {listings.map((listing: any) => (
                       <div key={listing.id} className="border rounded p-3">
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="font-medium">{listing.title || listing.id}</p>
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="font-medium break-words">{listing.title || listing.id}</p>
                           <Badge variant={listing.status === 'available' ? 'default' : 'secondary'}>
                             {listing.status || '-'}
                           </Badge>
@@ -160,7 +160,7 @@ export function AdminUserDetails() {
                     {reviewsReceived.map((review: any) => (
                       <div key={review.id} className="border rounded p-3">
                         <p className="font-medium">{Number(review.rating || 0)} / 5</p>
-                        <p className="text-sm text-muted-foreground">{review.comment || '-'}</p>
+                        <p className="text-sm text-muted-foreground break-words">{review.comment || '-'}</p>
                         <p className="text-xs text-muted-foreground mt-1">
                           {review.timestamp ? new Date(review.timestamp).toLocaleString() : '-'}
                         </p>
@@ -182,8 +182,8 @@ export function AdminUserDetails() {
                   <div className="space-y-3 max-h-[360px] overflow-auto pr-1">
                     {transactionsHistory.map((transaction: any) => (
                       <div key={transaction.id} className="border rounded p-3">
-                        <div className="flex items-center justify-between">
-                          <p className="font-medium">{transaction.transactionRef || transaction.id}</p>
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="font-medium break-words">{transaction.transactionRef || transaction.id}</p>
                           <Badge variant="secondary">{transaction.status || '-'}</Badge>
                         </div>
                         <p className="text-sm font-semibold text-green-600 mt-1">
@@ -213,11 +213,11 @@ export function AdminUserDetails() {
                 <div className="space-y-3 max-h-[360px] overflow-auto pr-1">
                   {reportsAgainstUser.map((report: any) => (
                     <div key={report.id} className="border rounded p-3">
-                      <div className="flex items-center justify-between gap-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
                         <Badge variant="secondary">{report.category || 'report'}</Badge>
                         <Badge variant={report.status === 'resolved' ? 'default' : 'secondary'}>{report.status || 'open'}</Badge>
                       </div>
-                      <p className="text-sm mt-2">{report.description || '-'}</p>
+                      <p className="text-sm mt-2 break-words">{report.description || '-'}</p>
                       <p className="text-xs text-muted-foreground mt-1">
                         {report.createdAt ? new Date(report.createdAt).toLocaleString() : '-'}
                       </p>

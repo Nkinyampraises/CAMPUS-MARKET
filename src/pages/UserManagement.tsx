@@ -156,15 +156,18 @@ export function UserManagement() {
   }
 
   return (
-    <div>
-      <h2>User Management</h2>
-      <Table
-        dataSource={users}
-        columns={columns}
-        rowKey="id"
-        loading={loading}
-        pagination={{ pageSize: 10 }}
-      />
+    <div className="space-y-4 p-3 sm:p-4">
+      <h2 className="text-2xl font-semibold">User Management</h2>
+      <div className="overflow-x-auto">
+        <Table
+          dataSource={users}
+          columns={columns}
+          rowKey="id"
+          loading={loading}
+          pagination={{ pageSize: 10 }}
+          scroll={{ x: 980 }}
+        />
+      </div>
     </div>
   );
 }

@@ -148,35 +148,38 @@ export function AdminSettings() {
         </div>
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between border rounded-lg p-3">
+          <div className="flex flex-col gap-3 border rounded-lg p-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="font-medium">Maintenance Mode</p>
               <p className="text-xs text-muted-foreground">Disable normal operations during maintenance.</p>
             </div>
             <Switch
               checked={settings.maintenanceMode}
+              className="self-end sm:self-auto"
               onCheckedChange={(checked) => setSettings((prev) => ({ ...prev, maintenanceMode: checked }))}
             />
           </div>
-          <div className="flex items-center justify-between border rounded-lg p-3">
+          <div className="flex flex-col gap-3 border rounded-lg p-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="font-medium">Allow New Registrations</p>
               <p className="text-xs text-muted-foreground">Enable or disable new user signups.</p>
             </div>
             <Switch
               checked={settings.allowNewRegistrations}
+              className="self-end sm:self-auto"
               onCheckedChange={(checked) =>
                 setSettings((prev) => ({ ...prev, allowNewRegistrations: checked }))
               }
             />
           </div>
-          <div className="flex items-center justify-between border rounded-lg p-3">
+          <div className="flex flex-col gap-3 border rounded-lg p-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="font-medium">Auto Payout to MTN on Release</p>
               <p className="text-xs text-muted-foreground">When enabled, released MTN escrow payments are auto-sent to seller mobile money.</p>
             </div>
             <Switch
               checked={settings.autoPayoutToMobileMoney}
+              className="self-end sm:self-auto"
               onCheckedChange={(checked) =>
                 setSettings((prev) => ({ ...prev, autoPayoutToMobileMoney: checked }))
               }
@@ -184,7 +187,7 @@ export function AdminSettings() {
           </div>
         </div>
 
-        <Button className="bg-green-600 hover:bg-green-700" onClick={handleSave} disabled={saving}>
+        <Button className="w-full bg-green-600 hover:bg-green-700 sm:w-auto" onClick={handleSave} disabled={saving}>
           {saving ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />

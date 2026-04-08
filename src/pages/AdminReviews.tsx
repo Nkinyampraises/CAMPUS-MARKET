@@ -183,7 +183,7 @@ export function AdminReviews() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-7xl">
+    <div className="container mx-auto max-w-7xl px-3 py-8 sm:px-4">
       <Button variant="ghost" className="mb-4" onClick={() => navigate('/admin')}>
         <ArrowLeft className="h-4 w-4 mr-2" />
         Back to Admin
@@ -195,7 +195,7 @@ export function AdminReviews() {
           <CardDescription>View all reviews, delete abusive reviews, and block spam reviewers.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="max-w-sm">
+          <div className="w-full max-w-sm">
             <input
               className="w-full border rounded-md h-10 px-3 text-sm"
               placeholder="Search reviewer, seller, comment..."
@@ -221,14 +221,15 @@ export function AdminReviews() {
                       {review.timestamp ? new Date(review.timestamp).toLocaleString() : '-'}
                     </span>
                   </div>
-                  <p className="text-sm mb-2">{review.comment || '-'}</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-sm mb-2 break-words">{review.comment || '-'}</p>
+                  <p className="text-xs text-muted-foreground break-words">
                     Reviewer: {review.reviewerName || '-'} | Seller: {review.sellerName || '-'}
                   </p>
-                  <div className="flex flex-wrap gap-2 mt-3">
+                  <div className="mt-3 grid grid-cols-1 gap-2 sm:flex sm:flex-wrap">
                     <Button
                       size="sm"
                       variant="outline"
+                      className="w-full sm:w-auto"
                       disabled={busyId === review.id}
                       onClick={() => deleteReview(review.id)}
                     >
@@ -237,6 +238,7 @@ export function AdminReviews() {
                     <Button
                       size="sm"
                       variant="outline"
+                      className="w-full sm:w-auto"
                       disabled={busyId === review.id || review.reviewerIsBlocked}
                       onClick={() => blockReviewer(review.id)}
                     >

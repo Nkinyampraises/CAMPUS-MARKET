@@ -72,6 +72,33 @@ interface Conversation {
   lastMessageTime: string;
 }
 
+type CallMode = 'audio' | 'video';
+
+interface CallInvitePayload {
+  mode: CallMode;
+  roomUrl: string;
+  callerId: string;
+  callerName: string;
+  createdAt: string;
+}
+
+const CALL_INVITE_PREFIX = '__CALL_INVITE__::';
+
+const buildCallInviteContent = (payload: CallInvitePayload) =>
+  `${CALL_INVITE_PREFIX}${JSON.stringify(payload)}`;
+
+const parseCallInvite = (content?: string | null): CallInvitePayload | null => {
+  if (!content || !content.startsWith(CALL_INVITE_PREFIX)) return null;
+  try {
+    const parsed = JSON.parse(content.slice(CALL_INVITE_PREFIX.length));
+    if (!parsed || typeof parsed !== 'object') return null;
+    if (!parsed.roomUrl || (parsed.mode !== 'audio' && parsed.mode !== 'video')) return null;
+    return parsed as CallInvitePayload;
+  } catch {
+    return null;
+  }
+};
+
 export function Messages() {
   const { currentUser, isAuthenticated, accessToken } = useAuth();
   const navigate = useNavigate();
@@ -82,6 +109,7 @@ export function Messages() {
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [placingCall, setPlacingCall] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingStartTime, setRecordingStartTime] = useState<number | null>(null);
   const [recordedAudio, setRecordedAudio] = useState<string | null>(null);
@@ -91,6 +119,14 @@ export function Messages() {
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
+  const [incomingCall, setIncomingCall] = useState<{
+    messageId: string;
+    senderId: string;
+    senderName: string;
+    mode: CallMode;
+    roomUrl: string;
+    itemId?: string;
+  } | null>(null);
   
   // Ref for selectedConversation to avoid dependency cycles in fetchMessages
   const selectedConversationRef = useRef<Conversation | null>(null);
@@ -111,6 +147,9 @@ export function Messages() {
   const [showConversations, setShowConversations] = useState(true);
   
   const prevConversationIdRef = useRef<string | null>(null);
+  const hasCompletedInitialSyncRef = useRef(false);
+  const knownMessageIdsRef = useRef<Set<string>>(new Set());
+  const notifiedMessageIdsRef = useRef<Set<string>>(new Set());
   // Cache for user and item data to prevent re-fetching on every poll
   const userCache = useRef<Map<string, any>>(new Map());
   const itemCache = useRef<Map<string, any>>(new Map());
@@ -127,6 +166,13 @@ export function Messages() {
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('Notification' in window)) return;
+    if (Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => {});
+    }
   }, []);
 
   // Calculate total unread messages
@@ -207,6 +253,66 @@ export function Messages() {
     };
   }, [accessToken, isAuthenticated]);
 
+  const showBrowserNotification = useCallback((title: string, body: string) => {
+    if (typeof window === 'undefined' || !('Notification' in window)) return;
+    if (Notification.permission !== 'granted') return;
+    if (document.visibilityState === 'visible') return;
+
+    const notification = new Notification(title, {
+      body,
+      icon: '/favicon.ico',
+    });
+    notification.onclick = () => {
+      window.focus();
+      notification.close();
+    };
+  }, []);
+
+  const getMessagePreviewText = useCallback((message: Message) => {
+    if (message.isDeleted) return 'This message was deleted';
+    const callInvite = parseCallInvite(message.content);
+    if (callInvite) {
+      return callInvite.mode === 'video' ? 'Video call invite' : 'Audio call invite';
+    }
+    if (message.messageType === 'voice') return 'Voice message';
+    if (message.messageType === 'image') return 'Image';
+    return message.content || 'New message';
+  }, []);
+
+  const notifyIncomingMessage = useCallback((message: Message) => {
+    if (!currentUser || message.senderId === currentUser.id) return;
+    if (notifiedMessageIdsRef.current.has(message.id)) return;
+    notifiedMessageIdsRef.current.add(message.id);
+
+    const senderName = userCache.current.get(message.senderId)?.name || 'New message';
+    const callInvite = parseCallInvite(message.content);
+
+    if (callInvite) {
+      setIncomingCall({
+        messageId: message.id,
+        senderId: message.senderId,
+        senderName: callInvite.callerName || senderName,
+        mode: callInvite.mode,
+        roomUrl: callInvite.roomUrl,
+        itemId: message.itemId,
+      });
+      toast.info(`${callInvite.callerName || senderName} is calling`, {
+        description: `${callInvite.mode === 'video' ? 'Video' : 'Audio'} call incoming`,
+      });
+      showBrowserNotification(
+        'Incoming call',
+        `${callInvite.callerName || senderName} is ${callInvite.mode} calling`,
+      );
+      return;
+    }
+
+    const preview = getMessagePreviewText(message);
+    toast.info(`New message from ${senderName}`, {
+      description: preview,
+    });
+    showBrowserNotification(`New message from ${senderName}`, preview);
+  }, [currentUser, getMessagePreviewText, showBrowserNotification]);
+
   // Helper to mark messages as read
   const markMessagesAsRead = useCallback(async (messages: Message[]) => {
     const unreadMessages = messages.filter(m => 
@@ -251,6 +357,17 @@ export function Messages() {
       if (response.ok) {
         const data = await response.json();
         const messages: Message[] = data.messages;
+
+        if (!hasCompletedInitialSyncRef.current) {
+          messages.forEach((message) => knownMessageIdsRef.current.add(message.id));
+          hasCompletedInitialSyncRef.current = true;
+        } else {
+          const newMessages = messages.filter((message) => !knownMessageIdsRef.current.has(message.id));
+          newMessages.forEach((message) => {
+            knownMessageIdsRef.current.add(message.id);
+            notifyIncomingMessage(message);
+          });
+        }
 
         // Populate user cache from response if available (for admin)
         if (data.users && Array.isArray(data.users)) {
@@ -438,7 +555,7 @@ export function Messages() {
     } finally {
       setLoading(false);
     }
-  }, [currentUser, accessToken, searchParams, isMobileView, markMessagesAsRead]);
+  }, [currentUser, accessToken, searchParams, isMobileView, markMessagesAsRead, notifyIncomingMessage]);
 
   // Fetch messages with retry logic
   const fetchMessagesWithRetry = useCallback(async (retries = 3) => {
@@ -603,6 +720,10 @@ export function Messages() {
   }, [newMessage, recordedAudio, attachment, isRecording]);
 
   const handleNewMessage = (message: Message) => {
+    if (knownMessageIdsRef.current.has(message.id)) return;
+    knownMessageIdsRef.current.add(message.id);
+    notifyIncomingMessage(message);
+
     // Update conversations with new message
     setConversations(prev => {
       const newConversations = [...prev];
@@ -787,6 +908,7 @@ export function Messages() {
         setNewMessage('');
         setAttachment(null);
         setRecordedAudio(null);
+        toast.success('Message sent');
       } else {
         // Mark message as failed
          setSelectedConversation(prev => prev ? {
@@ -996,6 +1118,7 @@ export function Messages() {
         });
 
         setRecordedAudio(null);
+        toast.success('Voice message sent');
       } else {
         toast.error('Failed to send voice message');
       }
@@ -1226,9 +1349,160 @@ export function Messages() {
     }
   };
 
+  const callRoomName = useMemo(() => {
+    if (!selectedConversation || !currentUser?.id) return '';
+    const participants = [currentUser.id, selectedConversation.otherUser.id].sort().join('-');
+    const itemPart = selectedConversation.item?.id ? `-${selectedConversation.item.id}` : '';
+    return `unitrade-${participants}${itemPart}`.replace(/[^a-zA-Z0-9-]/g, '').toLowerCase();
+  }, [selectedConversation, currentUser?.id]);
+
+  const callRoomUrl = useMemo(() => {
+    if (!callRoomName) return '';
+    return `https://meet.jit.si/${callRoomName}`;
+  }, [callRoomName]);
+
+  const openExternalCallRoom = (roomUrl: string, mode: CallMode) => {
+    if (!currentUser || !roomUrl) return;
+
+    const displayName = encodeURIComponent(currentUser.name || 'UNITRADE User');
+    const audioOnly = mode === 'audio';
+    const callUrl = `${roomUrl}#config.startWithVideoMuted=${audioOnly ? 'true' : 'false'}&config.startAudioOnly=${audioOnly ? 'true' : 'false'}&userInfo.displayName=%22${displayName}%22`;
+    window.open(callUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  const sendCallInvite = async (mode: CallMode) => {
+    if (!selectedConversation || !currentUser || !accessToken || !callRoomUrl) return false;
+
+    const tempMessageId = `temp-call-${Date.now()}`;
+    const callInviteContent = buildCallInviteContent({
+      mode,
+      roomUrl: callRoomUrl,
+      callerId: currentUser.id,
+      callerName: currentUser.name || 'UNITRADE User',
+      createdAt: new Date().toISOString(),
+    });
+
+    const optimisticMessage: Message = {
+      id: tempMessageId,
+      senderId: currentUser.id,
+      receiverId: selectedConversation.otherUser.id,
+      itemId: selectedConversation.item?.id,
+      content: callInviteContent,
+      messageType: 'text',
+      timestamp: new Date().toISOString(),
+      read: false,
+      status: 'sending',
+    };
+
+    setSelectedConversation((prev) => (prev ? { ...prev, messages: [...prev.messages, optimisticMessage] } : null));
+    setPlacingCall(true);
+
+    try {
+      const response = await fetch(`${API_URL}/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          receiverId: selectedConversation.otherUser.id,
+          itemId: selectedConversation.item?.id,
+          content: callInviteContent,
+          messageType: 'text',
+        }),
+      });
+
+      if (!response.ok) {
+        setSelectedConversation((prev) =>
+          prev
+            ? {
+                ...prev,
+                messages: prev.messages.map((msg) =>
+                  msg.id === tempMessageId ? { ...msg, status: 'failed' } : msg,
+                ),
+              }
+            : null,
+        );
+        const text = await response.text();
+        toast.error(text || 'Failed to send call invite');
+        return false;
+      }
+
+      const data = await response.json();
+      const sentMessage = data.message;
+
+      setSelectedConversation((prev) =>
+        prev
+          ? {
+              ...prev,
+              messages: prev.messages.map((msg) =>
+                msg.id === tempMessageId ? { ...sentMessage, status: 'sent' } : msg,
+              ),
+            }
+          : null,
+      );
+
+      setConversations((prev) => {
+        const updated = prev.map((convo) =>
+          convo.otherUser.id === selectedConversation.otherUser.id
+            ? {
+                ...convo,
+                messages: [...convo.messages, sentMessage],
+                lastMessageTime: sentMessage.timestamp,
+              }
+            : convo,
+        );
+        updated.sort((a, b) => new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime());
+        return updated;
+      });
+
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({
+          type: 'new_message',
+          message: { ...sentMessage, status: 'sent' },
+        }));
+      }
+
+      toast.success(`${mode === 'audio' ? 'Audio' : 'Video'} call invite sent`);
+      return true;
+    } catch (error) {
+      console.error('Send call invite error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to send call invite');
+      return false;
+    } finally {
+      setPlacingCall(false);
+    }
+  };
+
+  const openCallRoom = async (mode: CallMode) => {
+    if (!selectedConversation || !currentUser || !callRoomUrl) return;
+    await sendCallInvite(mode);
+    openExternalCallRoom(callRoomUrl, mode);
+    toast.success(`${mode === 'audio' ? 'Audio' : 'Video'} call room opened`);
+  };
+
+  const acceptIncomingCall = async () => {
+    if (!incomingCall) return;
+
+    const existingConversation = conversations.find((conversation) => conversation.otherUser.id === incomingCall.senderId);
+    if (existingConversation) {
+      handleSelectConversation(existingConversation);
+    } else if (incomingCall.itemId) {
+      await handleStartNewConversation(incomingCall.senderId, incomingCall.itemId);
+    }
+
+    openExternalCallRoom(incomingCall.roomUrl, incomingCall.mode);
+    setIncomingCall(null);
+  };
+
+  const declineIncomingCall = () => {
+    setIncomingCall(null);
+    toast.info('Call declined');
+  };
+
   return (
     <div className="bg-background min-h-screen">
-      <div className="container mx-auto px-0">
+      <div className="container mx-auto px-0 sm:px-2">
         <div className="hidden md:block p-4">
           <Button variant="ghost" onClick={() => navigate('/dashboard')}>
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -1236,7 +1510,7 @@ export function Messages() {
           </Button>
         </div>
 
-        <Card className="md:mx-4">
+        <Card className="overflow-hidden md:mx-4">
           <CardHeader className="hidden md:block">
             <div className="flex items-center justify-between">
               <div>
@@ -1251,14 +1525,14 @@ export function Messages() {
           </CardHeader>
           <CardContent className="p-0">
             {loading ? (
-              <div className="flex justify-center items-center py-12 h-[600px]">
+              <div className="flex h-[55vh] min-h-[320px] items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
             ) : (
-              <div className="flex h-[calc(100vh-140px)] md:h-[calc(100vh-180px)]">
+              <div className="flex h-[calc(100dvh-76px)] sm:h-[calc(100dvh-88px)] md:h-[calc(100vh-180px)]">
                 {/* Conversations List - WhatsApp style sidebar */}
                 {(showConversations || !isMobileView) && (
-                  <div className={`${isMobileView ? 'absolute inset-0 z-50' : 'w-full md:w-1/3'} border-r bg-card flex flex-col`}>
+                  <div className={`${isMobileView ? 'absolute inset-0 z-50 w-full' : 'w-full md:w-1/3'} border-r bg-card flex flex-col`}>
                     {/* Mobile header for conversations list */}
                     {isMobileView && (
                       <div className="p-4 border-b flex items-center">
@@ -1315,7 +1589,7 @@ export function Messages() {
                           return (
                             <div
                               key={index}
-                              className={`p-4 cursor-pointer hover:bg-accent transition-colors border-b ${
+                              className={`cursor-pointer border-b p-3 transition-colors hover:bg-accent sm:p-4 ${
                                 isSelected ? 'bg-muted' : ''
                               }`}
                               onClick={() => handleSelectConversation(convo)}
@@ -1350,9 +1624,7 @@ export function Messages() {
                                           {lastMessage.senderId === currentUser?.id && (
                                             <span className="text-muted-foreground">You: </span>
                                           )}
-                                          {lastMessage.messageType === 'voice' ? '🎤 Voice message' : 
-                                           lastMessage.messageType === 'image' ? '📷 Image' : 
-                                           lastMessage.content}
+                                          {getMessagePreviewText(lastMessage)}
                                         </>
                                       ) : 'Start a conversation...'}
                                     </p>
@@ -1378,8 +1650,8 @@ export function Messages() {
                     {selectedConversation ? (
                       <>
                         {/* Chat Header */}
-                        <div className="p-4 border-b bg-card flex items-center justify-between">
-                          <div className="flex items-center gap-3">
+                        <div className="flex flex-wrap items-start justify-between gap-3 border-b bg-card p-3 sm:p-4">
+                          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
                             {isMobileView && (
                               <Button
                                 variant="ghost"
@@ -1397,8 +1669,8 @@ export function Messages() {
                                 {selectedConversation.otherUser.name.charAt(0).toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                                 <p className="font-semibold">
                                   {selectedConversation.otherUser.name}
                                 </p>
@@ -1433,15 +1705,27 @@ export function Messages() {
                               )}
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
                             {selectedConversation.item && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => navigate(`/item/${selectedConversation.item!.id}`)}
-                              >
-                                View Item
-                              </Button>
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="hidden sm:inline-flex"
+                                  onClick={() => navigate(`/item/${selectedConversation.item!.id}`)}
+                                >
+                                  View Item
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="sm:hidden"
+                                  onClick={() => navigate(`/item/${selectedConversation.item!.id}`)}
+                                  aria-label="View item"
+                                >
+                                  <Info className="h-4 w-4" />
+                                </Button>
+                              </>
                             )}
                             <Button 
                               size="icon" 
@@ -1455,10 +1739,44 @@ export function Messages() {
                           </div>
                         </div>
 
+                        <div className="border-b bg-muted/30 px-3 py-2 sm:px-4">
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="min-w-0">
+                              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                Calls
+                              </p>
+                              <p className="text-xs text-muted-foreground break-all">
+                                {callRoomUrl}
+                              </p>
+                            </div>
+                            <div className="flex w-full gap-2 sm:w-auto">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="flex-1 sm:flex-none"
+                                onClick={() => openCallRoom('audio')}
+                                disabled={placingCall || currentUser?.role === 'admin' || !callRoomUrl}
+                              >
+                                <Phone className="mr-1 h-4 w-4" />
+                                {placingCall ? 'Calling...' : 'Audio Call'}
+                              </Button>
+                              <Button
+                                size="sm"
+                                className="flex-1 bg-green-600 hover:bg-green-700 sm:flex-none"
+                                onClick={() => openCallRoom('video')}
+                                disabled={placingCall || currentUser?.role === 'admin' || !callRoomUrl}
+                              >
+                                <Video className="mr-1 h-4 w-4" />
+                                {placingCall ? 'Calling...' : 'Video Call'}
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+
                         {/* Messages */}
                         <div 
                           ref={scrollContainerRef} 
-                          className="flex-1 overflow-y-auto p-4 bg-gradient-to-b from-gray-50 to-white"
+                          className="flex-1 overflow-y-auto bg-gradient-to-b from-gray-50 to-white p-3 sm:p-4"
                         >
                           {selectedConversation.messages.length === 0 ? (
                             <div className="h-full flex flex-col items-center justify-center text-center p-8">
@@ -1489,6 +1807,7 @@ export function Messages() {
                                 const isAdmin = currentUser?.role === 'admin';
                                 const isVoice = msg.messageType === 'voice';
                                 const isImage = msg.messageType === 'image';
+                                const callInvite = parseCallInvite(msg.content);
                                 const isDeleted = msg.isDeleted;
                                 const senderProfile = userCache.current.get(msg.senderId);
 
@@ -1526,7 +1845,7 @@ export function Messages() {
                                       </Avatar>
                                     )}
                                     <div
-                                      className={`max-w-[70%] rounded-2xl p-3 relative ${
+                                      className={`relative max-w-[85%] rounded-2xl p-3 sm:max-w-[78%] md:max-w-[70%] ${
                                         isDeleted ? 'bg-muted text-muted-foreground italic' : bubbleClass
                                       }`}
                                     >
@@ -1573,6 +1892,23 @@ export function Messages() {
                                               {msg.isEdited && <span className="text-[10px] opacity-70 ml-1">(edited)</span>}
                                             </p>
                                           )}
+                                        </div>
+                                      ) : callInvite ? (
+                                        <div className="space-y-2">
+                                          <p className="text-sm font-semibold">
+                                            {callInvite.mode === 'video' ? 'Video call invite' : 'Audio call invite'}
+                                          </p>
+                                          <p className={`text-xs ${isMe || (isAdmin && isRightAligned) ? 'text-green-100' : 'text-muted-foreground'}`}>
+                                            {callInvite.callerName || 'Someone'} wants to start a call.
+                                          </p>
+                                          <Button
+                                            size="sm"
+                                            variant={isMe || (isAdmin && isRightAligned) ? 'secondary' : 'outline'}
+                                            onClick={() => openExternalCallRoom(callInvite.roomUrl, callInvite.mode)}
+                                          >
+                                            {callInvite.mode === 'video' ? <Video className="mr-1 h-4 w-4" /> : <Phone className="mr-1 h-4 w-4" />}
+                                            Join Call
+                                          </Button>
                                         </div>
                                       ) : (
                                         <div>
@@ -1622,7 +1958,7 @@ export function Messages() {
                                     )}
                                     {isMe && !isDeleted && !editingMessageId && currentUser?.role !== 'admin' && msg.status !== 'sending' && (
                                       <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        {msg.messageType === 'text' && (
+                                        {msg.messageType === 'text' && !parseCallInvite(msg.content) && (
                                           <Button 
                                             size="icon" 
                                             variant="ghost" 
@@ -1672,7 +2008,7 @@ export function Messages() {
                         </div>
 
                         {/* Message Input */}
-                        <div className="p-4 border-t bg-card space-y-3">
+                        <div className="space-y-3 border-t bg-card p-3 sm:p-4">
                           {attachment && (
                             <div className="relative inline-block">
                               <img 
@@ -1691,7 +2027,7 @@ export function Messages() {
                           )}
 
                           {recordedAudio && (
-                            <div className="bg-blue-50 dark:bg-blue-950/35 border border-blue-200 dark:border-blue-700/40 rounded-lg p-3 flex items-center justify-between">
+                            <div className="bg-blue-50 dark:bg-blue-950/35 border border-blue-200 dark:border-blue-700/40 rounded-lg p-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                               <div className="flex items-center gap-2">
                                 <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center">
                                   <Mic className="h-4 w-4 text-white" />
@@ -1730,7 +2066,7 @@ export function Messages() {
                           )}
 
                           {isRecording && (
-                            <div className="bg-red-50 dark:bg-red-950/35 border border-red-200 dark:border-red-700/40 rounded-lg p-3 flex items-center justify-between">
+                            <div className="bg-red-50 dark:bg-red-950/35 border border-red-200 dark:border-red-700/40 rounded-lg p-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                               <div className="flex items-center gap-2">
                                 <div className="h-3 w-3 rounded-full bg-red-600 animate-pulse"></div>
                                 <div>
@@ -1749,7 +2085,7 @@ export function Messages() {
                             </div>
                           )}
 
-                          <div className="flex gap-2">
+                          <div className="flex items-center gap-1.5 sm:gap-2">
                             <input
                               type="file"
                               ref={fileInputRef}
@@ -1760,6 +2096,7 @@ export function Messages() {
                             <Button
                               variant="ghost"
                               size="icon"
+                              className="shrink-0"
                               onClick={() => fileInputRef.current?.click()}
                               disabled={sending || isRecording || !!recordedAudio}
                             >
@@ -1779,12 +2116,13 @@ export function Messages() {
                                 }
                               }}
                               disabled={sending || isRecording || !!recordedAudio || currentUser.role === 'admin'}
-                              className="flex-1"
+                              className="min-w-0 flex-1"
                             />
                             <Button
                               onClick={isRecording ? stopRecording : startRecording}
                               variant={isRecording ? 'destructive' : 'ghost'}
                               size="icon"
+                              className="shrink-0"
                               disabled={sending || !!recordedAudio || !!attachment || currentUser.role === 'admin'}
                             >
                               <Mic className="h-5 w-5" />
@@ -1792,7 +2130,7 @@ export function Messages() {
                             <Button
                               onClick={handleSendMessage}
                               disabled={sending || (!newMessage.trim() && !recordedAudio && !attachment) || currentUser.role === 'admin'}
-                              className="bg-green-600 hover:bg-green-700"
+                              className="shrink-0 bg-green-600 hover:bg-green-700"
                             >
                               {sending ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -1828,6 +2166,31 @@ export function Messages() {
             )}
           </CardContent>
         </Card>
+
+        {incomingCall && (
+          <div className="fixed inset-x-3 bottom-4 z-[90] mx-auto w-full max-w-md rounded-xl border border-border/70 bg-card/95 p-4 shadow-lg backdrop-blur sm:inset-x-auto sm:right-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold">
+                  Incoming {incomingCall.mode === 'video' ? 'video' : 'audio'} call
+                </p>
+                <p className="text-sm text-muted-foreground truncate">{incomingCall.senderName}</p>
+              </div>
+              <Button variant="ghost" size="icon" onClick={declineIncomingCall}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <Button variant="outline" onClick={declineIncomingCall}>
+                Decline
+              </Button>
+              <Button className="bg-green-600 hover:bg-green-700" onClick={acceptIncomingCall}>
+                {incomingCall.mode === 'video' ? <Video className="mr-1 h-4 w-4" /> : <Phone className="mr-1 h-4 w-4" />}
+                Accept
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

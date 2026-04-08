@@ -144,7 +144,7 @@ export function AdminAnalytics() {
   }, [currentUser, accessToken]);
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-7xl space-y-6">
+    <div className="container mx-auto max-w-7xl space-y-6 px-3 py-8 sm:px-4">
       <Button variant="ghost" onClick={() => navigate('/admin')}>
         <ArrowLeft className="h-4 w-4 mr-2" />
         Back to Admin
@@ -207,7 +207,7 @@ export function AdminAnalytics() {
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto border rounded-lg">
-                <table className="w-full text-sm">
+                <table className="w-full min-w-[520px] text-sm">
                   <thead className="bg-muted/40">
                     <tr>
                       <th className="text-left p-3">Seller</th>

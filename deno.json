@@ -9,5 +9,49 @@
     "dist/**",
     "vite.config.ts",
     "postcss.config.mjs"
-  ]
+  ],
+  "deploy": {
+    "org": "campusmarket",
+    "app": "campus-market-live"
+  }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

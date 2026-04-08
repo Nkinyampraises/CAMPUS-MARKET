@@ -33,3 +33,5 @@ yarn-error.log*
 /mobile/.expo-shared
 /mobile/dist
 /mobile/web-build
+
+.vercel

@@ -101,7 +101,7 @@ export function Footer() {
             <p className="text-muted-foreground">
               © 2026 UNITRADE. {t('footer.rights', 'All rights reserved.')}
             </p>
-            <div className="flex gap-6 text-sm">
+            <div className="flex flex-wrap items-center justify-center gap-4 text-sm md:justify-end">
               <a href="#" className="transition-colors hover:text-primary">
                 {t('footer.privacy', 'Privacy Policy')}
               </a>

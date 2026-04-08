@@ -138,7 +138,7 @@ export function BuyerDashboard() {
   return (
     <div className="bg-background min-h-screen py-8">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between mb-8">
+        <div className="mb-8 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold">Buyer Dashboard</h1>
             <p className="text-muted-foreground">Escrow-protected purchases for {currentUser.name}</p>
@@ -252,7 +252,7 @@ export function BuyerDashboard() {
                             {new Date(order.createdAt || order.timestamp || '').toLocaleString()} • {order.paymentMethod === 'mtn-momo' ? 'MTN MoMo' : 'Orange Money'}
                           </p>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <p className="font-bold text-blue-600">{formatMoney(order.amount || 0)}</p>
                           <Button
                             size="sm"

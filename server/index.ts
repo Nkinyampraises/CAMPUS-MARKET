@@ -1,13 +1,14 @@
-import { Hono } from "npm:hono";
-import { cors } from "npm:hono/cors";
-import { logger } from "npm:hono/logger";
+import "./runtime.js";
+import { Hono } from "hono";
+import { cors } from "hono/cors";
+import { logger } from "hono/logger";
 import { Buffer } from "node:buffer";
-import * as kv from "./kv_store.tsx";
+import * as kv from "./kv_store.js";
 import {
   isEmailDeliveryConfigured,
   sendAccountConfirmationEmail,
   sendPasswordResetEmail,
-} from "./mail.ts";
+} from "./mail.js";
 
 const app = new Hono();
 
@@ -705,7 +706,7 @@ const DEFAULT_DEMO_LISTINGS = [
 
 const SUBSCRIPTION_PLAN_PRICING = {
   buyer: {
-    monthly: 24,
+    monthly: 500,
     yearly: 6000,
   },
   seller: {
@@ -2262,8 +2263,8 @@ app.post("/make-server-50b25a4f/signin", async (c) => {
       user: profile,
     });
   } catch (error) {
-    console.error('Signin error:', error);
-    return c.json({ error: 'An error occurred during signin' }, 500);
+    console.error("Signin error:", error);
+    return c.json({ error: "An error occurred during signin" }, 500);
   }
 });
 
@@ -3461,7 +3462,7 @@ async function refundEscrowOrder(order: any, actorId: string, reason: string) {
 
 // Public payment metadata for confirmation screens
 app.get("/make-server-50b25a4f/payment-meta", async (c) => {
-  const sampleAmount = 24;
+  const sampleAmount = 500;
   const sampleFee = calculateTransactionFee(sampleAmount);
   return c.json({
     merchant: {
@@ -3519,7 +3520,7 @@ app.post("/make-server-50b25a4f/subscription/update", async (c) => {
     const userType = profile.userType === "seller" ? "seller" : "buyer";
     const baseAmount = roundXafAmount(SUBSCRIPTION_PLAN_PRICING[userType][plan]);
     const transactionFee = userType === "buyer" && plan === "monthly"
-      ? Math.max(1, calculateTransactionFee(baseAmount))
+      ? 0
       : calculateTransactionFee(baseAmount);
     const totalCharged = roundXafAmount(baseAmount + transactionFee);
     const reference = `SUB-${paymentMethod.toUpperCase()}-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
@@ -5788,6 +5789,131 @@ app.post("/make-server-50b25a4f/admin/payouts/:sellerId/pay", async (c) => {
   }
 });
 
+// Reconcile a subscription payment and activate account (admin only)
+app.post("/make-server-50b25a4f/admin/subscriptions/activate/:userId", async (c) => {
+  const user = await verifyAuth(c.req.header("Authorization"));
+  if (!user) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
+  const adminProfile = await getUserProfile(user.id);
+  if (!adminProfile || adminProfile.role !== "admin") {
+    return c.json({ error: "Forbidden - Admin only" }, 403);
+  }
+
+  try {
+    const userId = c.req.param("userId");
+    if (!userId) {
+      return c.json({ error: "User ID is required" }, 400);
+    }
+
+    const profile = await getUserProfile(userId);
+    if (!profile || profile.role === "admin") {
+      return c.json({ error: "Student user not found" }, 404);
+    }
+
+    const body = await c.req.json().catch(() => ({}));
+    const plan = body?.plan === "yearly" ? "yearly" : "monthly";
+    const paymentMethod = body?.paymentMethod === "orange-money" ? "orange-money" : "mtn-momo";
+    const providedPhone = normalizePhone(body?.phoneNumber || "");
+    const phoneNumber = isValidCameroonPhone(providedPhone)
+      ? providedPhone
+      : normalizePhone(profile.phone || "");
+
+    if (!isValidCameroonPhone(phoneNumber)) {
+      return c.json({ error: "A valid Cameroon phone number is required" }, 400);
+    }
+
+    const userType = profile.userType === "seller" ? "seller" : "buyer";
+    const baseAmount = roundXafAmount(SUBSCRIPTION_PLAN_PRICING[userType][plan]);
+    const transactionFee = userType === "buyer" && plan === "monthly"
+      ? 0
+      : calculateTransactionFee(baseAmount);
+    const totalCharged = roundXafAmount(baseAmount + transactionFee);
+
+    const now = new Date();
+    const nowIso = now.toISOString();
+    const endDate = new Date(now.getTime());
+    if (plan === "yearly") {
+      endDate.setFullYear(endDate.getFullYear() + 1);
+    } else {
+      endDate.setMonth(endDate.getMonth() + 1);
+    }
+
+    const reference = typeof body?.providerReference === "string" && body.providerReference.trim()
+      ? body.providerReference.trim()
+      : `ADMIN-SUB-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+
+    const updatedProfile = {
+      ...profile,
+      phone: phoneNumber,
+      subscriptionStatus: "active",
+      subscriptionPlan: plan,
+      subscriptionStartDate: nowIso,
+      subscriptionEndDate: endDate.toISOString(),
+      subscriptionPaymentMethod: paymentMethod,
+      subscriptionPhoneNumber: phoneNumber,
+      subscriptionAmount: baseAmount,
+      subscriptionTransactionFee: transactionFee,
+      subscriptionTotalCharged: totalCharged,
+      subscriptionReference: reference,
+      subscriptionUpdatedAt: nowIso,
+    };
+    await kv.set(`user:${userId}`, updatedProfile);
+
+    await adjustWallet(ADMIN_WALLET_USER_ID, { availableDelta: totalCharged });
+
+    const paymentId = createEntityId("SUBPAY");
+    const paymentRecord = {
+      id: paymentId,
+      userId,
+      plan,
+      userType,
+      amount: baseAmount,
+      transactionFee,
+      totalCharged,
+      paymentMethod,
+      phoneNumber,
+      merchantName: MERCHANT_MOMO_NAME,
+      merchantNumber: MERCHANT_MOMO_NUMBER,
+      provider: "admin-manual",
+      providerStatus: "successful",
+      providerReference: reference,
+      providerPayload: {
+        source: "admin_reconciliation",
+        reconciledBy: user.id,
+      },
+      createdAt: nowIso,
+    };
+    await kv.set(`subscription_payment:${paymentId}`, paymentRecord);
+    await kv.set(`transaction:${paymentId}`, buildSubscriptionTransaction(paymentRecord));
+    const paymentIds = (await kv.get(`user:${userId}:subscriptionPayments`)) || [];
+    paymentIds.push(paymentId);
+    await kv.set(`user:${userId}:subscriptionPayments`, paymentIds);
+
+    await createUserNotification(userId, {
+      type: "subscription_activated",
+      title: "Subscription Activated",
+      message: `Your ${plan} subscription has been activated.`,
+      priority: "high",
+      data: {
+        subscriptionPlan: plan,
+        subscriptionEndDate: updatedProfile.subscriptionEndDate,
+      },
+    });
+
+    return c.json({
+      success: true,
+      message: "Subscription activated and reconciled",
+      user: updatedProfile,
+      payment: paymentRecord,
+    });
+  } catch (error) {
+    console.error("Admin subscription reconciliation error:", error);
+    return c.json({ error: "Failed to reconcile subscription" }, 500);
+  }
+});
+
 // ============ ADMIN USER MANAGEMENT ============
 
 // Ban/Unban a user (admin only)
@@ -5967,4 +6093,11 @@ async function startServer() {
   }
 }
 
-await startServer();
+const shouldStartDenoServer = typeof process === "undefined";
+
+if (shouldStartDenoServer) {
+  await startServer();
+}
+
+export { app };
+export default app;

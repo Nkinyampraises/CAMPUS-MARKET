@@ -16,7 +16,7 @@ const plans = {
     yearly: { price: 12000, name: 'Yearly' },
   },
   buyer: {
-    monthly: { price: 24, name: 'Monthly' },
+    monthly: { price: 500, name: 'Monthly' },
     yearly: { price: 6000, name: 'Yearly' },
   },
 };
@@ -40,9 +40,8 @@ export function Subscription() {
   const planDetails = useMemo(() => userPlans[selectedPlan], [userPlans, selectedPlan]);
   const feeOverride =
     userType === 'buyer' && selectedPlan === 'monthly'
-      ? 1
+      ? 0
       : undefined;
-
   const handleContinue = () => {
     const normalizedPhone = phoneNumber.replace(/[^\d]/g, '');
     if (!/^(\+?237)?6\d{8}$/.test(normalizedPhone)) {
@@ -69,41 +68,41 @@ export function Subscription() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-3 sm:p-4">
       <Card className="w-full max-w-4xl">
         <CardHeader className="text-center">
-          <CardTitle className="text-3xl">Choose Your Subscription Plan</CardTitle>
+          <CardTitle className="text-2xl sm:text-3xl">Choose Your Subscription Plan</CardTitle>
           <CardDescription>
             Your trial has ended. Continue with secure mobile money payment.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid gap-6 md:grid-cols-2 md:gap-8">
             <div className="space-y-6">
               <h3 className="text-lg font-semibold">1. Select Plan ({currentUser.userType})</h3>
               <RadioGroup value={selectedPlan} onValueChange={(v: 'monthly' | 'yearly') => setSelectedPlan(v)}>
                 <div
-                  className={`border rounded-lg p-4 cursor-pointer ${selectedPlan === 'monthly' ? 'border-green-600 ring-2 ring-green-600' : ''}`}
+                  className={`cursor-pointer rounded-lg border p-3 sm:p-4 ${selectedPlan === 'monthly' ? 'border-green-600 ring-2 ring-green-600' : ''}`}
                   onClick={() => setSelectedPlan('monthly')}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <RadioGroupItem value="monthly" id="monthly" />
-                      <Label htmlFor="monthly" className="font-medium text-lg">{userPlans.monthly.name}</Label>
+                      <Label htmlFor="monthly" className="font-medium text-base sm:text-lg">{userPlans.monthly.name}</Label>
                     </div>
-                    <p className="text-2xl font-bold">{userPlans.monthly.price} XAF</p>
+                    <p className="text-xl font-bold sm:text-2xl">{userPlans.monthly.price} XAF</p>
                   </div>
                 </div>
                 <div
-                  className={`border rounded-lg p-4 cursor-pointer ${selectedPlan === 'yearly' ? 'border-green-600 ring-2 ring-green-600' : ''}`}
+                  className={`cursor-pointer rounded-lg border p-3 sm:p-4 ${selectedPlan === 'yearly' ? 'border-green-600 ring-2 ring-green-600' : ''}`}
                   onClick={() => setSelectedPlan('yearly')}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <RadioGroupItem value="yearly" id="yearly" />
-                      <Label htmlFor="yearly" className="font-medium text-lg">{userPlans.yearly.name}</Label>
+                      <Label htmlFor="yearly" className="font-medium text-base sm:text-lg">{userPlans.yearly.name}</Label>
                     </div>
-                    <p className="text-2xl font-bold">{userPlans.yearly.price} XAF</p>
+                    <p className="text-xl font-bold sm:text-2xl">{userPlans.yearly.price} XAF</p>
                   </div>
                 </div>
               </RadioGroup>

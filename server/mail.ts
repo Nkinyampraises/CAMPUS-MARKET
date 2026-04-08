@@ -1,4 +1,5 @@
-import nodemailer from "npm:nodemailer";
+import "./runtime.js";
+import nodemailer from "nodemailer";
 
 const SMTP_HOST = (Deno.env.get("SMTP_HOST") || "").trim();
 const SMTP_PORT = Number.parseInt((Deno.env.get("SMTP_PORT") || "").trim(), 10) || 587;

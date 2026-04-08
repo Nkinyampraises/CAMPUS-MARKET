@@ -1,5 +1,6 @@
 import { Buffer } from "node:buffer";
-import * as kv from "./kv_store.tsx";
+import "./runtime.js";
+import * as kv from "./kv_store.js";
 
 type AuthIdentity = {
   id: string;
