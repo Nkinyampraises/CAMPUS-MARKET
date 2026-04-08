@@ -122,6 +122,21 @@ const parseCallSignal = (content?: string | null): CallSignalPayload | null => {
   }
 };
 
+const serializeSessionDescription = (
+  description: RTCSessionDescriptionInit | RTCSessionDescription,
+): RTCSessionDescriptionInit => ({
+  type: description.type,
+  sdp: description.sdp ?? '',
+});
+
+const serializeIceCandidate = (
+  candidate: RTCIceCandidate | RTCIceCandidateInit,
+): RTCIceCandidateInit => ({
+  candidate: candidate.candidate ?? '',
+  sdpMid: candidate.sdpMid ?? null,
+  sdpMLineIndex: candidate.sdpMLineIndex ?? null,
+});
+
 export function Messages() {
   const { currentUser, isAuthenticated, accessToken, refreshAuthToken } = useAuth();
   const navigate = useNavigate();
@@ -500,7 +515,7 @@ export function Messages() {
         peerId,
         {
           ...buildSignalBase('ice', callId, mode),
-          candidate: event.candidate.toJSON(),
+          candidate: serializeIceCandidate(event.candidate),
         },
         itemId,
       );
@@ -576,7 +591,7 @@ export function Messages() {
         senderId,
         {
           ...buildSignalBase('answer', signal.callId, active.mode),
-          sdp: answer.toJSON(),
+          sdp: serializeSessionDescription(answer),
         },
         itemId,
       );
@@ -1810,7 +1825,7 @@ export function Messages() {
         peerId,
         {
           ...buildSignalBase('offer', callId, mode),
-          sdp: offer.toJSON(),
+          sdp: serializeSessionDescription(offer),
         },
         itemId,
       );
