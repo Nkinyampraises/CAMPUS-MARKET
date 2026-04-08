@@ -36,13 +36,25 @@ interface AuthContextType {
   currentUser: User | null;
   accessToken: string | null;
   refreshAuthToken: (tokenOverride?: string | null) => Promise<string | null>;
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  login: (email: string, password: string) => Promise<LoginResult>;
+  verifyTwoFactorCode: (token: string, code: string) => Promise<{ success: boolean; error?: string }>;
+  resendTwoFactorCode: (token: string) => Promise<{ success: boolean; error?: string; message?: string; verificationCode?: string }>;
+  resendConfirmationEmail: (email: string) => Promise<{ success: boolean; error?: string; message?: string; confirmationLink?: string }>;
   register: (userData: RegisterData) => Promise<{ success: boolean; error?: string; message?: string; confirmationLink?: string; requiresEmailConfirmation?: boolean }>;
   logout: () => void;
   isAuthenticated: boolean;
   updateProfile: (data: Partial<User>) => Promise<{ success: boolean; error?: string }>;
   refreshUser: () => Promise<void>;
   refreshCurrentUser: () => Promise<void>;
+}
+
+interface LoginResult {
+  success: boolean;
+  error?: string;
+  requiresTwoFactor?: boolean;
+  twoFactorToken?: string;
+  message?: string;
+  verificationCode?: string;
 }
 
 interface RegisterData {
@@ -80,6 +92,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const applyAuthenticatedSession = (data: any) => {
+    const normalizedUser = normalizeUser(data.user);
+    const nextAccessToken = typeof data?.accessToken === 'string' ? data.accessToken : null;
+    const nextRefreshToken = typeof data?.refreshToken === 'string' ? data.refreshToken : null;
+
+    if (!normalizedUser || !nextAccessToken) {
+      return false;
+    }
+
+    setCurrentUser(normalizedUser);
+    setAccessToken(nextAccessToken);
+    setRefreshToken(nextRefreshToken);
+    localStorage.setItem('currentUser', JSON.stringify(normalizedUser));
+    localStorage.setItem('accessToken', nextAccessToken);
+    if (nextRefreshToken) {
+      localStorage.setItem('refreshToken', nextRefreshToken);
+    } else {
+      localStorage.removeItem('refreshToken');
+    }
+
+    return true;
+  };
 
   // Check if user is stored in localStorage on mount
   useEffect(() => {
@@ -195,7 +230,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+  const login = async (email: string, password: string): Promise<LoginResult> => {
     try {
       const response = await fetch(`${API_URL}/signin`, {
         method: 'POST',
@@ -211,22 +246,117 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { success: false, error: data.error || 'Login failed' };
       }
 
-      const normalizedUser = normalizeUser(data.user);
-      setCurrentUser(normalizedUser);
-      setAccessToken(data.accessToken);
-      setRefreshToken(data.refreshToken || null);
-      localStorage.setItem('currentUser', JSON.stringify(normalizedUser));
-      localStorage.setItem('accessToken', data.accessToken);
-      if (data.refreshToken) {
-        localStorage.setItem('refreshToken', data.refreshToken);
-      } else {
-        localStorage.removeItem('refreshToken');
+      if (data?.requiresTwoFactor && typeof data?.twoFactorToken === 'string') {
+        return {
+          success: false,
+          requiresTwoFactor: true,
+          twoFactorToken: data.twoFactorToken,
+          message: typeof data?.message === 'string' ? data.message : 'Enter the verification code to continue.',
+          verificationCode: typeof data?.verificationCode === 'string' ? data.verificationCode : undefined,
+        };
+      }
+
+      const applied = applyAuthenticatedSession(data);
+      if (!applied) {
+        return { success: false, error: 'Login response was incomplete. Please try again.' };
       }
       
       return { success: true };
     } catch (error) {
       console.error('Login error:', error);
       return { success: false, error: error instanceof Error ? error.message : 'An error occurred during login' };
+    }
+  };
+
+  const verifyTwoFactorCode = async (token: string, code: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const response = await fetch(`${API_URL}/auth/verify-2fa`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token, code }),
+      });
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        return { success: false, error: data.error || 'Invalid verification code' };
+      }
+
+      const applied = applyAuthenticatedSession(data);
+      if (!applied) {
+        return { success: false, error: 'Could not complete sign in. Please try again.' };
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error('Two-factor verification error:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to verify code',
+      };
+    }
+  };
+
+  const resendTwoFactorCode = async (
+    token: string,
+  ): Promise<{ success: boolean; error?: string; message?: string; verificationCode?: string }> => {
+    try {
+      const response = await fetch(`${API_URL}/auth/resend-2fa`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token }),
+      });
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        return { success: false, error: data.error || 'Failed to resend verification code' };
+      }
+
+      return {
+        success: true,
+        message: typeof data?.message === 'string' ? data.message : 'A new verification code was sent.',
+        verificationCode: typeof data?.verificationCode === 'string' ? data.verificationCode : undefined,
+      };
+    } catch (error) {
+      console.error('Two-factor resend error:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to resend verification code',
+      };
+    }
+  };
+
+  const resendConfirmationEmail = async (
+    email: string,
+  ): Promise<{ success: boolean; error?: string; message?: string; confirmationLink?: string }> => {
+    try {
+      const response = await fetch(`${API_URL}/auth/resend-confirmation`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        return { success: false, error: data.error || 'Failed to resend confirmation email' };
+      }
+
+      return {
+        success: true,
+        message: typeof data?.message === 'string' ? data.message : 'Confirmation email sent.',
+        confirmationLink: typeof data?.confirmationLink === 'string' ? data.confirmationLink : undefined,
+      };
+    } catch (error) {
+      console.error('Resend confirmation error:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to resend confirmation email',
+      };
     }
   };
 
@@ -341,6 +471,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     accessToken,
     refreshAuthToken,
     login,
+    verifyTwoFactorCode,
+    resendTwoFactorCode,
+    resendConfirmationEmail,
     register,
     logout,
     isAuthenticated: currentUser !== null,

@@ -8,6 +8,7 @@ import {
   isEmailDeliveryConfigured,
   sendAccountConfirmationEmail,
   sendPasswordResetEmail,
+  sendTwoFactorCodeEmail,
 } from "./mail.js";
 
 const app = new Hono();
@@ -97,6 +98,13 @@ const ACCESS_TOKEN_TTL_MS = Math.max(60_000, readEnvNumber("ACCESS_TOKEN_TTL_MS"
 const REFRESH_TOKEN_TTL_MS = Math.max(300_000, readEnvNumber("REFRESH_TOKEN_TTL_MS", 1000 * 60 * 60 * 24 * 30));
 const PASSWORD_RESET_TTL_MS = Math.max(300_000, readEnvNumber("PASSWORD_RESET_TTL_MS", 1000 * 60 * 30));
 const EMAIL_CONFIRMATION_TTL_MS = Math.max(300_000, readEnvNumber("EMAIL_CONFIRMATION_TTL_MS", 1000 * 60 * 60 * 24));
+const TWO_FACTOR_TTL_MS = Math.max(120_000, readEnvNumber("TWO_FACTOR_TTL_MS", 1000 * 60 * 10));
+const TWO_FACTOR_RESEND_COOLDOWN_MS = Math.max(15_000, readEnvNumber("TWO_FACTOR_RESEND_COOLDOWN_MS", 1000 * 60));
+const TWO_FACTOR_MAX_ATTEMPTS = Math.max(3, readEnvNumber("TWO_FACTOR_MAX_ATTEMPTS", 5));
+const TWO_FACTOR_MAX_RESENDS = Math.max(1, readEnvNumber("TWO_FACTOR_MAX_RESENDS", 5));
+const requireTwoFactorByDefault = !/^(0|false|no|off)$/i.test(
+  (Deno.env.get("AUTH_REQUIRE_TWO_FACTOR") || "true").trim(),
+);
 const MAX_UPLOAD_SIZE_BYTES = 5 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp"]);
 const FILE_ROUTE_PREFIX = "/make-server-50b25a4f/files";
@@ -147,6 +155,8 @@ const authAccessKey = (token: string) => `auth:access:${token}`;
 const authRefreshKey = (token: string) => `auth:refresh:${token}`;
 const authPasswordResetKey = (tokenHash: string) => `auth:password-reset:${tokenHash}`;
 const authEmailConfirmationKey = (tokenHash: string) => `auth:email-confirm:${tokenHash}`;
+const authTwoFactorSessionKey = (tokenHash: string) => `auth:two-factor:${tokenHash}`;
+const authUserTwoFactorSessionKey = (userId: string) => `auth:user:${userId}:two-factor`;
 const storedFileKey = (fileId: string) => `file:${fileId}`;
 
 const resolveRequestOrigin = (req: Request) => {
@@ -366,6 +376,142 @@ async function createEmailConfirmationSession(userId: string, email: string) {
   return confirmationToken;
 }
 
+const toFiniteNumber = (value: any, fallback = 0) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const TWO_FACTOR_CODE_PATTERN = /^\d{6}$/;
+
+const generateTwoFactorCode = () =>
+  String(Math.floor(Math.random() * 1_000_000)).padStart(6, "0");
+
+const isTwoFactorEnabled = (authRecord: any) => {
+  if (typeof authRecord?.twoFactorEnabled === "boolean") {
+    return authRecord.twoFactorEnabled;
+  }
+  return requireTwoFactorByDefault;
+};
+
+async function clearTwoFactorSession(tokenHash: string, fallbackUserId?: string) {
+  if (!tokenHash) {
+    return;
+  }
+
+  const existingSession = await kv.get(authTwoFactorSessionKey(tokenHash));
+  const userId = existingSession?.userId || fallbackUserId;
+  const keys = [authTwoFactorSessionKey(tokenHash)];
+
+  if (userId) {
+    keys.push(authUserTwoFactorSessionKey(userId));
+  }
+
+  await kv.mdel(keys);
+}
+
+async function createTwoFactorSession(userId: string, email: string) {
+  const token = createRandomToken(32);
+  const tokenHash = await sha256Hex(token);
+  const previousTokenHash = await kv.get(authUserTwoFactorSessionKey(userId));
+  if (typeof previousTokenHash === "string" && previousTokenHash) {
+    await kv.del(authTwoFactorSessionKey(previousTokenHash));
+  }
+
+  const code = generateTwoFactorCode();
+  const codeHash = await sha256Hex(code);
+  const now = Date.now();
+  const nowIso = new Date(now).toISOString();
+
+  const session = {
+    userId,
+    email: normalizeEmail(email),
+    codeHash,
+    attempts: 0,
+    resendCount: 0,
+    lastSentAt: nowIso,
+    createdAt: nowIso,
+    expiresAt: new Date(now + TWO_FACTOR_TTL_MS).toISOString(),
+  };
+
+  await kv.mset(
+    [authTwoFactorSessionKey(tokenHash), authUserTwoFactorSessionKey(userId)],
+    [session, tokenHash],
+  );
+
+  try {
+    if (isEmailDeliveryConfigured) {
+      await sendTwoFactorCodeEmail(session.email, code);
+      return {
+        token,
+        deliveryMethod: "email",
+      } as const;
+    }
+
+    return {
+      token,
+      deliveryMethod: "fallback",
+      fallbackCode: code,
+    } as const;
+  } catch (error) {
+    await clearTwoFactorSession(tokenHash, userId);
+    throw error;
+  }
+}
+
+async function resendTwoFactorSessionCode(token: string) {
+  const tokenHash = await sha256Hex(token);
+  const session = await kv.get(authTwoFactorSessionKey(tokenHash));
+  if (!session?.userId) {
+    return { error: "Invalid or expired verification session.", status: 401 } as const;
+  }
+
+  const now = Date.now();
+  const expiresAt = typeof session.expiresAt === "string" ? Date.parse(session.expiresAt) : Number.NaN;
+  if (!Number.isFinite(expiresAt) || expiresAt <= now) {
+    await clearTwoFactorSession(tokenHash, session.userId);
+    return { error: "Verification session expired. Please sign in again.", status: 401 } as const;
+  }
+
+  const resendCount = toFiniteNumber(session.resendCount, 0);
+  if (resendCount >= TWO_FACTOR_MAX_RESENDS) {
+    return { error: "Too many resend attempts. Please sign in again.", status: 429 } as const;
+  }
+
+  const lastSentAt = typeof session.lastSentAt === "string" ? Date.parse(session.lastSentAt) : Number.NaN;
+  if (Number.isFinite(lastSentAt) && now - lastSentAt < TWO_FACTOR_RESEND_COOLDOWN_MS) {
+    const waitMs = TWO_FACTOR_RESEND_COOLDOWN_MS - (now - lastSentAt);
+    const waitSeconds = Math.ceil(waitMs / 1000);
+    return {
+      error: `Please wait ${waitSeconds} second${waitSeconds === 1 ? "" : "s"} before requesting another code.`,
+      status: 429,
+    } as const;
+  }
+
+  const code = generateTwoFactorCode();
+  const codeHash = await sha256Hex(code);
+  const nextSession = {
+    ...session,
+    codeHash,
+    attempts: 0,
+    resendCount: resendCount + 1,
+    lastSentAt: new Date(now).toISOString(),
+    expiresAt: new Date(now + TWO_FACTOR_TTL_MS).toISOString(),
+  };
+
+  await kv.set(authTwoFactorSessionKey(tokenHash), nextSession);
+
+  if (isEmailDeliveryConfigured) {
+    await sendTwoFactorCodeEmail(nextSession.email, code);
+    return { success: true, deliveryMethod: "email" } as const;
+  }
+
+  return {
+    success: true,
+    deliveryMethod: "fallback",
+    fallbackCode: code,
+  } as const;
+}
+
 async function getValidSession(token: string, type: "access" | "refresh") {
   const lookupKey = type === "access" ? authAccessKey(token) : authRefreshKey(token);
   const session = await kv.get(lookupKey);
@@ -483,6 +629,7 @@ async function ensureLocalAdminUser() {
       email: adminEmail,
       emailVerified: true,
       emailConfirmedAt: new Date().toISOString(),
+      twoFactorEnabled: requireTwoFactorByDefault,
       ...(await createPasswordRecord(adminPassword)),
       createdAt: new Date().toISOString(),
     };
@@ -497,6 +644,9 @@ async function ensureLocalAdminUser() {
   if (authRecord.emailVerified === false) {
     authRecord.emailVerified = true;
     authRecord.emailConfirmedAt = authRecord.emailConfirmedAt || new Date().toISOString();
+  }
+  if (typeof authRecord.twoFactorEnabled !== "boolean") {
+    authRecord.twoFactorEnabled = requireTwoFactorByDefault;
   }
   await persistLocalAuthRecord(authRecord);
   if (normalizeEmail(authRecord.email) === adminEmail) {
@@ -1984,6 +2134,10 @@ app.post("/make-server-50b25a4f/signup", async (c) => {
       return c.json({ error: 'Password must be at least 6 characters' }, 400);
     }
 
+    if (!isEmailDeliveryConfigured) {
+      return c.json({ error: 'Email confirmation is unavailable right now. Please try again later.' }, 503);
+    }
+
     const existingAuthRecord = await getLocalAuthRecordByEmail(normalizedEmail);
     const existingProfile = await findUserProfileByEmail(normalizedEmail);
     if (existingAuthRecord || existingProfile) {
@@ -1991,12 +2145,12 @@ app.post("/make-server-50b25a4f/signup", async (c) => {
     }
 
     const userId = crypto.randomUUID();
-    const emailVerificationRequired = isEmailDeliveryConfigured;
     const authRecord = {
       userId,
       email: normalizedEmail,
-      emailVerified: !emailVerificationRequired,
-      emailConfirmedAt: emailVerificationRequired ? "" : new Date().toISOString(),
+      emailVerified: false,
+      emailConfirmedAt: "",
+      twoFactorEnabled: requireTwoFactorByDefault,
       ...(await createPasswordRecord(password)),
       createdAt: new Date().toISOString(),
     };
@@ -2034,28 +2188,25 @@ app.post("/make-server-50b25a4f/signup", async (c) => {
       ],
     );
 
-    let message = 'Account created successfully. No email confirmation is required. You can now log in.';
-    let confirmationLink: string | undefined;
+    const confirmationToken = await createEmailConfirmationSession(userId, normalizedEmail);
+    const confirmationLink = await createEmailConfirmationLink(c.req.raw, confirmationToken);
 
-    if (emailVerificationRequired) {
-      const confirmationToken = await createEmailConfirmationSession(userId, normalizedEmail);
-      confirmationLink = await createEmailConfirmationLink(c.req.raw, confirmationToken);
-
-      try {
-        await sendAccountConfirmationEmail(normalizedEmail, confirmationLink);
-        message = 'Account created successfully. Check your email to confirm your account before logging in.';
-      } catch (error) {
-        console.error('Confirmation email error:', error);
-        message = 'Account created, but the confirmation email could not be sent. Use the confirmation link provided below or configure SMTP correctly.';
-      }
+    try {
+      await sendAccountConfirmationEmail(normalizedEmail, confirmationLink);
+    } catch (error) {
+      console.error('Confirmation email error:', error);
+      const confirmationTokenHash = await sha256Hex(confirmationToken);
+      await kv.del(authEmailConfirmationKey(confirmationTokenHash));
+      await deleteLocalAuthRecord(userId);
+      await kv.mdel([`user:${userId}`, `wallet:${userId}`]);
+      return c.json({ error: 'We could not send your confirmation email. Please try again.' }, 503);
     }
 
     return c.json({ 
       success: true, 
-      message,
+      message: 'Account created successfully. Check your email to confirm your account before logging in.',
       userId,
-      requiresEmailConfirmation: emailVerificationRequired,
-      ...(confirmationLink ? { confirmationLink } : {}),
+      requiresEmailConfirmation: true,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'An error occurred during signup';
@@ -2155,6 +2306,7 @@ app.post("/make-server-50b25a4f/auth/reset-password", async (c) => {
         email: normalizeEmail(profile.email),
         emailVerified: true,
         emailConfirmedAt: new Date().toISOString(),
+        twoFactorEnabled: requireTwoFactorByDefault,
         createdAt: new Date().toISOString(),
       };
     }
@@ -2213,6 +2365,60 @@ app.post("/make-server-50b25a4f/auth/confirm-email", async (c) => {
   }
 });
 
+app.post("/make-server-50b25a4f/auth/resend-confirmation", async (c) => {
+  try {
+    const body = await c.req.json().catch(() => ({}));
+    const email = normalizeEmail(body?.email);
+
+    if (!email) {
+      return c.json({ error: "Email is required" }, 400);
+    }
+
+    const authRecord = await getLocalAuthRecordByEmail(email);
+    if (!authRecord?.userId) {
+      return c.json({
+        success: true,
+        message: "If an account exists for that email, a new confirmation link has been sent.",
+      });
+    }
+
+    if (authRecord.emailVerified !== false) {
+      return c.json({
+        success: true,
+        message: "This email is already confirmed. You can log in now.",
+      });
+    }
+
+    const confirmationToken = await createEmailConfirmationSession(authRecord.userId, authRecord.email);
+    const confirmationLink = await createEmailConfirmationLink(c.req.raw, confirmationToken);
+
+    if (isEmailDeliveryConfigured) {
+      try {
+        await sendAccountConfirmationEmail(authRecord.email, confirmationLink);
+        return c.json({
+          success: true,
+          message: "Confirmation email sent. Please check your inbox.",
+        });
+      } catch (error) {
+        console.error("Resend confirmation email error:", error);
+        const confirmationTokenHash = await sha256Hex(confirmationToken);
+        await kv.del(authEmailConfirmationKey(confirmationTokenHash));
+        return c.json({ error: "We could not send your confirmation email. Please try again." }, 503);
+      }
+    }
+
+    return c.json({
+      success: true,
+      message: "Email delivery is not configured here. Use the confirmation link below.",
+      confirmationLink,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to resend confirmation email";
+    console.error("Resend confirmation error:", message);
+    return c.json({ error: message }, 500);
+  }
+});
+
 // Sign in endpoint
 app.post("/make-server-50b25a4f/signin", async (c) => {
   try {
@@ -2254,6 +2460,27 @@ app.post("/make-server-50b25a4f/signin", async (c) => {
       return c.json({ error: 'Your account has been suspended. Contact support.' }, 403);
     }
 
+    if (isTwoFactorEnabled(authRecord)) {
+      try {
+        const twoFactorSession = await createTwoFactorSession(profile.id, profile.email || authRecord.email);
+        return c.json({
+          success: true,
+          requiresTwoFactor: true,
+          twoFactorToken: twoFactorSession.token,
+          message:
+            twoFactorSession.deliveryMethod === "email"
+              ? "We sent a 6-digit verification code to your email."
+              : "Enter the 6-digit verification code to finish signing in.",
+          ...(twoFactorSession.deliveryMethod === "fallback" && twoFactorSession.fallbackCode
+            ? { verificationCode: twoFactorSession.fallbackCode }
+            : {}),
+        });
+      } catch (error) {
+        console.error("Two-factor code delivery error:", error);
+        return c.json({ error: "Unable to send a verification code right now. Please try again." }, 503);
+      }
+    }
+
     const { accessToken, refreshToken } = await createSessionPair(profile.id, profile.email);
 
     return c.json({ 
@@ -2265,6 +2492,109 @@ app.post("/make-server-50b25a4f/signin", async (c) => {
   } catch (error) {
     console.error("Signin error:", error);
     return c.json({ error: "An error occurred during signin" }, 500);
+  }
+});
+
+app.post("/make-server-50b25a4f/auth/verify-2fa", async (c) => {
+  try {
+    const body = await c.req.json().catch(() => ({}));
+    const token = typeof body?.token === "string" ? body.token.trim() : "";
+    const code = typeof body?.code === "string" ? body.code.trim() : "";
+
+    if (!token || !code) {
+      return c.json({ error: "Verification token and code are required." }, 400);
+    }
+
+    if (!TWO_FACTOR_CODE_PATTERN.test(code)) {
+      return c.json({ error: "Verification code must be 6 digits." }, 400);
+    }
+
+    const tokenHash = await sha256Hex(token);
+    const session = await kv.get(authTwoFactorSessionKey(tokenHash));
+    if (!session?.userId) {
+      return c.json({ error: "Invalid or expired verification session." }, 401);
+    }
+
+    const expiresAt = typeof session.expiresAt === "string" ? Date.parse(session.expiresAt) : Number.NaN;
+    if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
+      await clearTwoFactorSession(tokenHash, session.userId);
+      return c.json({ error: "Verification session expired. Please sign in again." }, 401);
+    }
+
+    const attempts = toFiniteNumber(session.attempts, 0);
+    if (attempts >= TWO_FACTOR_MAX_ATTEMPTS) {
+      await clearTwoFactorSession(tokenHash, session.userId);
+      return c.json({ error: "Too many failed attempts. Please sign in again." }, 401);
+    }
+
+    const submittedCodeHash = await sha256Hex(code);
+    if (!timingSafeEqual(submittedCodeHash, String(session.codeHash || ""))) {
+      const nextAttempts = attempts + 1;
+      if (nextAttempts >= TWO_FACTOR_MAX_ATTEMPTS) {
+        await clearTwoFactorSession(tokenHash, session.userId);
+        return c.json({ error: "Too many failed attempts. Please sign in again." }, 401);
+      }
+
+      await kv.set(authTwoFactorSessionKey(tokenHash), {
+        ...session,
+        attempts: nextAttempts,
+      });
+      const remainingAttempts = TWO_FACTOR_MAX_ATTEMPTS - nextAttempts;
+      return c.json({
+        error: `Invalid verification code. ${remainingAttempts} attempt${remainingAttempts === 1 ? "" : "s"} remaining.`,
+      }, 400);
+    }
+
+    const profile = await getUserProfile(session.userId);
+    if (!profile || profile.isBanned) {
+      await clearTwoFactorSession(tokenHash, session.userId);
+      return c.json({ error: "Unauthorized" }, 401);
+    }
+
+    await clearTwoFactorSession(tokenHash, session.userId);
+    const { accessToken, refreshToken } = await createSessionPair(profile.id, profile.email || session.email);
+
+    return c.json({
+      success: true,
+      accessToken,
+      refreshToken,
+      user: profile,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to verify code";
+    console.error("Two-factor verification error:", message);
+    return c.json({ error: message }, 500);
+  }
+});
+
+app.post("/make-server-50b25a4f/auth/resend-2fa", async (c) => {
+  try {
+    const body = await c.req.json().catch(() => ({}));
+    const token = typeof body?.token === "string" ? body.token.trim() : "";
+
+    if (!token) {
+      return c.json({ error: "Verification token is required." }, 400);
+    }
+
+    const result = await resendTwoFactorSessionCode(token);
+    if ("error" in result) {
+      return c.json({ error: result.error }, result.status);
+    }
+
+    return c.json({
+      success: true,
+      message:
+        result.deliveryMethod === "email"
+          ? "A new 6-digit verification code has been sent to your email."
+          : "A new verification code was generated for this environment.",
+      ...(result.deliveryMethod === "fallback" && result.fallbackCode
+        ? { verificationCode: result.fallbackCode }
+        : {}),
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to resend verification code";
+    console.error("Two-factor resend error:", message);
+    return c.json({ error: message }, 500);
   }
 });
 

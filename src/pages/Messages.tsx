@@ -35,6 +35,7 @@ import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
 const ENABLE_MESSAGES_WEBSOCKET = String(import.meta.env.VITE_ENABLE_MESSAGES_WS || '').toLowerCase() === 'true';
+const CALL_PLATFORM_BASE_URL = String(import.meta.env.VITE_CALL_BASE_URL || 'https://meet.jit.si').replace(/\/+$/, '');
 
 interface Message {
   id: string;
@@ -126,6 +127,12 @@ export function Messages() {
     mode: CallMode;
     roomUrl: string;
     itemId?: string;
+  } | null>(null);
+  const [activeCall, setActiveCall] = useState<{
+    roomUrl: string;
+    mode: CallMode;
+    participantName: string;
+    embedUrl: string;
   } | null>(null);
   
   // Ref for selectedConversation to avoid dependency cycles in fetchMessages
@@ -1358,16 +1365,21 @@ export function Messages() {
 
   const callRoomUrl = useMemo(() => {
     if (!callRoomName) return '';
-    return `https://meet.jit.si/${callRoomName}`;
+    return `${CALL_PLATFORM_BASE_URL}/${callRoomName}`;
   }, [callRoomName]);
 
-  const openExternalCallRoom = (roomUrl: string, mode: CallMode) => {
+  const openInAppCallRoom = (roomUrl: string, mode: CallMode, participantName: string) => {
     if (!currentUser || !roomUrl) return;
 
     const displayName = encodeURIComponent(currentUser.name || 'UNITRADE User');
     const audioOnly = mode === 'audio';
-    const callUrl = `${roomUrl}#config.startWithVideoMuted=${audioOnly ? 'true' : 'false'}&config.startAudioOnly=${audioOnly ? 'true' : 'false'}&userInfo.displayName=%22${displayName}%22`;
-    window.open(callUrl, '_blank', 'noopener,noreferrer');
+    const callUrl = `${roomUrl}#config.startWithVideoMuted=${audioOnly ? 'true' : 'false'}&config.startAudioOnly=${audioOnly ? 'true' : 'false'}&config.prejoinPageEnabled=false&userInfo.displayName=%22${displayName}%22`;
+    setActiveCall({
+      roomUrl,
+      mode,
+      participantName,
+      embedUrl: callUrl,
+    });
   };
 
   const sendCallInvite = async (mode: CallMode) => {
@@ -1476,9 +1488,10 @@ export function Messages() {
 
   const openCallRoom = async (mode: CallMode) => {
     if (!selectedConversation || !currentUser || !callRoomUrl) return;
-    await sendCallInvite(mode);
-    openExternalCallRoom(callRoomUrl, mode);
-    toast.success(`${mode === 'audio' ? 'Audio' : 'Video'} call room opened`);
+    const sent = await sendCallInvite(mode);
+    if (!sent) return;
+    openInAppCallRoom(callRoomUrl, mode, selectedConversation.otherUser.name || 'Participant');
+    toast.success(`${mode === 'audio' ? 'Audio' : 'Video'} call opened in app`);
   };
 
   const acceptIncomingCall = async () => {
@@ -1491,7 +1504,7 @@ export function Messages() {
       await handleStartNewConversation(incomingCall.senderId, incomingCall.itemId);
     }
 
-    openExternalCallRoom(incomingCall.roomUrl, incomingCall.mode);
+    openInAppCallRoom(incomingCall.roomUrl, incomingCall.mode, incomingCall.senderName || 'Participant');
     setIncomingCall(null);
   };
 
@@ -1904,7 +1917,13 @@ export function Messages() {
                                           <Button
                                             size="sm"
                                             variant={isMe || (isAdmin && isRightAligned) ? 'secondary' : 'outline'}
-                                            onClick={() => openExternalCallRoom(callInvite.roomUrl, callInvite.mode)}
+                                            onClick={() =>
+                                              openInAppCallRoom(
+                                                callInvite.roomUrl,
+                                                callInvite.mode,
+                                                callInvite.callerName || 'Participant',
+                                              )
+                                            }
                                           >
                                             {callInvite.mode === 'video' ? <Video className="mr-1 h-4 w-4" /> : <Phone className="mr-1 h-4 w-4" />}
                                             Join Call
@@ -2188,6 +2207,41 @@ export function Messages() {
                 {incomingCall.mode === 'video' ? <Video className="mr-1 h-4 w-4" /> : <Phone className="mr-1 h-4 w-4" />}
                 Accept
               </Button>
+            </div>
+          </div>
+        )}
+
+        {activeCall && (
+          <div className="fixed inset-0 z-[100] bg-black/85 backdrop-blur-sm">
+            <div className="flex h-full flex-col">
+              <div className="flex items-center justify-between border-b border-white/10 bg-black/50 px-3 py-2 text-white sm:px-4">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold">
+                    {activeCall.mode === 'video' ? 'Video call' : 'Audio call'} with {activeCall.participantName}
+                  </p>
+                  <p className="truncate text-xs text-white/70">{activeCall.roomUrl}</p>
+                </div>
+                <Button
+                  type="button"
+                  className="bg-red-600 hover:bg-red-700"
+                  onClick={() => {
+                    setActiveCall(null);
+                    toast.info('Call ended');
+                  }}
+                >
+                  <X className="mr-1 h-4 w-4" />
+                  End Call
+                </Button>
+              </div>
+              <div className="min-h-0 flex-1">
+                <iframe
+                  title={`UNITRADE ${activeCall.mode} call`}
+                  src={activeCall.embedUrl}
+                  className="h-full w-full border-0"
+                  allow="camera; microphone; fullscreen; display-capture; clipboard-read; clipboard-write; autoplay"
+                  allowFullScreen
+                />
+              </div>
             </div>
           </div>
         )}
