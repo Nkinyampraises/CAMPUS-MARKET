@@ -2134,10 +2134,6 @@ app.post("/make-server-50b25a4f/signup", async (c) => {
       return c.json({ error: 'Password must be at least 6 characters' }, 400);
     }
 
-    if (!isEmailDeliveryConfigured) {
-      return c.json({ error: 'Email confirmation is unavailable right now. Please try again later.' }, 503);
-    }
-
     const existingAuthRecord = await getLocalAuthRecordByEmail(normalizedEmail);
     const existingProfile = await findUserProfileByEmail(normalizedEmail);
     if (existingAuthRecord || existingProfile) {
@@ -2190,23 +2186,28 @@ app.post("/make-server-50b25a4f/signup", async (c) => {
 
     const confirmationToken = await createEmailConfirmationSession(userId, normalizedEmail);
     const confirmationLink = await createEmailConfirmationLink(c.req.raw, confirmationToken);
+    let responseMessage = 'Account created successfully. Check your email to confirm your account before logging in.';
+    let fallbackConfirmationLink = '';
 
-    try {
-      await sendAccountConfirmationEmail(normalizedEmail, confirmationLink);
-    } catch (error) {
-      console.error('Confirmation email error:', error);
-      const confirmationTokenHash = await sha256Hex(confirmationToken);
-      await kv.del(authEmailConfirmationKey(confirmationTokenHash));
-      await deleteLocalAuthRecord(userId);
-      await kv.mdel([`user:${userId}`, `wallet:${userId}`]);
-      return c.json({ error: 'We could not send your confirmation email. Please try again.' }, 503);
+    if (isEmailDeliveryConfigured) {
+      try {
+        await sendAccountConfirmationEmail(normalizedEmail, confirmationLink);
+      } catch (error) {
+        console.error('Confirmation email error:', error);
+        responseMessage = 'Account created. We could not send your confirmation email right now, so use the link below to confirm.';
+        fallbackConfirmationLink = confirmationLink;
+      }
+    } else {
+      responseMessage = 'Account created. Email delivery is not configured here, so use the confirmation link below.';
+      fallbackConfirmationLink = confirmationLink;
     }
 
     return c.json({ 
       success: true, 
-      message: 'Account created successfully. Check your email to confirm your account before logging in.',
+      message: responseMessage,
       userId,
       requiresEmailConfirmation: true,
+      ...(fallbackConfirmationLink ? { confirmationLink: fallbackConfirmationLink } : {}),
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'An error occurred during signup';
@@ -2401,9 +2402,11 @@ app.post("/make-server-50b25a4f/auth/resend-confirmation", async (c) => {
         });
       } catch (error) {
         console.error("Resend confirmation email error:", error);
-        const confirmationTokenHash = await sha256Hex(confirmationToken);
-        await kv.del(authEmailConfirmationKey(confirmationTokenHash));
-        return c.json({ error: "We could not send your confirmation email. Please try again." }, 503);
+        return c.json({
+          success: true,
+          message: "We could not deliver the confirmation email right now. Use the confirmation link below.",
+          confirmationLink,
+        });
       }
     }
 
