@@ -358,6 +358,8 @@ export function Messages() {
   const queuedIceRef = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
   const outgoingRingContextRef = useRef<AudioContext | null>(null);
   const outgoingRingIntervalRef = useRef<number | null>(null);
+  const incomingRingContextRef = useRef<AudioContext | null>(null);
+  const incomingRingIntervalRef = useRef<number | null>(null);
   const callTimeoutRef = useRef<number | null>(null);
   // Cache for user and item data to prevent re-fetching on every poll
   const userCache = useRef<Map<string, any>>(new Map());
@@ -514,19 +516,54 @@ export function Messages() {
     return message.content || 'New message';
   }, [currentUser?.id]);
 
+  const resolveAccessToken = useCallback(async () => {
+    const fromState = accessToken?.trim();
+    if (fromState) return fromState;
+    const fromStorage = (localStorage.getItem('accessToken') || '').trim();
+    if (fromStorage) return fromStorage;
+    return await refreshAuthToken();
+  }, [accessToken, refreshAuthToken]);
+
+  const fetchWithAuth = useCallback(async (url: string, init: RequestInit = {}) => {
+    const withTokenHeaders = (token: string, sourceHeaders?: HeadersInit) => {
+      const headers = new Headers(sourceHeaders || {});
+      headers.set('Authorization', `Bearer ${token}`);
+      return headers;
+    };
+
+    const token = await resolveAccessToken();
+    if (!token) {
+      throw new Error('Session expired. Please log in again.');
+    }
+
+    let response = await fetch(url, {
+      ...init,
+      headers: withTokenHeaders(token, init.headers),
+    });
+
+    if (response.status === 401) {
+      const refreshed = await refreshAuthToken();
+      if (!refreshed) {
+        return response;
+      }
+      response = await fetch(url, {
+        ...init,
+        headers: withTokenHeaders(refreshed, init.headers),
+      });
+    }
+
+    return response;
+  }, [refreshAuthToken, resolveAccessToken]);
+
   const markMessageAsReadSilently = useCallback(async (messageId: string) => {
-    if (!accessToken) return;
     try {
-      await fetch(`${API_URL}/messages/${messageId}/read`, {
+      await fetchWithAuth(`${API_URL}/messages/${messageId}/read`, {
         method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
       });
     } catch (_error) {
       // noop
     }
-  }, [accessToken]);
+  }, [fetchWithAuth]);
 
   const stopStreamTracks = (stream: MediaStream | null) => {
     if (!stream) return;
@@ -546,6 +583,20 @@ export function Messages() {
       outgoingRingIntervalRef.current = null;
     }
     const context = outgoingRingContextRef.current;
+    if (context && context.state === 'running') {
+      void context.suspend().catch(() => {});
+    }
+  }, []);
+
+  const stopIncomingRingtone = useCallback(() => {
+    if (incomingRingIntervalRef.current !== null) {
+      window.clearInterval(incomingRingIntervalRef.current);
+      incomingRingIntervalRef.current = null;
+    }
+    if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+      navigator.vibrate(0);
+    }
+    const context = incomingRingContextRef.current;
     if (context && context.state === 'running') {
       void context.suspend().catch(() => {});
     }
@@ -597,9 +648,60 @@ export function Messages() {
     }, 1500);
   }, [playOutgoingRingBurst]);
 
+  const playIncomingRingBurst = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    const AudioContextClass =
+      window.AudioContext ||
+      (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextClass) return;
+
+    if (!incomingRingContextRef.current) {
+      incomingRingContextRef.current = new AudioContextClass();
+    }
+    const context = incomingRingContextRef.current;
+    if (!context) return;
+    if (context.state === 'suspended') {
+      void context.resume().catch(() => {});
+    }
+
+    const startAt = context.currentTime;
+    const gain = context.createGain();
+    gain.connect(context.destination);
+    gain.gain.setValueAtTime(0.0001, startAt);
+    gain.gain.exponentialRampToValueAtTime(0.085, startAt + 0.03);
+    gain.gain.exponentialRampToValueAtTime(0.0001, startAt + 0.55);
+
+    const oscillatorA = context.createOscillator();
+    oscillatorA.type = 'triangle';
+    oscillatorA.frequency.setValueAtTime(740, startAt);
+    oscillatorA.connect(gain);
+    oscillatorA.start(startAt);
+    oscillatorA.stop(startAt + 0.24);
+
+    const oscillatorB = context.createOscillator();
+    oscillatorB.type = 'triangle';
+    oscillatorB.frequency.setValueAtTime(622, startAt + 0.28);
+    oscillatorB.connect(gain);
+    oscillatorB.start(startAt + 0.28);
+    oscillatorB.stop(startAt + 0.55);
+
+    if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+      navigator.vibrate([220, 90, 220]);
+    }
+  }, []);
+
+  const startIncomingRingtone = useCallback(() => {
+    if (incomingRingIntervalRef.current !== null) return;
+    playIncomingRingBurst();
+    incomingRingIntervalRef.current = window.setInterval(() => {
+      playIncomingRingBurst();
+    }, 1900);
+  }, [playIncomingRingBurst]);
+
   const clearCallResources = useCallback((callId?: string) => {
     clearCallTimeout();
     stopOutgoingRingtone();
+    stopIncomingRingtone();
 
     if (peerConnectionRef.current) {
       peerConnectionRef.current.onicecandidate = null;
@@ -627,7 +729,7 @@ export function Messages() {
       queuedSignalsRef.current.clear();
       queuedIceRef.current.clear();
     }
-  }, [clearCallTimeout, stopOutgoingRingtone]);
+  }, [clearCallTimeout, stopIncomingRingtone, stopOutgoingRingtone]);
 
   const sendCallSignalMessage = useCallback(async (
     receiverId: string,
@@ -688,14 +790,6 @@ export function Messages() {
     } catch (_error) {
       return { success: false, error: 'Network error while sending call signal.' };
     }
-  }, [accessToken, refreshAuthToken]);
-
-  const resolveAccessToken = useCallback(async () => {
-    const fromState = accessToken?.trim();
-    if (fromState) return fromState;
-    const fromStorage = (localStorage.getItem('accessToken') || '').trim();
-    if (fromStorage) return fromStorage;
-    return await refreshAuthToken();
   }, [accessToken, refreshAuthToken]);
 
   const sendCallLogMessage = useCallback(async (
@@ -887,13 +981,27 @@ export function Messages() {
     mode: CallMode,
     facingMode: 'user' | 'environment' = 'user',
   ) => {
-    return await navigator.mediaDevices.getUserMedia({
+    const preferredConstraints: MediaStreamConstraints = {
       audio: {
         echoCancellation: true,
         noiseSuppression: true,
+        autoGainControl: true,
       },
       video: mode === 'video' ? { facingMode } : false,
-    });
+    };
+    try {
+      return await navigator.mediaDevices.getUserMedia(preferredConstraints);
+    } catch (primaryError) {
+      const fallbackConstraints: MediaStreamConstraints = {
+        audio: true,
+        video: mode === 'video' ? true : false,
+      };
+      try {
+        return await navigator.mediaDevices.getUserMedia(fallbackConstraints);
+      } catch {
+        throw primaryError;
+      }
+    }
   }, []);
 
   const applySignalingPayload = useCallback(async (
@@ -987,9 +1095,6 @@ export function Messages() {
         itemId: message.itemId,
       });
 
-      toast.info(`${signal.callerName || 'Someone'} is calling`, {
-        description: `${signal.mode === 'video' ? 'Video' : 'Audio'} call incoming`,
-      });
       showBrowserNotification(
         'Incoming call',
         `${signal.callerName || 'Someone'} is ${signal.mode} calling`,
@@ -1060,11 +1165,8 @@ export function Messages() {
 
     for (const msg of unreadMessages) {
       try {
-        await fetch(`${API_URL}/messages/${msg.id}/read`, {
+        await fetchWithAuth(`${API_URL}/messages/${msg.id}/read`, {
           method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-          },
         });
         
         // Notify via WebSocket
@@ -1079,7 +1181,7 @@ export function Messages() {
         console.error('Mark read error:', error);
       }
     }
-  }, [currentUser, accessToken]);
+  }, [currentUser, fetchWithAuth]);
 
   // Fetch messages function
   const fetchMessages = useCallback(async () => {
@@ -1087,27 +1189,7 @@ export function Messages() {
 
     try {
       const endpoint = currentUser.role === 'admin' ? '/admin/messages' : '/messages';
-      const makeRequest = (token: string) =>
-        fetch(`${API_URL}${endpoint}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-
-      let token = await resolveAccessToken();
-      if (!token) {
-        throw new Error('Session expired. Please log in again.');
-      }
-
-      let response = await makeRequest(token);
-      if (response.status === 401) {
-        const refreshed = await refreshAuthToken();
-        if (!refreshed) {
-          throw new Error('Session expired. Please log in again.');
-        }
-        token = refreshed;
-        response = await makeRequest(token);
-      }
+      const response = await fetchWithAuth(`${API_URL}${endpoint}`);
 
       if (response.ok) {
         const data = await response.json();
@@ -1155,9 +1237,7 @@ export function Messages() {
         await Promise.all([
           ...Array.from(userIdsToFetch).map(async (id) => {
             try {
-              const res = await fetch(`${API_URL}/users/${id}`, {
-                 headers: { 'Authorization': `Bearer ${token}` }
-              });
+              const res = await fetchWithAuth(`${API_URL}/users/${id}`);
               if (res.ok) {
                 const data = await res.json();
                 userCache.current.set(id, data.user);
@@ -1170,9 +1250,7 @@ export function Messages() {
           }),
           ...Array.from(itemIdsToFetch).map(async (id) => {
             try {
-              const res = await fetch(`${API_URL}/listings/${id}`, {
-                 headers: { 'Authorization': `Bearer ${token}` }
-              });
+              const res = await fetchWithAuth(`${API_URL}/listings/${id}`);
               if (res.ok) {
                 const data = await res.json();
                 itemCache.current.set(id, data.listing);
@@ -1313,7 +1391,7 @@ export function Messages() {
     } finally {
       setLoading(false);
     }
-  }, [currentUser, searchParams, isMobileView, markMessagesAsRead, notifyIncomingMessage, refreshAuthToken, resolveAccessToken]);
+  }, [currentUser, fetchWithAuth, isMobileView, markMessagesAsRead, notifyIncomingMessage, searchParams]);
 
   // Fetch messages with retry logic
   const fetchMessagesWithRetry = useCallback(async (retries = 3) => {
@@ -1334,13 +1412,13 @@ export function Messages() {
   const handleStartNewConversation = useCallback(async (userId: string, itemId: string) => {
     try {
       // Fetch user info
-      const userResponse = await fetch(`${API_URL}/users/${userId}`, {
-        headers: { 'Authorization': `Bearer ${accessToken}` },
+      const userResponse = await fetchWithAuth(`${API_URL}/users/${userId}`, {
+        method: 'GET',
       });
       
       // Fetch item info
-      const itemResponse = await fetch(`${API_URL}/listings/${itemId}`, {
-        headers: { 'Authorization': `Bearer ${accessToken}` },
+      const itemResponse = await fetchWithAuth(`${API_URL}/listings/${itemId}`, {
+        method: 'GET',
       });
 
       const userData = userResponse.ok ? await userResponse.json() : null;
@@ -1390,7 +1468,7 @@ export function Messages() {
       console.error('Error starting new conversation:', error);
       toast.error('Failed to start conversation');
     }
-  }, [accessToken, conversations, isMobileView]);
+  }, [conversations, fetchWithAuth, isMobileView]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -1450,6 +1528,14 @@ export function Messages() {
   }, [isAuthenticated, navigate, fetchMessagesWithRetry, searchParams, location.state, sending, isRecording, fetchMessages, handleStartNewConversation, activeCall, incomingCall]);
 
   useEffect(() => {
+    if (incomingCall && !activeCall) {
+      startIncomingRingtone();
+      return;
+    }
+    stopIncomingRingtone();
+  }, [activeCall, incomingCall, startIncomingRingtone, stopIncomingRingtone]);
+
+  useEffect(() => {
     // Auto-scroll to bottom when new messages arrive
     if (messagesEndRef.current && selectedConversation) {
       const isNewConversation = prevConversationIdRef.current !== selectedConversation.otherUser.id;
@@ -1492,6 +1578,12 @@ export function Messages() {
         );
       }
       clearCallResources(active?.callId);
+      if (outgoingRingContextRef.current) {
+        void outgoingRingContextRef.current.close().catch(() => {});
+      }
+      if (incomingRingContextRef.current) {
+        void incomingRingContextRef.current.close().catch(() => {});
+      }
     };
   }, [buildSignalBase, clearCallResources, sendCallSignalMessage]);
 
@@ -1636,30 +1728,13 @@ export function Messages() {
         audioData: recordedAudio,
         attachmentData: attachment,
       };
-      const postMessage = (token: string) =>
-        fetch(`${API_URL}/messages`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify(requestBody),
-        });
-
-      let token = await resolveAccessToken();
-      if (!token) {
-        throw new Error('Session expired. Please log in again.');
-      }
-
-      let response = await postMessage(token);
-      if (response.status === 401) {
-        const refreshed = await refreshAuthToken();
-        if (!refreshed) {
-          throw new Error('Session expired. Please log in again.');
-        }
-        token = refreshed;
-        response = await postMessage(token);
-      }
+      const response = await fetchWithAuth(`${API_URL}/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
 
       if (response.ok) {
         const data = await response.json();
@@ -1874,30 +1949,13 @@ export function Messages() {
         messageType: 'voice',
         audioData: recordedAudio,
       };
-      const postVoiceMessage = (token: string) =>
-        fetch(`${API_URL}/messages`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify(requestBody),
-        });
-
-      let token = await resolveAccessToken();
-      if (!token) {
-        throw new Error('Session expired. Please log in again.');
-      }
-
-      let response = await postVoiceMessage(token);
-      if (response.status === 401) {
-        const refreshed = await refreshAuthToken();
-        if (!refreshed) {
-          throw new Error('Session expired. Please log in again.');
-        }
-        token = refreshed;
-        response = await postVoiceMessage(token);
-      }
+      const response = await fetchWithAuth(`${API_URL}/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
 
       if (response.ok) {
         const data = await response.json();
@@ -1934,10 +1992,22 @@ export function Messages() {
         setRecordedAudio(null);
         toast.success('Voice message sent');
       } else {
+        setSelectedConversation(prev => prev ? {
+          ...prev,
+          messages: prev.messages.map(msg =>
+            msg.id === tempMessageId ? { ...msg, status: 'failed' } : msg
+          ),
+        } : null);
         toast.error('Failed to send voice message');
       }
     } catch (error) {
       console.error('Send voice message error:', error);
+      setSelectedConversation(prev => prev ? {
+        ...prev,
+        messages: prev.messages.map(msg =>
+          msg.id === tempMessageId ? { ...msg, status: 'failed' } : msg
+        ),
+      } : null);
       toast.error(error instanceof Error ? error.message : 'An error occurred');
     } finally {
       setSending(false);
@@ -1976,17 +2046,11 @@ export function Messages() {
       return;
     }
 
-    if (!accessToken) {
-      toast.error('You must be logged in');
-      return;
-    }
-
     try {
-      const response = await fetch(`${API_URL}/messages/${editingMessageId}`, {
+      const response = await fetchWithAuth(`${API_URL}/messages/${editingMessageId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
         },
         body: JSON.stringify({ content: editContent.trim() })
       });
@@ -2031,15 +2095,9 @@ export function Messages() {
       return;
     }
 
-    if (!accessToken) {
-      toast.error('You must be logged in');
-      return;
-    }
-
     try {
-      const response = await fetch(`${API_URL}/messages/${messageId}`, {
+      const response = await fetchWithAuth(`${API_URL}/messages/${messageId}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${accessToken}` },
       });
 
      if (response.ok) {
@@ -2069,20 +2127,14 @@ export function Messages() {
   const handleDeleteConversation = async () => {
     if (!selectedConversation || !confirm('Delete this entire conversation? This cannot be undone.')) return;
 
-    if (!accessToken) {
-      toast.error('You must be logged in');
-      return;
-    }
-
     if (!selectedConversation.otherUser?.id) {
       toast.error('Invalid conversation user');
       return;
     }
 
     try {
-      const response = await fetch(`${API_URL}/conversations/${selectedConversation.otherUser.id}`, {
+      const response = await fetchWithAuth(`${API_URL}/conversations/${selectedConversation.otherUser.id}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${accessToken}` },
       });
 
       if (response.ok) {
@@ -2194,7 +2246,7 @@ export function Messages() {
   }, [buildCallLogBase, buildSignalBase, clearCallResources, clearCallTimeout, sendCallLogMessage, sendCallSignalMessage]);
 
   const startCall = async (mode: CallMode) => {
-    if (!selectedConversation || !currentUser || !accessToken) return;
+    if (!selectedConversation || !currentUser) return;
     if (activeCallRef.current) {
       toast.error('Finish your current call first');
       return;
@@ -2306,7 +2358,7 @@ export function Messages() {
   }, [buildCallLogBase, buildSignalBase, clearCallResources, sendCallLogMessage, sendCallSignalMessage]);
 
   const acceptIncomingCall = async () => {
-    if (!incomingCall || !currentUser) return;
+    if (!incomingCall || !currentUser || placingCall || activeCallRef.current) return;
 
     const existingConversation = conversations.find(
       (conversation) => conversation.otherUser.id === incomingCall.senderId,
@@ -2319,8 +2371,16 @@ export function Messages() {
 
     setPlacingCall(true);
     try {
-      const stream = await getCallMediaStream(incomingCall.mode, 'user');
-      setLocalCallStream(stream);
+      let stream: MediaStream;
+      try {
+        stream = await getCallMediaStream(incomingCall.mode, 'user');
+        setLocalCallStream(stream);
+      } catch (mediaError) {
+        console.warn('Incoming call accepted without local media stream:', mediaError);
+        stream = new MediaStream();
+        setLocalCallStream(null);
+        toast.warning('Camera or microphone unavailable. Joining in listen-only mode.');
+      }
 
       const peerConnection = ensurePeerConnection(
         incomingCall.callId,
@@ -2329,6 +2389,8 @@ export function Messages() {
         incomingCall.itemId,
       );
       stream.getTracks().forEach((track) => peerConnection.addTrack(track, stream));
+      const hasMicrophoneTrack = stream.getAudioTracks().length > 0;
+      const hasVideoTrack = stream.getVideoTracks().length > 0;
 
       setActiveCall({
         callId: incomingCall.callId,
@@ -2341,12 +2403,14 @@ export function Messages() {
         status: 'connecting',
         cameraFacing: 'user',
         speakerOn: true,
-        isMuted: false,
-        videoEnabled: incomingCall.mode === 'video',
+        isMuted: !hasMicrophoneTrack,
+        videoEnabled: incomingCall.mode === 'video' ? hasVideoTrack : false,
         connectedAt: null,
       });
 
-      const queuedSignals = queuedSignalsRef.current.get(incomingCall.callId) || [];
+      const queuedSignals = (queuedSignalsRef.current.get(incomingCall.callId) || [])
+        .slice()
+        .sort((left, right) => Date.parse(left.createdAt || '') - Date.parse(right.createdAt || ''));
       queuedSignalsRef.current.delete(incomingCall.callId);
       for (const signal of queuedSignals) {
         await applySignalingPayload(signal, incomingCall.senderId, incomingCall.itemId);
@@ -3169,7 +3233,10 @@ export function Messages() {
         </Card>
 
         {incomingCall && (
-          <div className="fixed inset-x-3 bottom-4 z-[90] mx-auto w-full max-w-md rounded-xl border border-border/70 bg-card/95 p-4 shadow-lg backdrop-blur sm:inset-x-auto sm:right-4">
+          <div
+            className="fixed inset-x-3 z-[110] mx-auto w-full max-w-md rounded-xl border border-border/70 bg-card/95 p-4 shadow-lg backdrop-blur sm:inset-x-auto sm:right-4"
+            style={{ bottom: 'max(1rem, calc(env(safe-area-inset-bottom) + 1rem))' }}
+          >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-sm font-semibold">
@@ -3177,15 +3244,15 @@ export function Messages() {
                 </p>
                 <p className="text-sm text-muted-foreground truncate">{incomingCall.senderName}</p>
               </div>
-              <Button variant="ghost" size="icon" onClick={declineIncomingCall}>
+              <Button variant="ghost" size="icon" onClick={declineIncomingCall} disabled={placingCall}>
                 <X className="h-4 w-4" />
               </Button>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-2">
-              <Button variant="outline" onClick={declineIncomingCall}>
+              <Button variant="outline" onClick={declineIncomingCall} disabled={placingCall}>
                 Decline
               </Button>
-              <Button className="bg-green-600 hover:bg-green-700" onClick={acceptIncomingCall}>
+              <Button className="bg-green-600 hover:bg-green-700" onClick={acceptIncomingCall} disabled={placingCall}>
                 {incomingCall.mode === 'video' ? <Video className="mr-1 h-4 w-4" /> : <Phone className="mr-1 h-4 w-4" />}
                 Accept
               </Button>
