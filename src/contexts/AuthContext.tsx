@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 
 interface User {
   id: string;
@@ -92,6 +92,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const refreshInFlightRef = useRef<Promise<string | null> | null>(null);
 
   const applyAuthenticatedSession = (data: any) => {
     const normalizedUser = normalizeUser(data.user);
@@ -190,44 +191,71 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const refreshAuthToken = async (tokenOverride?: string | null): Promise<string | null> => {
+    if (refreshInFlightRef.current) {
+      return await refreshInFlightRef.current;
+    }
+
     const tokenToUse = tokenOverride || refreshToken || localStorage.getItem('refreshToken');
     if (!tokenToUse) {
       return null;
     }
 
-    try {
-      const response = await fetch(`${API_URL}/auth/refresh`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ refreshToken: tokenToUse }),
-      });
+    const runRefresh = async (): Promise<string | null> => {
+      const refreshWithToken = async (token: string) => {
+        return await fetch(`${API_URL}/auth/refresh`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ refreshToken: token }),
+        });
+      };
 
-      if (!response.ok) {
-        logout();
+      try {
+        let response = await refreshWithToken(tokenToUse);
+        let usedToken = tokenToUse;
+
+        // Another request/tab may have already rotated tokens; retry once with the latest token.
+        if (!response.ok && response.status === 401) {
+          const latestToken = localStorage.getItem('refreshToken');
+          if (latestToken && latestToken !== tokenToUse) {
+            response = await refreshWithToken(latestToken);
+            usedToken = latestToken;
+          }
+        }
+
+        if (!response.ok) {
+          return null;
+        }
+
+        const data = await response.json();
+        const nextAccessToken = typeof data?.accessToken === 'string' ? data.accessToken : null;
+        const nextRefreshToken =
+          typeof data?.refreshToken === 'string' ? data.refreshToken : usedToken;
+
+        if (!nextAccessToken || !nextRefreshToken) {
+          return null;
+        }
+
+        setAccessToken(nextAccessToken);
+        setRefreshToken(nextRefreshToken);
+        localStorage.setItem('accessToken', nextAccessToken);
+        localStorage.setItem('refreshToken', nextRefreshToken);
+        return nextAccessToken;
+      } catch (error) {
+        console.error('Token refresh error:', error);
         return null;
+      } finally {
+        refreshInFlightRef.current = null;
       }
+    };
 
-      const data = await response.json();
-      const nextAccessToken = typeof data?.accessToken === 'string' ? data.accessToken : null;
-      const nextRefreshToken =
-        typeof data?.refreshToken === 'string' ? data.refreshToken : tokenToUse;
-
-      if (!nextAccessToken) {
-        logout();
-        return null;
-      }
-
-      setAccessToken(nextAccessToken);
-      setRefreshToken(nextRefreshToken);
-      localStorage.setItem('accessToken', nextAccessToken);
-      localStorage.setItem('refreshToken', nextRefreshToken);
-      return nextAccessToken;
-    } catch (error) {
-      console.error('Token refresh error:', error);
-      return null;
+    refreshInFlightRef.current = runRefresh();
+    const refreshed = await refreshInFlightRef.current;
+    if (!refreshed && !localStorage.getItem('refreshToken')) {
+      logout();
     }
+    return refreshed;
   };
 
   const login = async (email: string, password: string): Promise<LoginResult> => {
