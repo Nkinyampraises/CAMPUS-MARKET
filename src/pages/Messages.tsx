@@ -134,7 +134,7 @@ interface Conversation {
 
 type CallMode = 'audio' | 'video';
 
-type CallSignalType = 'invite' | 'offer' | 'answer' | 'ice' | 'end' | 'decline';
+type CallSignalType = 'invite' | 'accept' | 'offer' | 'answer' | 'ice' | 'end' | 'decline';
 type CallLogOutcome = 'started' | 'no_answer' | 'declined' | 'completed';
 
 interface CallSignalPayload {
@@ -161,7 +161,7 @@ interface CallLogPayload {
 const CALL_SIGNAL_PREFIX = '__CALL_SIGNAL__::';
 const LEGACY_CALL_INVITE_PREFIX = '__CALL_INVITE__::';
 const CALL_LOG_PREFIX = '__CALL_LOG__::';
-const CALL_NO_ANSWER_TIMEOUT_MS = 30000;
+const CALL_NO_ANSWER_TIMEOUT_MS = 45000;
 
 const buildCallSignalContent = (payload: CallSignalPayload) =>
   `${CALL_SIGNAL_PREFIX}${JSON.stringify(payload)}`;
@@ -1111,6 +1111,16 @@ export function Messages() {
       return;
     }
 
+    if (signal.signalType === 'accept') {
+      const active = activeCallRef.current;
+      if (active?.callId === signal.callId) {
+        clearCallTimeout();
+        stopOutgoingRingtone();
+        setActiveCall((prev) => (prev ? { ...prev, status: 'connecting' } : prev));
+      }
+      return;
+    }
+
     if (signal.signalType === 'end') {
       const active = activeCallRef.current;
       if (active?.callId === signal.callId) {
@@ -1127,11 +1137,13 @@ export function Messages() {
   }, [
     applySignalingPayload,
     buildSignalBase,
+    clearCallTimeout,
     clearCallResources,
     currentUser,
     incomingCall?.callId,
     markMessageAsReadSilently,
     sendCallSignalMessage,
+    stopOutgoingRingtone,
     showBrowserNotification,
   ]);
 
@@ -2359,21 +2371,33 @@ export function Messages() {
 
   const acceptIncomingCall = async () => {
     if (!incomingCall || !currentUser || placingCall || activeCallRef.current) return;
+    const acceptedCall = incomingCall;
 
     const existingConversation = conversations.find(
-      (conversation) => conversation.otherUser.id === incomingCall.senderId,
+      (conversation) => conversation.otherUser.id === acceptedCall.senderId,
     );
     if (existingConversation) {
       handleSelectConversation(existingConversation);
-    } else if (incomingCall.itemId) {
-      await handleStartNewConversation(incomingCall.senderId, incomingCall.itemId);
+    } else if (acceptedCall.itemId) {
+      await handleStartNewConversation(acceptedCall.senderId, acceptedCall.itemId);
     }
 
     setPlacingCall(true);
     try {
+      const acceptSignalResult = await sendCallSignalMessage(
+        acceptedCall.senderId,
+        {
+          ...buildSignalBase('accept', acceptedCall.callId, acceptedCall.mode),
+        },
+        acceptedCall.itemId,
+      );
+      if (!acceptSignalResult.success) {
+        throw new Error(acceptSignalResult.error || 'Failed to send call acceptance');
+      }
+
       let stream: MediaStream;
       try {
-        stream = await getCallMediaStream(incomingCall.mode, 'user');
+        stream = await getCallMediaStream(acceptedCall.mode, 'user');
         setLocalCallStream(stream);
       } catch (mediaError) {
         console.warn('Incoming call accepted without local media stream:', mediaError);
@@ -2383,44 +2407,51 @@ export function Messages() {
       }
 
       const peerConnection = ensurePeerConnection(
-        incomingCall.callId,
-        incomingCall.senderId,
-        incomingCall.mode,
-        incomingCall.itemId,
+        acceptedCall.callId,
+        acceptedCall.senderId,
+        acceptedCall.mode,
+        acceptedCall.itemId,
       );
       stream.getTracks().forEach((track) => peerConnection.addTrack(track, stream));
       const hasMicrophoneTrack = stream.getAudioTracks().length > 0;
       const hasVideoTrack = stream.getVideoTracks().length > 0;
 
       setActiveCall({
-        callId: incomingCall.callId,
-        peerId: incomingCall.senderId,
-        peerName: incomingCall.senderName || 'Participant',
-        callerId: incomingCall.senderId,
-        callerName: incomingCall.senderName || 'UNITRADE User',
-        mode: incomingCall.mode,
-        itemId: incomingCall.itemId,
+        callId: acceptedCall.callId,
+        peerId: acceptedCall.senderId,
+        peerName: acceptedCall.senderName || 'Participant',
+        callerId: acceptedCall.senderId,
+        callerName: acceptedCall.senderName || 'UNITRADE User',
+        mode: acceptedCall.mode,
+        itemId: acceptedCall.itemId,
         status: 'connecting',
         cameraFacing: 'user',
         speakerOn: true,
         isMuted: !hasMicrophoneTrack,
-        videoEnabled: incomingCall.mode === 'video' ? hasVideoTrack : false,
+        videoEnabled: acceptedCall.mode === 'video' ? hasVideoTrack : false,
         connectedAt: null,
       });
 
-      const queuedSignals = (queuedSignalsRef.current.get(incomingCall.callId) || [])
+      const queuedSignals = (queuedSignalsRef.current.get(acceptedCall.callId) || [])
         .slice()
         .sort((left, right) => Date.parse(left.createdAt || '') - Date.parse(right.createdAt || ''));
-      queuedSignalsRef.current.delete(incomingCall.callId);
+      queuedSignalsRef.current.delete(acceptedCall.callId);
       for (const signal of queuedSignals) {
-        await applySignalingPayload(signal, incomingCall.senderId, incomingCall.itemId);
+        await applySignalingPayload(signal, acceptedCall.senderId, acceptedCall.itemId);
       }
 
       setIncomingCall(null);
       void fetchMessages();
     } catch (error) {
       console.error('Accept call error:', error);
-      clearCallResources(incomingCall.callId);
+      await sendCallSignalMessage(
+        acceptedCall.senderId,
+        {
+          ...buildSignalBase('decline', acceptedCall.callId, acceptedCall.mode),
+        },
+        acceptedCall.itemId,
+      );
+      clearCallResources(acceptedCall.callId);
       toast.error('Unable to join this call');
     } finally {
       setPlacingCall(false);
