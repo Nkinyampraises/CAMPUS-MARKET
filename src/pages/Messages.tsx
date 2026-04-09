@@ -44,11 +44,56 @@ import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
 const ENABLE_MESSAGES_WEBSOCKET = String(import.meta.env.VITE_ENABLE_MESSAGES_WS || '').toLowerCase() === 'true';
+const parseConfiguredIceServers = (): RTCIceServer[] => {
+  const raw = String(import.meta.env.VITE_WEBRTC_ICE_SERVERS || '').trim();
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((entry) => entry && typeof entry === 'object') as RTCIceServer[];
+  } catch {
+    return [];
+  }
+};
+
+const configuredTurnUrls = String(import.meta.env.VITE_TURN_URLS || '')
+  .split(',')
+  .map((entry) => entry.trim())
+  .filter(Boolean);
+const configuredTurnUsername = String(import.meta.env.VITE_TURN_USERNAME || '').trim();
+const configuredTurnCredential = String(import.meta.env.VITE_TURN_CREDENTIAL || '').trim();
+const defaultRelayServers: RTCIceServer[] = [
+  { urls: 'stun:openrelay.metered.ca:80' },
+  {
+    urls: [
+      'turn:openrelay.metered.ca:80',
+      'turn:openrelay.metered.ca:443',
+      'turn:openrelay.metered.ca:443?transport=tcp',
+    ],
+    username: 'openrelayproject',
+    credential: 'openrelayproject',
+  },
+];
+const configuredRelayServers: RTCIceServer[] = configuredTurnUrls.length
+  ? [{
+      urls: configuredTurnUrls,
+      ...(configuredTurnUsername && configuredTurnCredential
+        ? {
+            username: configuredTurnUsername,
+            credential: configuredTurnCredential,
+          }
+        : {}),
+    }]
+  : [];
 const WEBRTC_CONFIGURATION: RTCConfiguration = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
+    ...defaultRelayServers,
+    ...configuredRelayServers,
+    ...parseConfiguredIceServers(),
   ],
+  iceCandidatePoolSize: 10,
 };
 
 interface Message {
@@ -560,6 +605,7 @@ export function Messages() {
       peerConnectionRef.current.onicecandidate = null;
       peerConnectionRef.current.ontrack = null;
       peerConnectionRef.current.onconnectionstatechange = null;
+      peerConnectionRef.current.oniceconnectionstatechange = null;
       peerConnectionRef.current.close();
       peerConnectionRef.current = null;
     }
@@ -642,6 +688,14 @@ export function Messages() {
     } catch (_error) {
       return { success: false, error: 'Network error while sending call signal.' };
     }
+  }, [accessToken, refreshAuthToken]);
+
+  const resolveAccessToken = useCallback(async () => {
+    const fromState = accessToken?.trim();
+    if (fromState) return fromState;
+    const fromStorage = (localStorage.getItem('accessToken') || '').trim();
+    if (fromStorage) return fromStorage;
+    return await refreshAuthToken();
   }, [accessToken, refreshAuthToken]);
 
   const sendCallLogMessage = useCallback(async (
@@ -780,7 +834,11 @@ export function Messages() {
           candidate: serializeIceCandidate(event.candidate),
         },
         itemId,
-      );
+      ).then((result) => {
+        if (!result.success) {
+          console.error('Failed to send ICE signal:', result.error);
+        }
+      });
     };
 
     peerConnection.ontrack = (event) => {
@@ -803,6 +861,21 @@ export function Messages() {
         if (active) {
           clearCallResources(active.callId);
           toast.error('Call ended');
+        }
+      }
+    };
+
+    peerConnection.oniceconnectionstatechange = () => {
+      const iceState = peerConnection.iceConnectionState;
+      if (iceState === 'connected' || iceState === 'completed') {
+        markCallConnected();
+        return;
+      }
+      if (iceState === 'failed') {
+        const active = activeCallRef.current;
+        if (active?.callId === callId) {
+          clearCallResources(active.callId);
+          toast.error('Call failed due to network connectivity.');
         }
       }
     };
@@ -1014,11 +1087,27 @@ export function Messages() {
 
     try {
       const endpoint = currentUser.role === 'admin' ? '/admin/messages' : '/messages';
-      const response = await fetch(`${API_URL}${endpoint}`, {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-        },
-      });
+      const makeRequest = (token: string) =>
+        fetch(`${API_URL}${endpoint}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+      let token = await resolveAccessToken();
+      if (!token) {
+        throw new Error('Session expired. Please log in again.');
+      }
+
+      let response = await makeRequest(token);
+      if (response.status === 401) {
+        const refreshed = await refreshAuthToken();
+        if (!refreshed) {
+          throw new Error('Session expired. Please log in again.');
+        }
+        token = refreshed;
+        response = await makeRequest(token);
+      }
 
       if (response.ok) {
         const data = await response.json();
@@ -1067,7 +1156,7 @@ export function Messages() {
           ...Array.from(userIdsToFetch).map(async (id) => {
             try {
               const res = await fetch(`${API_URL}/users/${id}`, {
-                 headers: { 'Authorization': `Bearer ${accessToken}` }
+                 headers: { 'Authorization': `Bearer ${token}` }
               });
               if (res.ok) {
                 const data = await res.json();
@@ -1082,7 +1171,7 @@ export function Messages() {
           ...Array.from(itemIdsToFetch).map(async (id) => {
             try {
               const res = await fetch(`${API_URL}/listings/${id}`, {
-                 headers: { 'Authorization': `Bearer ${accessToken}` }
+                 headers: { 'Authorization': `Bearer ${token}` }
               });
               if (res.ok) {
                 const data = await res.json();
@@ -1224,7 +1313,7 @@ export function Messages() {
     } finally {
       setLoading(false);
     }
-  }, [currentUser, accessToken, searchParams, isMobileView, markMessagesAsRead, notifyIncomingMessage]);
+  }, [currentUser, searchParams, isMobileView, markMessagesAsRead, notifyIncomingMessage, refreshAuthToken, resolveAccessToken]);
 
   // Fetch messages with retry logic
   const fetchMessagesWithRetry = useCallback(async (retries = 3) => {
@@ -1309,13 +1398,15 @@ export function Messages() {
       return;
     }
     fetchMessagesWithRetry();
+    const isCallFlowActive = Boolean(activeCall || incomingCall);
+    const pollingIntervalMs = isCallFlowActive ? 800 : 3000;
     
     // Poll for new messages every 3 seconds to ensure seller receives messages
     const pollInterval = setInterval(() => {
       if (!sending && !isRecording) {
         fetchMessages();
       }
-    }, 3000);
+    }, pollingIntervalMs);
 
     // Check if we have userId and itemId params for starting a new conversation
     const userId = searchParams.get('userId');
@@ -1356,7 +1447,7 @@ export function Messages() {
     }
 
     return () => clearInterval(pollInterval);
-  }, [isAuthenticated, navigate, fetchMessagesWithRetry, searchParams, location.state, sending, isRecording, fetchMessages, handleStartNewConversation]);
+  }, [isAuthenticated, navigate, fetchMessagesWithRetry, searchParams, location.state, sending, isRecording, fetchMessages, handleStartNewConversation, activeCall, incomingCall]);
 
   useEffect(() => {
     // Auto-scroll to bottom when new messages arrive
@@ -1537,21 +1628,38 @@ export function Messages() {
     setSending(true);
 
     try {
-      const response = await fetch(`${API_URL}/messages`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({
-          receiverId: selectedConversation.otherUser.id,
-          itemId: selectedConversation.item?.id,
-          content: sanitizedContent || (attachment ? 'Sent an image' : recordedAudio ? 'Voice message' : ''),
-          messageType: attachment ? 'image' : recordedAudio ? 'voice' : 'text',
-          audioData: recordedAudio,
-          attachmentData: attachment,
-        }),
-      });
+      const requestBody = {
+        receiverId: selectedConversation.otherUser.id,
+        itemId: selectedConversation.item?.id,
+        content: sanitizedContent || (attachment ? 'Sent an image' : recordedAudio ? 'Voice message' : ''),
+        messageType: attachment ? 'image' : recordedAudio ? 'voice' : 'text',
+        audioData: recordedAudio,
+        attachmentData: attachment,
+      };
+      const postMessage = (token: string) =>
+        fetch(`${API_URL}/messages`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify(requestBody),
+        });
+
+      let token = await resolveAccessToken();
+      if (!token) {
+        throw new Error('Session expired. Please log in again.');
+      }
+
+      let response = await postMessage(token);
+      if (response.status === 401) {
+        const refreshed = await refreshAuthToken();
+        if (!refreshed) {
+          throw new Error('Session expired. Please log in again.');
+        }
+        token = refreshed;
+        response = await postMessage(token);
+      }
 
       if (response.ok) {
         const data = await response.json();
@@ -1760,19 +1868,36 @@ export function Messages() {
     setSending(true);
 
     try {
-      const response = await fetch(`${API_URL}/messages`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({
-          receiverId: selectedConversation.otherUser.id,
-          itemId: selectedConversation.item?.id,
-          messageType: 'voice',
-          audioData: recordedAudio,
-        }),
-      });
+      const requestBody = {
+        receiverId: selectedConversation.otherUser.id,
+        itemId: selectedConversation.item?.id,
+        messageType: 'voice',
+        audioData: recordedAudio,
+      };
+      const postVoiceMessage = (token: string) =>
+        fetch(`${API_URL}/messages`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify(requestBody),
+        });
+
+      let token = await resolveAccessToken();
+      if (!token) {
+        throw new Error('Session expired. Please log in again.');
+      }
+
+      let response = await postVoiceMessage(token);
+      if (response.status === 401) {
+        const refreshed = await refreshAuthToken();
+        if (!refreshed) {
+          throw new Error('Session expired. Please log in again.');
+        }
+        token = refreshed;
+        response = await postVoiceMessage(token);
+      }
 
       if (response.ok) {
         const data = await response.json();
@@ -2133,6 +2258,7 @@ export function Messages() {
       setActiveCall((prev) => (prev ? { ...prev, status: 'ringing' } : prev));
       startOutgoingRingtone();
       scheduleNoAnswerTimeout(callId, peerId, mode, itemId);
+      void fetchMessages();
       toast.success(`${mode === 'video' ? 'Video' : 'Audio'} calling...`);
     } catch (error) {
       console.error('Start call error:', error);
@@ -2227,6 +2353,7 @@ export function Messages() {
       }
 
       setIncomingCall(null);
+      void fetchMessages();
     } catch (error) {
       console.error('Accept call error:', error);
       clearCallResources(incomingCall.callId);
