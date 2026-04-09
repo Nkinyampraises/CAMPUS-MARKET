@@ -142,6 +142,30 @@ interface Conversation {
   lastMessageTime: string;
 }
 
+const getUserDisplayName = (
+  user?: Partial<Conversation['otherUser']> | null,
+  fallback = 'Unknown User',
+) => {
+  const rawName = typeof user?.name === 'string' ? user.name.trim() : '';
+  if (rawName) return rawName;
+
+  const email = typeof user?.email === 'string' ? user.email.trim() : '';
+  if (email) {
+    const [prefix] = email.split('@');
+    if (prefix && prefix.trim()) {
+      return prefix.trim();
+    }
+  }
+
+  return fallback;
+};
+
+const getUserInitial = (user?: Partial<Conversation['otherUser']> | null, fallback = 'U') => {
+  const displayName = getUserDisplayName(user, '').trim();
+  if (!displayName) return fallback;
+  return displayName.charAt(0).toUpperCase();
+};
+
 type CallMode = 'audio' | 'video';
 
 type CallSignalType = 'invite' | 'accept' | 'offer' | 'answer' | 'ice' | 'end' | 'decline';
@@ -430,10 +454,11 @@ export function Messages() {
 
   // Filter conversations based on search
   const filteredConversations = useMemo(() => {
+    const normalizedSearch = searchQuery.toLowerCase();
     return conversations.filter(convo => 
-      convo.otherUser.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      convo.item?.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      convo.messages[convo.messages.length - 1]?.content.toLowerCase().includes(searchQuery.toLowerCase())
+      getUserDisplayName(convo.otherUser).toLowerCase().includes(normalizedSearch) ||
+      (convo.item?.title || '').toLowerCase().includes(normalizedSearch) ||
+      (convo.messages[convo.messages.length - 1]?.content || '').toLowerCase().includes(normalizedSearch)
     );
   }, [conversations, searchQuery]);
 
@@ -1213,7 +1238,7 @@ export function Messages() {
         messageId: message.id,
         callId: signal.callId,
         senderId: message.senderId,
-        senderName: signal.callerName || userCache.current.get(message.senderId)?.name || 'Incoming call',
+        senderName: signal.callerName || getUserDisplayName(userCache.current.get(message.senderId), 'Incoming call'),
         mode: signal.mode,
         itemId: message.itemId,
       });
@@ -1288,7 +1313,7 @@ export function Messages() {
       return;
     }
 
-    const senderName = userCache.current.get(message.senderId)?.name || 'New message';
+    const senderName = getUserDisplayName(userCache.current.get(message.senderId), 'New message');
     const preview = getMessagePreviewText(message);
     toast.info(`New message from ${senderName}`, {
       description: preview,
@@ -2392,7 +2417,7 @@ export function Messages() {
     }
 
     const peerId = selectedConversation.otherUser.id;
-    const peerName = selectedConversation.otherUser.name || 'Participant';
+    const peerName = getUserDisplayName(selectedConversation.otherUser, 'Participant');
     const itemId = selectedConversation.item?.id;
     const callId = `call-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
@@ -2804,13 +2829,13 @@ export function Messages() {
                                     <AvatarImage src={convo.otherUser.avatar} />
                                   )}
                                   <AvatarFallback className="text-lg">
-                                    {convo.otherUser.name.charAt(0).toUpperCase()}
+                                    {getUserInitial(convo.otherUser)}
                                   </AvatarFallback>
                                 </Avatar>
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center justify-between mb-1">
                                     <p className="font-semibold truncate">
-                                      {convo.otherUser.name}
+                                      {getUserDisplayName(convo.otherUser)}
                                     </p>
                                     <p className="text-xs text-muted-foreground">
                                       {formatTime(convo.lastMessageTime)}
@@ -2870,13 +2895,13 @@ export function Messages() {
                                 <AvatarImage src={selectedConversation.otherUser.avatar} />
                               )}
                               <AvatarFallback>
-                                {selectedConversation.otherUser.name.charAt(0).toUpperCase()}
+                                {getUserInitial(selectedConversation.otherUser)}
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex-1 min-w-0">
                               <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                                 <p className="font-semibold">
-                                  {selectedConversation.otherUser.name}
+                                  {getUserDisplayName(selectedConversation.otherUser)}
                                 </p>
                                 {typingUsers.has(selectedConversation.otherUser.id) && (
                                   <span className="text-xs text-green-600 animate-pulse">
@@ -2986,11 +3011,11 @@ export function Messages() {
                                   <AvatarImage src={selectedConversation.otherUser.avatar} />
                                 )}
                                 <AvatarFallback className="text-2xl">
-                                  {selectedConversation.otherUser.name.charAt(0).toUpperCase()}
+                                  {getUserInitial(selectedConversation.otherUser)}
                                 </AvatarFallback>
                               </Avatar>
                               <h3 className="text-xl font-semibold mb-2">
-                                {selectedConversation.otherUser.name}
+                                {getUserDisplayName(selectedConversation.otherUser)}
                               </h3>
                               {selectedConversation.item && (
                                 <p className="text-sm text-muted-foreground mb-4">
@@ -3220,7 +3245,7 @@ export function Messages() {
                                       <AvatarImage src={selectedConversation.otherUser.avatar} />
                                     )}
                                     <AvatarFallback>
-                                      {selectedConversation.otherUser.name.charAt(0).toUpperCase()}
+                                      {getUserInitial(selectedConversation.otherUser)}
                                     </AvatarFallback>
                                   </Avatar>
                                   <div className="bg-muted rounded-2xl rounded-tl-none p-3">
