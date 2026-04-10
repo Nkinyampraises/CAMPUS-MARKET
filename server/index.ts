@@ -1199,6 +1199,17 @@ const shouldSeedDemoMarketplaceData = parseBooleanFlag(
   !isProduction(),
 );
 
+const isDemoMarketplaceListing = (listing: any) => {
+  if (!listing || typeof listing !== "object") {
+    return false;
+  }
+
+  const id = typeof listing.id === "string" ? listing.id : "";
+  const sellerId = typeof listing.sellerId === "string" ? listing.sellerId : "";
+
+  return id.startsWith("LST-DEMO-") || sellerId.startsWith("USR-DEMO-");
+};
+
 async function purgeDemoMarketplaceData() {
   for (const listing of DEFAULT_DEMO_LISTINGS) {
     await kv.del(`listing:${listing.id}`);
@@ -2841,6 +2852,9 @@ app.get("/make-server-50b25a4f/listings", async (c) => {
       await ensureDemoMarketplaceData();
       listings = await kv.getByPrefix('listing:');
     }
+    if (!shouldSeedDemoMarketplaceData && Array.isArray(listings)) {
+      listings = listings.filter((listing: any) => !isDemoMarketplaceListing(listing));
+    }
     const sellerCache = new Map<string, any | null>();
     const enriched: any[] = [];
 
@@ -2896,7 +2910,7 @@ app.get("/make-server-50b25a4f/listings/:id", async (c) => {
     const id = c.req.param('id');
     const listing = await kv.get(`listing:${id}`);
     
-    if (!listing) {
+    if (!listing || (!shouldSeedDemoMarketplaceData && isDemoMarketplaceListing(listing))) {
       return c.json({ error: 'Listing not found' }, 404);
     }
 
