@@ -3357,7 +3357,7 @@ export function Messages() {
                               <Paperclip className="h-5 w-5" />
                             </Button>
                             <Input
-                              placeholder={currentUser.role === 'admin' ? "Monitoring mode (Read-only)" : "Type a message..."}
+                              placeholder={currentUser?.role === 'admin' ? "Monitoring mode (Read-only)" : "Type a message..."}
                               value={newMessage}
                               onChange={(e) => {
                                 setNewMessage(e.target.value);
@@ -3369,7 +3369,7 @@ export function Messages() {
                                   handleSendMessage();
                                 }
                               }}
-                              disabled={sending || isRecording || !!recordedAudio || currentUser.role === 'admin'}
+                              disabled={sending || isRecording || !!recordedAudio || currentUser?.role === 'admin'}
                               className="min-w-0 flex-1"
                             />
                             <Button
@@ -3377,13 +3377,13 @@ export function Messages() {
                               variant={isRecording ? 'destructive' : 'ghost'}
                               size="icon"
                               className="shrink-0"
-                              disabled={sending || !!recordedAudio || !!attachment || currentUser.role === 'admin'}
+                              disabled={sending || !!recordedAudio || !!attachment || currentUser?.role === 'admin'}
                             >
                               <Mic className="h-5 w-5" />
                             </Button>
                             <Button
                               onClick={handleSendMessage}
-                              disabled={sending || (!newMessage.trim() && !recordedAudio && !attachment) || currentUser.role === 'admin'}
+                              disabled={sending || (!newMessage.trim() && !recordedAudio && !attachment) || currentUser?.role === 'admin'}
                               className="shrink-0 bg-green-600 hover:bg-green-700"
                             >
                               {sending ? (
