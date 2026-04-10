@@ -1,7 +1,7 @@
 {
   "tasks": {
-    "start": "deno run --node-modules-dir=manual --no-check --allow-net --allow-env --allow-read --env-file=.env server/index.ts",
-    "check:server": "deno check --node-modules-dir=manual server/index.ts"
+    "start": "deno run --sloppy-imports --node-modules-dir=manual --no-check --allow-net --allow-env --allow-read --env-file=.env server/index.ts",
+    "check:server": "deno check --sloppy-imports --node-modules-dir=manual server/index.ts"
   },
   "nodeModulesDir": "manual",
   "exclude": [
@@ -15,7 +15,6 @@
     "app": "campus-market-live"
   }
 }
-
 
 
 

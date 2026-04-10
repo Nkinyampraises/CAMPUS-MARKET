@@ -3023,7 +3023,40 @@ app.post("/make-server-50b25a4f/messages", async (c) => {
 
   try {
     const body = await c.req.json();
-    const { receiverId, content, itemId } = body;
+    const receiverId = typeof body?.receiverId === 'string' ? body.receiverId.trim() : '';
+    const itemId = typeof body?.itemId === 'string' && body.itemId.trim() ? body.itemId.trim() : undefined;
+    const messageType = body?.messageType === 'voice' || body?.messageType === 'image' ? body.messageType : 'text';
+    const rawContent = typeof body?.content === 'string' ? body.content.trim() : '';
+    const audioData = typeof body?.audioData === 'string' ? body.audioData : null;
+    const attachmentData = typeof body?.attachmentData === 'string' ? body.attachmentData : null;
+
+    if (!receiverId) {
+      return c.json({ error: 'Receiver is required' }, 400);
+    }
+
+    if (receiverId === user.id) {
+      return c.json({ error: 'You cannot message yourself' }, 400);
+    }
+
+    if (messageType === 'voice' && !audioData) {
+      return c.json({ error: 'Voice message data is required' }, 400);
+    }
+
+    if (messageType === 'image' && !attachmentData) {
+      return c.json({ error: 'Image attachment data is required' }, 400);
+    }
+
+    const content =
+      rawContent ||
+      (messageType === 'voice'
+        ? 'Voice message'
+        : messageType === 'image'
+          ? 'Sent an image'
+          : '');
+
+    if (!content) {
+      return c.json({ error: 'Message content is required' }, 400);
+    }
 
     const messageId = `msg-${Date.now()}-${Math.random().toString(36).substring(7)}`;
     
@@ -3033,8 +3066,13 @@ app.post("/make-server-50b25a4f/messages", async (c) => {
       receiverId,
       itemId,
       content,
+      messageType,
+      audioData: messageType === 'voice' ? audioData : null,
+      attachmentData: messageType === 'image' ? attachmentData : null,
       timestamp: new Date().toISOString(),
       read: false,
+      isEdited: false,
+      isDeleted: false,
     };
 
     await kv.set(`message:${messageId}`, message);
@@ -3064,12 +3102,33 @@ app.get("/make-server-50b25a4f/messages", async (c) => {
   }
 
   try {
-    const messageIds = await kv.get(`user:${user.id}:messages`) || [];
+    const rawMessageIds = await kv.get(`user:${user.id}:messages`);
+    const messageIds = Array.isArray(rawMessageIds)
+      ? rawMessageIds.filter((id: unknown): id is string => typeof id === 'string')
+      : [];
     const messages = await Promise.all(
-      messageIds.map(async (id: string) => await kv.get(`message:${id}`))
+      messageIds.map(async (id) => await kv.get(`message:${id}`))
     );
+    const normalizedMessages = messages
+      .filter((m: any) =>
+        m &&
+        typeof m === 'object' &&
+        typeof m.id === 'string' &&
+        typeof m.senderId === 'string' &&
+        typeof m.receiverId === 'string' &&
+        typeof m.content === 'string',
+      )
+      .map((m: any) => ({
+        ...m,
+        messageType: m.messageType === 'voice' || m.messageType === 'image' ? m.messageType : 'text',
+        audioData: typeof m.audioData === 'string' ? m.audioData : null,
+        attachmentData: typeof m.attachmentData === 'string' ? m.attachmentData : null,
+        isEdited: Boolean(m.isEdited),
+        isDeleted: Boolean(m.isDeleted),
+      }))
+      .sort((a: any, b: any) => new Date(a.timestamp || 0).getTime() - new Date(b.timestamp || 0).getTime());
 
-    return c.json({ messages: messages.filter(m => m !== null) });
+    return c.json({ messages: normalizedMessages });
   } catch (error) {
     console.error('Get messages error:', error);
     return c.json({ error: 'Failed to get messages' }, 500);
@@ -6418,7 +6477,9 @@ async function startServer() {
   }
 }
 
-const shouldStartDenoServer = typeof process === "undefined";
+// In Deno with Node compatibility enabled, `process` can exist.
+// Use native Deno version detection to decide whether to auto-start.
+const shouldStartDenoServer = Boolean((Deno as any)?.version?.deno);
 
 if (shouldStartDenoServer) {
   await startServer();
