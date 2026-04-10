@@ -1186,9 +1186,40 @@ async function ensureDemoMarketplaceData() {
   console.log(`Seeded ${DEFAULT_DEMO_LISTINGS.length} demo listings into database.`);
 }
 
-ensureDemoMarketplaceData().catch((error) => {
-  console.error("Failed to seed demo marketplace data:", error);
-});
+const parseBooleanFlag = (value: string | undefined, fallback = false) => {
+  const normalized = (value || "").trim();
+  if (!normalized) {
+    return fallback;
+  }
+  return /^(1|true|yes|on)$/i.test(normalized);
+};
+
+const shouldSeedDemoMarketplaceData = parseBooleanFlag(
+  Deno.env.get("ENABLE_DEMO_MARKETPLACE_SEED"),
+  !isProduction(),
+);
+
+async function purgeDemoMarketplaceData() {
+  for (const listing of DEFAULT_DEMO_LISTINGS) {
+    await kv.del(`listing:${listing.id}`);
+  }
+
+  for (const seller of DEFAULT_DEMO_SELLERS) {
+    await kv.del(`user:${seller.id}:listings`);
+    await kv.del(`wallet:${seller.id}`);
+    await kv.del(`user:${seller.id}`);
+  }
+}
+
+if (shouldSeedDemoMarketplaceData) {
+  ensureDemoMarketplaceData().catch((error) => {
+    console.error("Failed to seed demo marketplace data:", error);
+  });
+} else {
+  purgeDemoMarketplaceData().catch((error) => {
+    console.error("Failed to purge demo marketplace data:", error);
+  });
+}
 
 const toDayKey = (value: any) => {
   if (!value) return "";
@@ -2806,7 +2837,7 @@ app.post("/make-server-50b25a4f/listings", async (c) => {
 app.get("/make-server-50b25a4f/listings", async (c) => {
   try {
     let listings = await kv.getByPrefix('listing:');
-    if (!Array.isArray(listings) || listings.length === 0) {
+    if (shouldSeedDemoMarketplaceData && (!Array.isArray(listings) || listings.length === 0)) {
       await ensureDemoMarketplaceData();
       listings = await kv.getByPrefix('listing:');
     }
