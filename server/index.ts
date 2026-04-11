@@ -947,8 +947,12 @@ const toSafeNumber = (value: any, fallback = 0) => {
 
 const isProduction = () => String(Deno.env.get("NODE_ENV") || "").toLowerCase() === "production";
 const errorMessage = (error: unknown) => (error instanceof Error ? error.message : String(error));
+const exposeInternalErrors = () =>
+  /^(1|true|yes|on)$/i.test(String(Deno.env.get("EXPOSE_INTERNAL_ERRORS") || "").trim());
 const internalErrorPayload = (message: string, error: unknown) =>
-  isProduction() ? { error: message } : { error: message, details: errorMessage(error) };
+  isProduction() && !exposeInternalErrors()
+    ? { error: message }
+    : { error: message, details: errorMessage(error) };
 
 const roundMoney = (value: any) => {
   const safeValue = toSafeNumber(value, 0);
