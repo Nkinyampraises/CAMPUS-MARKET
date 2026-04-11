@@ -751,6 +751,30 @@ export function Messages() {
     }, 1900);
   }, [playIncomingRingBurst]);
 
+  const buildSignalBase = useCallback((signalType: CallSignalType, callId: string, mode: CallMode) => ({
+    signalType,
+    callId,
+    mode,
+    callerId: currentUser?.id || '',
+    callerName: currentUser?.name || 'UNITRADE User',
+    createdAt: new Date().toISOString(),
+  }), [currentUser?.id, currentUser?.name]);
+
+  const buildCallLogBase = useCallback((
+    callId: string,
+    mode: CallMode,
+    outcome: CallLogOutcome,
+    extra: Partial<CallLogPayload> = {},
+  ): CallLogPayload => ({
+    callId,
+    mode,
+    outcome,
+    callerId: currentUser?.id || '',
+    callerName: currentUser?.name || 'UNITRADE User',
+    createdAt: new Date().toISOString(),
+    ...extra,
+  }), [currentUser?.id, currentUser?.name]);
+
   const clearCallResources = useCallback((callId?: string) => {
     clearCallTimeout();
     clearConnectionWatchdog();
@@ -982,30 +1006,6 @@ export function Messages() {
       return { success: false, error: 'Network error while sending call log.' };
     }
   }, [accessToken, refreshAuthToken]);
-
-  const buildSignalBase = useCallback((signalType: CallSignalType, callId: string, mode: CallMode) => ({
-    signalType,
-    callId,
-    mode,
-    callerId: currentUser?.id || '',
-    callerName: currentUser?.name || 'UNITRADE User',
-    createdAt: new Date().toISOString(),
-  }), [currentUser?.id, currentUser?.name]);
-
-  const buildCallLogBase = useCallback((
-    callId: string,
-    mode: CallMode,
-    outcome: CallLogOutcome,
-    extra: Partial<CallLogPayload> = {},
-  ): CallLogPayload => ({
-    callId,
-    mode,
-    outcome,
-    callerId: currentUser?.id || '',
-    callerName: currentUser?.name || 'UNITRADE User',
-    createdAt: new Date().toISOString(),
-    ...extra,
-  }), [currentUser?.id, currentUser?.name]);
 
   const flushQueuedIceCandidates = useCallback(async (callId: string, peerConnection: RTCPeerConnection) => {
     const pending = queuedIceRef.current.get(callId) || [];
