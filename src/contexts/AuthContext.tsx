@@ -225,6 +225,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (!response.ok) {
+          if (response.status === 401) {
+            logout();
+          }
           return null;
         }
 
@@ -252,7 +255,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     refreshInFlightRef.current = runRefresh();
     const refreshed = await refreshInFlightRef.current;
-    if (!refreshed && !localStorage.getItem('refreshToken')) {
+    if (!refreshed) {
       logout();
     }
     return refreshed;

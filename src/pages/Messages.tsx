@@ -234,6 +234,20 @@ const parseCallLog = (content?: string | null): CallLogPayload | null => {
 
 const getCallModeLabel = (mode: CallMode) => (mode === 'video' ? 'Video' : 'Audio');
 
+const canTriggerVibration = () => {
+  if (typeof navigator === 'undefined' || typeof navigator.vibrate !== 'function') {
+    return false;
+  }
+  const nav = navigator as Navigator & {
+    userActivation?: {
+      hasBeenActive?: boolean;
+      isActive?: boolean;
+    };
+  };
+  if (!nav.userActivation) return true;
+  return Boolean(nav.userActivation.hasBeenActive || nav.userActivation.isActive);
+};
+
 const formatCallDuration = (durationSeconds: number) => {
   const safeSeconds = Math.max(0, Math.floor(durationSeconds));
   const hours = Math.floor(safeSeconds / 3600);
@@ -314,7 +328,7 @@ const serializeIceCandidate = (
 });
 
 export function Messages() {
-  const { currentUser, isAuthenticated, accessToken, refreshAuthToken } = useAuth();
+  const { currentUser, isAuthenticated, accessToken, refreshAuthToken, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
@@ -573,6 +587,7 @@ export function Messages() {
 
     const token = await resolveAccessToken();
     if (!token) {
+      logout();
       throw new Error('Session expired. Please log in again.');
     }
 
@@ -584,16 +599,21 @@ export function Messages() {
     if (response.status === 401) {
       const refreshed = await refreshAuthToken();
       if (!refreshed) {
-        return response;
+        logout();
+        throw new Error('Session expired. Please log in again.');
       }
       response = await fetch(url, {
         ...init,
         headers: withTokenHeaders(refreshed, init.headers),
       });
+      if (response.status === 401) {
+        logout();
+        throw new Error('Session expired. Please log in again.');
+      }
     }
 
     return response;
-  }, [refreshAuthToken, resolveAccessToken]);
+  }, [logout, refreshAuthToken, resolveAccessToken]);
 
   const markMessageAsReadSilently = useCallback(async (messageId: string) => {
     try {
@@ -646,7 +666,7 @@ export function Messages() {
       window.clearInterval(incomingRingIntervalRef.current);
       incomingRingIntervalRef.current = null;
     }
-    if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+    if (canTriggerVibration()) {
       navigator.vibrate(0);
     }
     const context = incomingRingContextRef.current;
@@ -738,7 +758,7 @@ export function Messages() {
     oscillatorB.start(startAt + 0.28);
     oscillatorB.stop(startAt + 0.55);
 
-    if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+    if (canTriggerVibration()) {
       navigator.vibrate([220, 90, 220]);
     }
   }, []);
@@ -1564,13 +1584,20 @@ export function Messages() {
         await fetchMessages();
         break;
       } catch (error) {
+        const message = error instanceof Error ? error.message : '';
+        const isSessionError = message.toLowerCase().includes('session expired');
+        if (isSessionError) {
+          setLoading(false);
+          navigate('/login');
+          return;
+        }
         if (i === retries - 1) {
           toast.error('Failed to load messages. Please refresh.');
         }
         await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
       }
     }
-  }, [fetchMessages]);
+  }, [fetchMessages, navigate]);
 
   // Handle starting a new conversation
   const handleStartNewConversation = useCallback(async (userId: string, itemId: string) => {
@@ -1636,6 +1663,7 @@ export function Messages() {
 
   useEffect(() => {
     if (!isAuthenticated) {
+      setLoading(false);
       navigate('/login');
       return;
     }
@@ -1681,10 +1709,9 @@ export function Messages() {
       } else {
         // Fallback to fetch if no state passed
         // Check if already selected to avoid loop
-        if (selectedConversationRef.current?.otherUser.id === userId) {
-           return;
+        if (selectedConversationRef.current?.otherUser.id !== userId) {
+          handleStartNewConversation(userId, itemId);
         }
-        handleStartNewConversation(userId, itemId);
       }
     }
 
