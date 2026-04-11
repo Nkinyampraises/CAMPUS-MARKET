@@ -313,6 +313,34 @@ async function getLocalAuthRecordByEmail(email: string) {
     }
   }
 
+  // Compatibility fallback: older deployments may contain auth records
+  // without a valid auth:email index. Rebuild the index from auth:user:* records.
+  const allAuthRecords = (await kv.getByPrefix("auth:user:")) || [];
+  for (const candidate of allAuthRecords) {
+    if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) {
+      continue;
+    }
+
+    if (!candidate?.userId || !candidate?.email) {
+      continue;
+    }
+
+    const hasPasswordRecord =
+      (typeof candidate.passwordHash === "string" && Boolean(candidate.passwordHash)) ||
+      (typeof candidate.passwordSalt === "string" && Boolean(candidate.passwordSalt));
+    if (!hasPasswordRecord) {
+      continue;
+    }
+
+    if (normalizeEmail(candidate.email) !== normalizedEmail) {
+      continue;
+    }
+
+    candidate.email = normalizedEmail;
+    await persistLocalAuthRecord(candidate);
+    return candidate;
+  }
+
   const profile = await findUserProfileByEmail(normalizedEmail);
   if (!profile?.id) {
     return null;
@@ -2290,6 +2318,7 @@ app.post("/make-server-50b25a4f/auth/forgot-password", async (c) => {
       return c.json({
         success: true,
         message: 'If an account exists for that email, a reset link will appear here.',
+        accountFound: false,
       });
     }
 
@@ -2302,6 +2331,7 @@ app.post("/make-server-50b25a4f/auth/forgot-password", async (c) => {
         return c.json({
           success: true,
           message: 'Password reset email sent. Check your inbox.',
+          accountFound: true,
         });
       } catch (error) {
         console.error('Password reset email error:', error);
@@ -2312,6 +2342,7 @@ app.post("/make-server-50b25a4f/auth/forgot-password", async (c) => {
       success: true,
       message: 'Reset link generated successfully. Email delivery is not configured here, so use the link below.',
       resetLink,
+      accountFound: true,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to send reset email';

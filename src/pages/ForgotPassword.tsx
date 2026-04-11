@@ -13,11 +13,15 @@ export function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
+  const [accountFound, setAccountFound] = useState<boolean | null>(null);
   const [resetLink, setResetLink] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setMessage('');
+    setAccountFound(null);
     setResetLink('');
     setLoading(true);
 
@@ -31,6 +35,12 @@ export function ForgotPassword() {
       if (!response.ok) {
         setError(data.error || 'Failed to send reset email');
         return;
+      }
+      if (typeof data?.message === 'string' && data.message) {
+        setMessage(data.message);
+      }
+      if (typeof data?.accountFound === 'boolean') {
+        setAccountFound(data.accountFound);
       }
       if (typeof data?.resetLink === 'string' && data.resetLink) {
         setResetLink(data.resetLink);
@@ -61,6 +71,20 @@ export function ForgotPassword() {
             {error && (
               <Alert variant="destructive">
                 <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            {message && (
+              <Alert>
+                <AlertDescription>{message}</AlertDescription>
+              </Alert>
+            )}
+
+            {accountFound === false && (
+              <Alert>
+                <AlertDescription>
+                  No account was found for that email in this environment. Try the exact email used at signup, or create a new account.
+                </AlertDescription>
               </Alert>
             )}
 
