@@ -751,82 +751,6 @@ export function Messages() {
     }, 1900);
   }, [playIncomingRingBurst]);
 
-  const scheduleConnectionWatchdog = useCallback((
-    callId: string,
-    peerId: string,
-    mode: CallMode,
-    itemId?: string,
-  ) => {
-    const recoveryState = connectionRecoveryRef.current;
-    if (recoveryState.callId !== callId) {
-      connectionRecoveryRef.current = {
-        callId,
-        attempts: 0,
-      };
-    }
-    clearConnectionWatchdog(false);
-
-    connectionWatchdogRef.current = window.setTimeout(() => {
-      const active = activeCallRef.current;
-      if (!active || active.callId !== callId || active.status === 'connected' || active.connectedAt) {
-        return;
-      }
-
-      const peerConnection = peerConnectionRef.current;
-      const attempts = connectionRecoveryRef.current.callId === callId
-        ? connectionRecoveryRef.current.attempts
-        : 0;
-
-      if (peerConnection && peerConnection.signalingState !== 'closed' && attempts < 2) {
-        connectionRecoveryRef.current = {
-          callId,
-          attempts: attempts + 1,
-        };
-
-        void (async () => {
-          try {
-            const restartOffer = await peerConnection.createOffer({ iceRestart: true });
-            await peerConnection.setLocalDescription(restartOffer);
-            const sent = await sendCallSignalMessage(
-              peerId,
-              {
-                ...buildSignalBase('offer', callId, mode),
-                sdp: serializeSessionDescription(restartOffer),
-              },
-              itemId,
-            );
-            if (!sent.success) {
-              throw new Error(sent.error || 'Failed to send connection recovery signal');
-            }
-            scheduleConnectionWatchdog(callId, peerId, mode, itemId);
-          } catch (error) {
-            console.error('Call recovery offer error:', error);
-            await sendCallSignalMessage(
-              peerId,
-              {
-                ...buildSignalBase('end', callId, mode),
-              },
-              itemId,
-            );
-            clearCallResources(callId);
-            toast.error('Unable to connect this call. Please try again.');
-          }
-        })();
-        return;
-      }
-
-      void sendCallSignalMessage(
-        peerId,
-        {
-          ...buildSignalBase('end', callId, mode),
-        },
-        itemId,
-      );
-      clearCallResources(callId);
-      toast.error('Unable to connect this call. Please try again.');
-    }, 12000);
-  }, [buildSignalBase, clearCallResources, clearConnectionWatchdog, sendCallSignalMessage]);
-
   const clearCallResources = useCallback((callId?: string) => {
     clearCallTimeout();
     clearConnectionWatchdog();
@@ -921,6 +845,82 @@ export function Messages() {
       return { success: false, error: 'Network error while sending call signal.' };
     }
   }, [accessToken, refreshAuthToken]);
+
+  const scheduleConnectionWatchdog = useCallback((
+    callId: string,
+    peerId: string,
+    mode: CallMode,
+    itemId?: string,
+  ) => {
+    const recoveryState = connectionRecoveryRef.current;
+    if (recoveryState.callId !== callId) {
+      connectionRecoveryRef.current = {
+        callId,
+        attempts: 0,
+      };
+    }
+    clearConnectionWatchdog(false);
+
+    connectionWatchdogRef.current = window.setTimeout(() => {
+      const active = activeCallRef.current;
+      if (!active || active.callId !== callId || active.status === 'connected' || active.connectedAt) {
+        return;
+      }
+
+      const peerConnection = peerConnectionRef.current;
+      const attempts = connectionRecoveryRef.current.callId === callId
+        ? connectionRecoveryRef.current.attempts
+        : 0;
+
+      if (peerConnection && peerConnection.signalingState !== 'closed' && attempts < 2) {
+        connectionRecoveryRef.current = {
+          callId,
+          attempts: attempts + 1,
+        };
+
+        void (async () => {
+          try {
+            const restartOffer = await peerConnection.createOffer({ iceRestart: true });
+            await peerConnection.setLocalDescription(restartOffer);
+            const sent = await sendCallSignalMessage(
+              peerId,
+              {
+                ...buildSignalBase('offer', callId, mode),
+                sdp: serializeSessionDescription(restartOffer),
+              },
+              itemId,
+            );
+            if (!sent.success) {
+              throw new Error(sent.error || 'Failed to send connection recovery signal');
+            }
+            scheduleConnectionWatchdog(callId, peerId, mode, itemId);
+          } catch (error) {
+            console.error('Call recovery offer error:', error);
+            await sendCallSignalMessage(
+              peerId,
+              {
+                ...buildSignalBase('end', callId, mode),
+              },
+              itemId,
+            );
+            clearCallResources(callId);
+            toast.error('Unable to connect this call. Please try again.');
+          }
+        })();
+        return;
+      }
+
+      void sendCallSignalMessage(
+        peerId,
+        {
+          ...buildSignalBase('end', callId, mode),
+        },
+        itemId,
+      );
+      clearCallResources(callId);
+      toast.error('Unable to connect this call. Please try again.');
+    }, 12000);
+  }, [buildSignalBase, clearCallResources, clearConnectionWatchdog, sendCallSignalMessage]);
 
   const sendCallLogMessage = useCallback(async (
     receiverId: string,
