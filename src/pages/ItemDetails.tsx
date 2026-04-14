@@ -3,8 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/app/components/ui/button';
 import { Card, CardContent } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
-import { Separator } from '@/app/components/ui/separator';
-import { Avatar, AvatarFallback } from '@/app/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/app/components/ui/avatar';
 import {
   MapPin,
   Calendar,
@@ -12,10 +11,9 @@ import {
   Star,
   MessageSquare,
   ShoppingCart,
-  ArrowLeft,
-  Phone,
-  Mail,
-  Heart
+  Heart,
+  ChevronRight,
+  Shield,
 } from 'lucide-react';
 import {
   formatCurrency,
@@ -236,19 +234,38 @@ export function ItemDetails() {
     ? item.images.filter((image: any) => typeof image === 'string' && image.trim())
     : [];
   const primaryImage = itemImages[selectedImageIndex] || itemImages[0] || '';
+  const postedLabel = (() => {
+    if (!item?.createdAt) return 'Recently posted';
+    const created = new Date(item.createdAt);
+    if (!Number.isFinite(created.getTime())) return 'Recently posted';
 
-  const getCollageImages = (entry: any) => {
-    const images = Array.isArray(entry?.images) ? entry.images.filter((image: any) => typeof image === 'string' && image.trim()) : [];
-    if (images.length === 0) {
-      const fallback = item?.images?.[0] || '';
-      return Array.from({ length: 6 }, () => fallback);
-    }
+    const diffMs = Date.now() - created.getTime();
+    const diffDays = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return '1 day ago';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    return created.toLocaleDateString();
+  })();
 
-    const collage: string[] = [];
-    for (let index = 0; index < 6; index += 1) {
-      collage.push(images[index % images.length]);
+  const thumbnails = itemImages.length > 0 ? itemImages : primaryImage ? [primaryImage] : [];
+  const visibleThumbnails = thumbnails.slice(0, 4);
+  const remainingThumbnailCount = Math.max(0, thumbnails.length - 4);
+
+  const comparePrice = (() => {
+    const actual = Number(item?.price || 0);
+    const compare = Number(item?.originalPrice || item?.compareAtPrice || 0);
+    if (Number.isFinite(compare) && compare > actual) return compare;
+    if (actual > 0) return Math.round(actual * 1.15);
+    return 0;
+  })();
+
+  const relatedFallbackImage = primaryImage || 'https://placehold.co/640x480?text=No+Image';
+  const getRelatedImage = (entry: any) => {
+    if (Array.isArray(entry?.images)) {
+      const valid = entry.images.find((img: any) => typeof img === 'string' && img.trim());
+      if (valid) return valid;
     }
-    return collage;
+    return relatedFallbackImage;
   };
 
   const handleContactSeller = () => {
@@ -346,215 +363,191 @@ export function ItemDetails() {
   };
 
   return (
-    <div className="bg-background min-h-screen overflow-x-hidden py-8">
-      <div className="container mx-auto px-4">
-        {/* Back Button */}
-        <Button 
-          variant="ghost" 
-          className="mb-4"
-          onClick={() => navigate('/marketplace')}
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          {t('item.backToMarketplace', 'Back to Marketplace')}
-        </Button>
+    <div className="min-h-screen bg-[#f6f8f7] py-7">
+      <div className="mx-auto w-full max-w-[1220px] px-4 lg:px-6">
+        <div className="mb-4 flex flex-wrap items-center gap-1.5 text-xs font-medium text-[#5d7b72]">
+          <button type="button" className="hover:text-[#0c6a5a]" onClick={() => navigate('/marketplace')}>
+            Marketplace
+          </button>
+          <ChevronRight className="h-3.5 w-3.5 text-[#92aba3]" />
+          <span>{categoryLabel}</span>
+          <ChevronRight className="h-3.5 w-3.5 text-[#92aba3]" />
+          <span className="max-w-[240px] truncate text-[#0f3a31]">{item.title}</span>
+        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Images and Details */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Image */}
-            <Card className="overflow-hidden">
-              <div className="relative h-64 sm:h-80 lg:h-96 bg-gray-100">
-                <img
-                  src={primaryImage}
-                  alt={item.title}
-                  className="w-full h-full object-cover"
-                />
-                <Badge 
-                  className="absolute top-4 right-4"
-                  variant={item.type === 'sell' ? 'default' : 'secondary'}
-                >
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1.42fr)_minmax(360px,1fr)]">
+          <div className="space-y-3">
+            <Card className="overflow-hidden rounded-2xl border border-[#d7e6de] bg-white shadow-sm">
+              <div className="relative aspect-[16/10] bg-[#e9efec]">
+                {primaryImage ? (
+                  <img src={primaryImage} alt={item.title} className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-sm text-[#6f8d84]">No image available</div>
+                )}
+                <Badge className="absolute right-3 top-3 rounded-full bg-[#e8f8ef] px-3 py-1 text-[10px] uppercase tracking-wide text-[#0c6a5a] hover:bg-[#d9f3e5]">
                   {item.type === 'sell' ? t('item.forSale', 'For Sale') : t('item.forRent', 'For Rent')}
                 </Badge>
-                {item.condition === 'new' && (
-                  <Badge className="absolute top-4 left-4 bg-green-600">
-                    {t('item.new', 'New')}
-                  </Badge>
+              </div>
+            </Card>
+
+            {visibleThumbnails.length > 0 && (
+              <div className="grid grid-cols-4 gap-2">
+                {visibleThumbnails.map((image: string, index: number) => (
+                  <button
+                    key={`${item.id}-thumb-${index}`}
+                    type="button"
+                    onClick={() => setSelectedImageIndex(index)}
+                    className={`relative overflow-hidden rounded-lg border ${
+                      index === selectedImageIndex
+                        ? 'border-[#0c6a5a] ring-2 ring-[#0c6a5a]/20'
+                        : 'border-[#d6e4dd]'
+                    }`}
+                    aria-label={`View image ${index + 1}`}
+                  >
+                    <div className="aspect-[4/3] bg-[#ebf2ef]">
+                      <img src={image} alt={`${item.title} ${index + 1}`} className="h-full w-full object-cover" />
+                    </div>
+                  </button>
+                ))}
+                {remainingThumbnailCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedImageIndex(4)}
+                    className="flex aspect-[4/3] items-center justify-center rounded-lg border border-[#d6e4dd] bg-[#f0f5f2] text-sm font-semibold text-[#4c6d63]"
+                  >
+                    +{remainingThumbnailCount}
+                  </button>
                 )}
               </div>
-              {itemImages.length > 0 && (
-                <div className="border-t bg-background p-3">
-                  <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
-                    {itemImages.map((image: string, index: number) => (
-                      <button
-                        key={`${item.id}-thumb-${index}`}
-                        type="button"
-                        onClick={() => setSelectedImageIndex(index)}
-                        className={`overflow-hidden rounded-md border ${
-                          index === selectedImageIndex
-                            ? 'border-green-600 ring-2 ring-green-600/20'
-                            : 'border-border'
-                        }`}
-                        aria-label={`View image ${index + 1}`}
-                      >
-                        <div className="aspect-square bg-gray-100">
-                          <img src={image} alt={`${item.title} ${index + 1}`} className="h-full w-full object-cover" />
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </Card>
-
-            {/* Details */}
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">{categoryLabel}</p>
-                    <h1 className="text-3xl font-bold mb-2">{item.title}</h1>
-                    <p className="text-2xl font-bold text-green-600">
-                      {formatCurrency(item.price)}
-                      {item.type === 'rent' && item.rentalPeriod && (
-                        <span className="text-base font-normal text-muted-foreground">
-                          /{item.rentalPeriod}
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                  <Badge variant="outline" className="text-xs">
-                    {item.condition}
-                  </Badge>
-                </div>
-
-                {/* Meta Info */}
-                <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-4">
-                  <div className="flex items-center gap-1">
-                    <MapPin className="h-4 w-4" />
-                    {item.location}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Calendar className="h-4 w-4" />
-                    {new Date(item.createdAt).toLocaleDateString()}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Eye className="h-4 w-4" />
-                    {toMetricCount(item.views)} {t('item.views', 'views')}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Heart className="h-4 w-4 text-rose-500" />
-                    {toMetricCount(item.likesCount)} {t('item.likes', 'likes')}
-                  </div>
-                </div>
-
-                <Separator className="my-4" />
-
-                {/* Description */}
-                <div>
-                  <h2 className="font-semibold mb-2">{t('item.description', 'Description')}</h2>
-                  <p className="text-muted-foreground whitespace-pre-wrap">
-                    {item.description}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+            )}
           </div>
 
-          {/* Right Column - Seller Info and Actions */}
-          <div className="space-y-6">
-            {/* Seller Card */}
-            <Card>
-              <CardContent className="p-6">
-                <h2 className="font-semibold mb-4">{t('item.sellerInfo', 'Seller Information')}</h2>
-                
-                <div className="flex items-start gap-3 mb-4">
-                  <Avatar className="h-12 w-12">
-                    <AvatarFallback className="bg-green-100 text-green-600">
-                      {item.seller?.name?.charAt(0) || 'S'}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="font-semibold">{item.seller?.name}</p>
-                      {item.seller?.isVerified && (
-                        <Badge variant="secondary" className="text-xs">
-                          {t('item.verified', 'Verified')}
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                      <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                      {item.seller?.rating} ({item.seller?.reviewCount} {t('item.reviews', 'reviews')})
-                    </div>
+          <div className="space-y-4">
+            <Card className="rounded-2xl border border-[#d7e6de] bg-white shadow-sm">
+              <CardContent className="space-y-5 p-5">
+                <div className="space-y-2">
+                  <Badge variant="secondary" className="rounded-full bg-[#ebf5f1] px-2.5 py-1 text-[10px] uppercase tracking-wide text-[#37685b]">
+                    {categoryLabel}
+                  </Badge>
+                  <h1 className="text-3xl font-extrabold leading-tight text-[#072c25]">{item.title}</h1>
+                  <div className="flex flex-wrap items-baseline gap-3">
+                    <p className="text-[2rem] font-black leading-none text-[#004f3f]">{formatCurrency(Number(item.price || 0))}</p>
+                    {comparePrice > 0 && (
+                      <p className="text-sm font-medium text-[#80988f] line-through">{formatCurrency(comparePrice)}</p>
+                    )}
+                  </div>
+                  <p className="text-sm leading-relaxed text-[#5f7f75]">
+                    {item.description || 'No description available for this listing yet.'}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div className="rounded-xl border border-[#d5e5dd] bg-[#f9fcfa] p-3">
+                    <p className="text-[11px] uppercase tracking-wide text-[#7d968d]">{t('item.condition', 'Condition')}</p>
+                    <p className="mt-1 text-sm font-semibold capitalize text-[#123b32]">{item.condition || 'Used'}</p>
+                  </div>
+                  <div className="rounded-xl border border-[#d5e5dd] bg-[#f9fcfa] p-3">
+                    <p className="text-[11px] uppercase tracking-wide text-[#7d968d]">Posted</p>
+                    <p className="mt-1 text-sm font-semibold text-[#123b32]">{postedLabel}</p>
                   </div>
                 </div>
 
-                <div className="space-y-2 text-sm mb-4">
-                  <div className="flex items-center gap-2 text-muted-foreground">
+                <div className="flex flex-wrap items-center gap-4 text-sm text-[#55766c]">
+                  <div className="flex items-center gap-1.5">
                     <MapPin className="h-4 w-4" />
+                    <span>{item.location || 'Campus zone'}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Calendar className="h-4 w-4" />
+                    <span>{new Date(item.createdAt).toLocaleDateString()}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Eye className="h-4 w-4" />
+                    <span>{toMetricCount(item.views)} views</span>
+                  </div>
+                </div>
+
+                {currentUser?.id !== item.sellerId ? (
+                  <div className="space-y-2.5">
+                    <Button className="h-11 w-full rounded-lg bg-[#0c6a5a] text-[15px] font-semibold text-white hover:bg-[#0a594c]" onClick={handleBuyNow}>
+                      <ShoppingCart className="mr-2 h-4 w-4" />
+                      {item.type === 'sell' ? t('item.buyNow', 'Buy Now') : t('item.rentNow', 'Rent Now')}
+                    </Button>
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <Button
+                        variant="outline"
+                        className="h-10 rounded-lg border-[#c9ddd3] text-[#1a4a3f] hover:bg-[#f0f7f3]"
+                        onClick={item.type === 'rent' ? handleBuyNow : handleContactSeller}
+                      >
+                        {item.type === 'rent'
+                          ? `${t('item.rentNow', 'Rent')} (${String(item.rentalPeriod || 'weekly').replace(/^\w/, (value: string) => value.toUpperCase())})`
+                          : t('item.contactSeller', 'Contact Seller')}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className={`h-10 rounded-lg border-[#c9ddd3] ${isSaved ? 'bg-[#fff0f3] text-[#c3324b]' : 'text-[#1a4a3f] hover:bg-[#f0f7f3]'}`}
+                        onClick={handleSaveItem}
+                      >
+                        <Heart className={`mr-2 h-4 w-4 ${isSaved ? 'fill-current' : ''}`} />
+                        {isSaved ? t('item.saved', 'Saved') : t('item.saveItem', 'Save')}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-[#bfd8d0] bg-[#eef7f4] p-3 text-center text-sm font-medium text-[#215347]">
+                    {t('item.yourListing', 'This is your listing')}
+                  </div>
+                )}
+
+                <div className="rounded-xl border border-[#d4e4dc] bg-[#fbfdfc] p-3.5">
+                  <div className="mb-3 flex items-center gap-3">
+                    <Avatar className="h-10 w-10 border border-[#cfe1d8]">
+                      {item.seller?.profilePicture ? <AvatarImage src={item.seller.profilePicture} alt={item.seller?.name || 'Seller'} /> : null}
+                      <AvatarFallback className="bg-[#dff1e9] text-[#0f5a4b]">
+                        {item.seller?.name?.charAt(0) || 'S'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="truncate text-sm font-bold text-[#143d33]">{item.seller?.name || 'Seller'}</p>
+                        {item.seller?.isVerified ? (
+                          <Badge className="rounded-full bg-[#fff0cd] px-2 py-0 text-[10px] font-semibold text-[#8a5b00]">Verified</Badge>
+                        ) : null}
+                      </div>
+                      <p className="text-xs text-[#6c877f]">
+                        <Star className="mr-1 inline h-3.5 w-3.5 fill-[#f5b301] text-[#f5b301]" />
+                        {item.seller?.rating || '0.0'} ({item.seller?.reviewCount || 0} reviews)
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mb-3 flex items-center gap-1.5 text-xs text-[#617f76]">
+                    <MapPin className="h-3.5 w-3.5" />
                     {getUniversityName(
                       typeof item.seller?.university === 'string'
                         ? item.seller.university
                         : item.seller?.university?.name,
                     )}
                   </div>
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Phone className="h-4 w-4" />
-                    {item.seller?.phone}
-                  </div>
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Mail className="h-4 w-4" />
-                    {item.seller?.email}
-                  </div>
-                </div>
-
-                <Separator className="my-4" />
-
-                {/* Action Buttons */}
-                <div className="space-y-2">
                   {currentUser?.id !== item.sellerId && (
-                    <>
-                      <Button
-                        className="w-full bg-green-600 hover:bg-green-700"
-                        onClick={handleBuyNow}
-                      >
-                        <ShoppingCart className="mr-2 h-4 w-4" />
-                        {item.type === 'sell' ? t('item.buyNow', 'Buy Now') : t('item.rentNow', 'Rent Now')}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="w-full"
-                        onClick={handleContactSeller}
-                      >
-                        <MessageSquare className="mr-2 h-4 w-4" />
-                        {t('item.contactSeller', 'Contact Seller')}
-                      </Button>
-                      <Button
-                        variant={isSaved ? 'default' : 'outline'}
-                        className={`w-full ${isSaved ? 'bg-red-600 hover:bg-red-700' : ''}`}
-                        onClick={handleSaveItem}
-                      >
-                        <Heart className={`mr-2 h-4 w-4 ${isSaved ? 'fill-current' : ''}`} />
-                        {isSaved ? t('item.saved', 'Saved') : t('item.saveItem', 'Save Item')}
-                      </Button>
-                    </>
-                  )}
-                  {currentUser?.id === item.sellerId && (
-                    <div className="p-4 rounded-lg text-center bg-blue-50 dark:bg-card">
-                      <p className="text-sm font-medium text-blue-900 dark:text-foreground">
-                        {t('item.yourListing', 'This is your listing')}
-                      </p>
-                    </div>
+                    <Button
+                      className="h-9 w-full rounded-lg bg-[#0c6a5a] text-sm font-semibold text-white hover:bg-[#0a594c]"
+                      onClick={handleContactSeller}
+                    >
+                      <MessageSquare className="mr-2 h-4 w-4" />
+                      Contact Seller
+                    </Button>
                   )}
                 </div>
               </CardContent>
             </Card>
 
-            {/* Safety Tips */}
-            <Card className="bg-yellow-50 border-yellow-200 dark:bg-card dark:border-border">
-              <CardContent className="p-6">
-                <h3 className="font-semibold mb-2">{t('item.safetyTips', 'Safety Tips')}</h3>
-                <ul className="text-sm space-y-1 text-muted-foreground">
+            <Card className="rounded-2xl border-[#e6d7ba] bg-[#fffaf1]">
+              <CardContent className="p-4">
+                <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-[#6c4f12]">
+                  <Shield className="h-4 w-4" />
+                  {t('item.safetyTips', 'Safety Tips')}
+                </h3>
+                <ul className="space-y-1.5 text-xs text-[#6a5a33]">
                   <li>• {t('item.tip1', 'Meet in a public place on campus')}</li>
                   <li>• {t('item.tip2', 'Check item condition before payment')}</li>
                   <li>• {t('item.tip3', 'Use secure payment methods only')}</li>
@@ -565,33 +558,44 @@ export function ItemDetails() {
           </div>
         </div>
 
-        <section className="mt-10 overflow-x-hidden rounded-xl border border-[#d7d7d7] bg-[#f1f1f1] p-5 sm:p-7">
-          <h2 className="mb-5 font-serif text-3xl text-[#1f7a34] sm:text-4xl">{t('item.youMayAlsoLike', 'You may also like')}</h2>
+        <section className="mt-10 rounded-2xl border border-[#d9e8e0] bg-white p-6">
+          <div className="mb-5 flex items-end justify-between gap-3">
+            <div>
+              <h2 className="text-2xl font-extrabold text-[#0e3d34]">Related Deals</h2>
+              <p className="text-sm text-[#708a81]">Recommended for your search in {categoryLabel}.</p>
+            </div>
+            <Button variant="ghost" size="sm" className="text-[#0c6a5a] hover:bg-[#ebf6f1]" onClick={() => navigate('/marketplace')}>
+              View All
+              <ChevronRight className="ml-1 h-4 w-4" />
+            </Button>
+          </div>
 
           {relatedLoading ? (
-            <div className="rounded-lg bg-white p-6 text-sm text-muted-foreground">
+            <div className="rounded-lg border border-[#e2eee8] bg-[#f9fcfb] p-6 text-sm text-[#658078]">
               {t('item.loadingRelated', 'Loading related items...')}
             </div>
           ) : relatedItems.length > 0 ? (
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {relatedItems.map((related) => (
-                <button key={related.id} onClick={() => navigate(`/item/${related.id}`)} className="w-full min-w-0 overflow-hidden text-left">
-                  <div className="rounded-2xl bg-white p-2.5 shadow-sm">
-                    <div className="grid grid-cols-3 gap-2">
-                      {getCollageImages(related).map((image, index) => (
-                        <div key={`${related.id}-img-${index}`} className="aspect-[3/4] overflow-hidden rounded-md bg-[#e8e8e8]">
-                          <img src={image} alt={related.title} className="h-full w-full object-cover" />
-                        </div>
-                      ))}
-                    </div>
+                <button
+                  key={related.id}
+                  type="button"
+                  onClick={() => navigate(`/item/${related.id}`)}
+                  className="overflow-hidden rounded-xl border border-[#d6e5dd] bg-white text-left shadow-sm transition-transform hover:-translate-y-0.5"
+                >
+                  <div className="aspect-[4/3] overflow-hidden bg-[#edf3f0]">
+                    <img src={getRelatedImage(related)} alt={related.title} className="h-full w-full object-cover" />
                   </div>
-                  <h3 className="mt-3 line-clamp-3 break-words font-serif text-xl leading-snug text-[#1f7a34]">{related.title}</h3>
-                  <p className="mt-1 break-words font-serif text-2xl text-[#1f7a34] sm:text-3xl">{formatCurrency(related.price)}</p>
+                  <div className="space-y-1 p-3">
+                    <h3 className="line-clamp-2 text-sm font-semibold text-[#183f35]">{related.title}</h3>
+                    <p className="text-xs uppercase text-[#88a097]">{getCategoryById(related.category)?.name || 'General'}</p>
+                    <p className="text-sm font-bold text-[#0a5f4f]">{formatCurrency(Number(related.price || 0))}</p>
+                  </div>
                 </button>
               ))}
             </div>
           ) : (
-            <div className="rounded-lg bg-white p-6 text-sm text-muted-foreground">
+            <div className="rounded-lg border border-[#e2eee8] bg-[#f9fcfb] p-6 text-sm text-[#658078]">
               {t('item.noRelated', 'No related items available yet.')}
             </div>
           )}

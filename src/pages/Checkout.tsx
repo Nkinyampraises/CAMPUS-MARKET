@@ -14,9 +14,10 @@ import {
   SelectValue,
 } from '@/app/components/ui/select';
 import { Alert, AlertDescription } from '@/app/components/ui/alert';
-import { ArrowLeft, Loader2, MapPin } from 'lucide-react';
+import { ArrowLeft, CalendarClock, CreditCard, Loader2, MapPin, ShieldCheck } from 'lucide-react';
 import { MeetupMap } from '@/components/MeetupMap';
 import { toast } from 'sonner';
+import { getCategoryById } from '@/data/mockData';
 
 import { API_URL } from '@/lib/api';
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
@@ -58,6 +59,11 @@ interface ListingItem {
   price: number;
   images: string[];
   sellerId: string;
+  category?: string;
+  condition?: string;
+  type?: 'sell' | 'rent';
+  rentalPeriod?: 'daily' | 'weekly' | 'monthly';
+  location?: string;
 }
 
 interface PickupLocation {
@@ -327,147 +333,257 @@ export function Checkout() {
     );
   }
 
+  const subtotal = Math.max(0, Number(item.price || 0));
+  const platformFee = Math.max(500, Math.round(subtotal * 0.007));
+  const insuranceFee = 500;
+  const checkoutTotal = subtotal + platformFee + insuranceFee;
+  const categoryLabel = getCategoryById(String(item.category || ''))?.name || 'Marketplace Item';
+  const conditionLabel = String(item.condition || 'Good')
+    .replace(/-/g, ' ')
+    .replace(/\b\w/g, (value) => value.toUpperCase());
+  const paymentPhoneLabel = paymentMethod === 'mtn-momo' ? 'MTN' : 'Orange';
+
   return (
-    <div className="container mx-auto max-w-5xl py-8 px-4">
-      <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Back
-      </Button>
-      <h1 className="text-3xl font-bold mb-6">Complete Your Escrow Purchase</h1>
+    <div className="min-h-screen bg-[#f3f6f4] py-8">
+      <div className="mx-auto w-full max-w-[1200px] px-4 lg:px-6">
+        <Button variant="ghost" onClick={() => navigate(-1)} className="mb-3 text-[#2e5950] hover:bg-[#e7f3ed]">
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back
+        </Button>
 
-      <div className="grid md:grid-cols-2 gap-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Order Summary</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center space-x-4">
-              <img src={item.images?.[0] || '/placeholder.svg'} alt={item.title} className="w-24 h-24 object-cover rounded-lg" />
-              <div className="flex-1">
-                <h3 className="font-semibold text-lg">{item.title}</h3>
-                <p className="text-sm text-muted-foreground">Escrow protected transaction</p>
-                <p className="text-2xl font-bold mt-2">{(item.price || 0).toLocaleString()} XAF</p>
+        <div className="mb-5">
+          <h1 className="text-4xl font-black tracking-tight text-[#033d34]">Secure Checkout</h1>
+          <p className="mt-1 text-sm text-[#5e7e75]">
+            Complete your purchase from the University of Buea Marketplace.
+          </p>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-[0.95fr_1.35fr]">
+          <Card className="h-fit rounded-2xl border border-[#d3e2db] bg-white shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xl font-bold text-[#123c33]">Order Summary</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div className="rounded-xl border border-[#deebe5] bg-[#f9fcfa] p-3">
+                <div className="flex items-start gap-3">
+                  <img
+                    src={item.images?.[0] || 'https://placehold.co/200x200?text=Item'}
+                    alt={item.title}
+                    className="h-16 w-16 rounded-md object-cover"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[#6f8f85]">{categoryLabel}</p>
+                    <h3 className="line-clamp-2 text-sm font-bold leading-tight text-[#0f3b32]">{item.title}</h3>
+                    <p className="mt-1 text-xs text-[#6f8f85]">Condition: {conditionLabel}</p>
+                    <div className="mt-1 flex items-center justify-between">
+                      <p className="text-lg font-extrabold text-[#045444]">{subtotal.toLocaleString()} XAF</p>
+                      <span className="text-xs text-[#6f8f85]">Qty: 1</span>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-            <Alert className="mt-4">
-              <AlertDescription>
-                Payment will be reviewed on the next page before final confirmation.
-              </AlertDescription>
-            </Alert>
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Payment & Pickup Details</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-5">
-              <div>
-                <Label className="text-base">Select Payment Method</Label>
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center justify-between text-[#58796f]">
+                  <span>Subtotal</span>
+                  <span>{subtotal.toLocaleString()} XAF</span>
+                </div>
+                <div className="flex items-center justify-between text-[#58796f]">
+                  <span>Platform Fee</span>
+                  <span>{platformFee.toLocaleString()} XAF</span>
+                </div>
+                <div className="flex items-center justify-between text-[#58796f]">
+                  <span>Insurance</span>
+                  <span>{insuranceFee.toLocaleString()} XAF</span>
+                </div>
+                <div className="mt-2 border-t border-[#dbe7e1] pt-2">
+                  <div className="flex items-center justify-between text-xl font-black text-[#014a3d]">
+                    <span>Total</span>
+                    <span>{checkoutTotal.toLocaleString()} XAF</span>
+                  </div>
+                </div>
+              </div>
+
+              <Alert className="rounded-xl border-[#b7e5ce] bg-[#ecfff4] text-[#116145]">
+                <ShieldCheck className="h-4 w-4 text-[#0f8057]" />
+                <AlertDescription className="text-xs">
+                  Payments are held in escrow until pickup is confirmed.
+                </AlertDescription>
+              </Alert>
+            </CardContent>
+          </Card>
+
+          <div className="space-y-6">
+            <Card className="rounded-2xl border border-[#d3e2db] bg-white shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-xl font-bold text-[#123c33]">
+                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-[#e9f4ef]">
+                    <CreditCard className="h-4 w-4 text-[#0b6a5a]" />
+                  </span>
+                  Payment Method
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-5">
                 <RadioGroup
                   value={paymentMethod}
-                  className="mt-2 grid grid-cols-2 gap-4"
+                  className="grid grid-cols-1 gap-3 sm:grid-cols-2"
                   onValueChange={(value: 'mtn-momo' | 'orange-money') => setPaymentMethod(value)}
                 >
                   <div>
                     <RadioGroupItem value="mtn-momo" id="mtn" className="peer sr-only" />
-                    <Label htmlFor="mtn" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent peer-data-[state=checked]:border-primary">
-                      MTN MoMo
+                    <Label
+                      htmlFor="mtn"
+                      className="flex cursor-pointer items-center justify-between rounded-xl border border-[#c6dcd1] bg-[#fcfffd] p-3.5 transition-colors hover:bg-[#f5fbf8] peer-data-[state=checked]:border-[#0c6a5a] peer-data-[state=checked]:bg-[#eefaf4]"
+                    >
+                      <div className="flex items-start gap-3">
+                        <span className="inline-flex h-8 w-8 items-center justify-center rounded bg-[#fdd816] text-[10px] font-black text-[#0d3b31]">
+                          MTN
+                        </span>
+                        <span>
+                          <span className="block text-sm font-semibold text-[#0f3b32]">MTN Mobile Money</span>
+                          <span className="block text-xs text-[#6f8f85]">Instant processing</span>
+                        </span>
+                      </div>
+                      <span className="h-4 w-4 rounded-full border border-[#8db2a4] peer-data-[state=checked]:border-[5px] peer-data-[state=checked]:border-[#0c6a5a]" />
                     </Label>
                   </div>
+
                   <div>
                     <RadioGroupItem value="orange-money" id="orange" className="peer sr-only" />
-                    <Label htmlFor="orange" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent peer-data-[state=checked]:border-primary">
-                      Orange Money
+                    <Label
+                      htmlFor="orange"
+                      className="flex cursor-pointer items-center justify-between rounded-xl border border-[#c6dcd1] bg-[#fcfffd] p-3.5 transition-colors hover:bg-[#f5fbf8] peer-data-[state=checked]:border-[#0c6a5a] peer-data-[state=checked]:bg-[#eefaf4]"
+                    >
+                      <div className="flex items-start gap-3">
+                        <span className="inline-flex h-8 w-8 items-center justify-center rounded bg-[#ff7b00] text-[10px] font-black text-white">
+                          ORG
+                        </span>
+                        <span>
+                          <span className="block text-sm font-semibold text-[#0f3b32]">Orange Money</span>
+                          <span className="block text-xs text-[#6f8f85]">Instant processing</span>
+                        </span>
+                      </div>
+                      <span className="h-4 w-4 rounded-full border border-[#8db2a4] peer-data-[state=checked]:border-[5px] peer-data-[state=checked]:border-[#0c6a5a]" />
                     </Label>
                   </div>
                 </RadioGroup>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="phone-number" className="text-base">
-                  {paymentMethod === 'mtn-momo' ? 'MTN' : 'Orange'} Phone Number
-                </Label>
-                <Input
-                  id="phone-number"
-                  type="tel"
-                  placeholder="671234567"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <Label htmlFor="pickup-date">Pickup Date</Label>
-                  <Input id="pickup-date" type="date" value={pickupDate} onChange={(e) => setPickupDate(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="pickup-time">Pickup Time</Label>
-                  <Input id="pickup-time" type="time" value={pickupTime} onChange={(e) => setPickupTime(e.target.value)} />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="pickup-location">
-                  <span className="inline-flex items-center gap-1">
-                    <MapPin className="h-4 w-4" />
-                    Campus/Public Pickup Point (Cameroon only)
-                  </span>
-                </Label>
-                <Input
-                  id="pickup-location"
-                  ref={locationInputRef}
-                  placeholder="Search campus or roundabout in Cameroon"
-                  disabled={!mapsReady}
-                  onChange={(e) => setPickupLocation((prev) => ({ ...prev, name: e.target.value }))}
-                  value={pickupLocation.name}
-                />
-                <p className="text-xs text-muted-foreground">Allowed: university campuses and roundabouts only.</p>
-                {mapsError ? <p className="text-xs text-amber-700">{mapsError}</p> : null}
-              </div>
-
-              <div className="space-y-2">
-                <Label>Select from approved locations</Label>
-                <Select onValueChange={handleFallbackPickupSelect}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose approved pickup point" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {pickupOptions.map((option) => (
-                      <SelectItem key={option.name} value={option.name}>
-                        {option.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {pickupLocation.name ? (
-                <div className="space-y-2">
-                  <Label className="text-sm">Meeting Point Map</Label>
-                  <MeetupMap
-                    locationName={pickupLocation.name}
-                    address={pickupLocation.address}
-                    latitude={pickupLocation.lat}
-                    longitude={pickupLocation.lng}
+                  <Label htmlFor="phone-number" className="text-sm text-[#274e45]">
+                    Phone Number ({paymentPhoneLabel} Account)
+                  </Label>
+                  <Input
+                    id="phone-number"
+                    type="tel"
+                    placeholder="+237 6XX XXX XXX"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    className="border-[#cfe0d8] bg-[#fbfdfc]"
                   />
                 </div>
-              ) : null}
+              </CardContent>
+            </Card>
 
-              {errorText ? (
-                <Alert variant="destructive">
-                  <AlertDescription>{errorText}</AlertDescription>
-                </Alert>
-              ) : null}
+            <Card className="rounded-2xl border border-[#d3e2db] bg-white shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-xl font-bold text-[#123c33]">
+                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-[#fff3db]">
+                    <CalendarClock className="h-4 w-4 text-[#8b5a00]" />
+                  </span>
+                  Pickup Details
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="pickup-date" className="text-sm text-[#274e45]">Preferred Date</Label>
+                    <Input
+                      id="pickup-date"
+                      type="date"
+                      value={pickupDate}
+                      onChange={(e) => setPickupDate(e.target.value)}
+                      className="border-[#cfe0d8] bg-[#fbfdfc]"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="pickup-time" className="text-sm text-[#274e45]">Preferred Time</Label>
+                    <Input
+                      id="pickup-time"
+                      type="time"
+                      value={pickupTime}
+                      onChange={(e) => setPickupTime(e.target.value)}
+                      className="border-[#cfe0d8] bg-[#fbfdfc]"
+                    />
+                  </div>
+                </div>
 
-              <Button onClick={handleReviewPayment} className="w-full bg-green-600 hover:bg-green-700">
-                Review Payment
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+                <div className="space-y-2">
+                  <Label htmlFor="pickup-location" className="text-sm text-[#274e45]">
+                    <span className="inline-flex items-center gap-1.5">
+                      <MapPin className="h-4 w-4 text-[#0c6a5a]" />
+                      Meeting Location
+                    </span>
+                  </Label>
+                  <Input
+                    id="pickup-location"
+                    ref={locationInputRef}
+                    placeholder="University Main Library Entrance"
+                    disabled={!mapsReady}
+                    onChange={(e) => setPickupLocation((prev) => ({ ...prev, name: e.target.value }))}
+                    value={pickupLocation.name}
+                    className="border-[#cfe0d8] bg-[#fbfdfc]"
+                  />
+                  <p className="text-xs text-[#668279]">Allowed: university campuses and roundabouts only.</p>
+                  {mapsError ? <p className="text-xs text-amber-700">{mapsError}</p> : null}
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm text-[#274e45]">Select from approved locations</Label>
+                  <Select onValueChange={handleFallbackPickupSelect}>
+                    <SelectTrigger className="border-[#cfe0d8] bg-[#fbfdfc]">
+                      <SelectValue placeholder="Choose approved pickup point" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {pickupOptions.map((option) => (
+                        <SelectItem key={option.name} value={option.name}>
+                          {option.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="overflow-hidden rounded-xl border border-[#cde0d6] bg-[#f1f7f4]">
+                  {pickupLocation.name ? (
+                    <MeetupMap
+                      locationName={pickupLocation.name}
+                      address={pickupLocation.address}
+                      latitude={pickupLocation.lat}
+                      longitude={pickupLocation.lng}
+                    />
+                  ) : (
+                    <div className="flex h-44 items-center justify-center text-sm text-[#68867c]">
+                      Select a pickup point to preview the map.
+                    </div>
+                  )}
+                </div>
+
+                {errorText ? (
+                  <Alert variant="destructive">
+                    <AlertDescription>{errorText}</AlertDescription>
+                  </Alert>
+                ) : null}
+
+                <Button
+                  onClick={handleReviewPayment}
+                  className="h-12 w-full rounded-xl bg-[#0c6a5a] text-base font-semibold hover:bg-[#0a594c]"
+                >
+                  Review Payment
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/app/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
-import { ArrowLeft, CheckCheck } from 'lucide-react';
+import { CheckCheck } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
@@ -86,11 +86,7 @@ export function Notifications() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <div className="flex items-center justify-between mb-4">
-        <Button variant="ghost" onClick={() => navigate('/dashboard')}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Dashboard
-        </Button>
+      <div className="mb-4 flex items-center justify-end">
         <Button variant="outline" onClick={markAllAsRead} disabled={unreadCount === 0}>
           <CheckCheck className="h-4 w-4 mr-2" />
           Mark All Read

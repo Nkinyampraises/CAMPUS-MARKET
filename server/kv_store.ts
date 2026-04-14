@@ -14,6 +14,14 @@ const { Pool } = pg;
 
 const DEFAULT_KV_TABLE = "kv_store_50b25a4f";
 const LEGACY_KV_TABLE = "kv_store";
+const TRANSIENT_CONNECTION_ERROR_PATTERN =
+  /MaxClientsInSessionMode|too many clients|remaining connection slots|connection terminated unexpectedly|timeout acquiring a client/i;
+const SERVERLESS_ENV_KEYS = [
+  "VERCEL",
+  "AWS_LAMBDA_FUNCTION_NAME",
+  "NETLIFY",
+  "RAILWAY_ENVIRONMENT",
+];
 
 let pool: InstanceType<typeof Pool> | null = null;
 let resolvedKvTable: string | null = null;
@@ -35,6 +43,28 @@ const firstNonEmptyEnv = (...keys: string[]) => {
 const toSafePort = (value: string, fallback: number) => {
   const parsed = Number.parseInt(value, 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
+
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const isServerlessRuntime = () =>
+  SERVERLESS_ENV_KEYS.some((key) => {
+    const value = firstNonEmptyEnv(key);
+    return Boolean(value) && value !== "0" && value.toLowerCase() !== "false";
+  });
+
+const isTransientConnectionError = (error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error || "");
+  return TRANSIENT_CONNECTION_ERROR_PATTERN.test(message);
+};
+
+const resolvePoolMax = () => {
+  const configured = toSafePort(firstNonEmptyEnv("POSTGRES_POOL_SIZE", "PGPOOLSIZE"), isServerlessRuntime() ? 1 : 10);
+  if (!isServerlessRuntime()) {
+    return configured;
+  }
+  // In serverless, keep per-instance pools very small to avoid exhausting Neon session limits.
+  return Math.max(1, Math.min(configured, 3));
 };
 
 const quoteIdentifier = (value: string) => {
@@ -66,22 +96,29 @@ const quoteQualifiedName = (value: string) => {
 
 const buildPoolConfig = () => {
   const connectionString = firstNonEmptyEnv(
-    "DATABASE_URL",
     "POSTGRES_URL",
-    "POSTGRES_CONNECTION_STRING",
     "POSTGRES_PRISMA_URL",
+    "DATABASE_URL",
+    "POSTGRES_CONNECTION_STRING",
   );
 
   const sslEnabled =
     parseBoolean(firstNonEmptyEnv("POSTGRES_SSL", "PGSSLMODE")) ||
     /sslmode=require|ssl=true/i.test(connectionString);
   const ssl = sslEnabled ? { rejectUnauthorized: false } : undefined;
+  const sharedPoolOptions = {
+    max: resolvePoolMax(),
+    idleTimeoutMillis: toSafePort(firstNonEmptyEnv("POSTGRES_IDLE_TIMEOUT_MS"), 10_000),
+    connectionTimeoutMillis: toSafePort(firstNonEmptyEnv("POSTGRES_CONNECT_TIMEOUT_MS"), 5_000),
+    // Helps serverless functions release idle clients between invocations.
+    allowExitOnIdle: true,
+  };
 
   if (connectionString) {
     return {
       connectionString,
       ssl,
-      max: toSafePort(firstNonEmptyEnv("POSTGRES_POOL_SIZE", "PGPOOLSIZE"), 10),
+      ...sharedPoolOptions,
     };
   }
 
@@ -103,7 +140,7 @@ const buildPoolConfig = () => {
     password,
     database,
     ssl,
-    max: toSafePort(firstNonEmptyEnv("POSTGRES_POOL_SIZE", "PGPOOLSIZE"), 10),
+    ...sharedPoolOptions,
   };
 };
 
@@ -113,6 +150,20 @@ const getPool = () => {
   }
 
   return pool;
+};
+
+const getClientWithRetry = async () => {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await getPool().connect();
+    } catch (error) {
+      const canRetry = attempt < 2 && isTransientConnectionError(error);
+      if (!canRetry) {
+        throw error;
+      }
+      await delay(120 * (attempt + 1));
+    }
+  }
 };
 
 const getKvTableCandidates = () => {
@@ -129,12 +180,20 @@ const getKvTableCandidates = () => {
 };
 
 async function query<T = any>(text: string, params: unknown[] = []) {
-  const client = await getPool().connect();
+  for (let attempt = 0; ; attempt += 1) {
+    const client = await getClientWithRetry();
 
-  try {
-    return await client.query<T>(text, params);
-  } finally {
-    client.release();
+    try {
+      return await client.query<T>(text, params);
+    } catch (error) {
+      const canRetry = attempt < 2 && isTransientConnectionError(error);
+      if (!canRetry) {
+        throw error;
+      }
+      await delay(120 * (attempt + 1));
+    } finally {
+      client.release();
+    }
   }
 }
 
@@ -237,7 +296,7 @@ export const mset = async (keys: string[], values: any[]): Promise<void> => {
   }
 
   const table = await resolveKvTableName();
-  const client = await getPool().connect();
+  const client = await getClientWithRetry();
 
   try {
     await client.query("BEGIN");

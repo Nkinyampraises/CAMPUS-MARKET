@@ -6,7 +6,7 @@ import { Textarea } from '@/app/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Label } from '@/app/components/ui/label';
 import { Alert, AlertDescription } from '@/app/components/ui/alert';
-import { ArrowLeft, Star, Loader2 } from 'lucide-react';
+import { Star, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
@@ -200,7 +200,7 @@ export function Review() {
     return (
       <div className="container mx-auto px-4 py-12 text-center">
         <h1 className="text-2xl font-bold mb-4">{error}</h1>
-        <Button onClick={() => navigate('/dashboard')}>Back to Dashboard</Button>
+        <Button onClick={() => navigate('/')}>Go Home</Button>
       </div>
     );
   }
@@ -210,7 +210,7 @@ export function Review() {
       <div className="container mx-auto px-4 py-12 text-center">
         <h1 className="text-2xl font-bold mb-4">Already Reviewed</h1>
         <p className="text-muted-foreground mb-4">You already submitted a review for this transaction.</p>
-        <Button onClick={() => navigate('/dashboard')}>Back to Dashboard</Button>
+        <Button onClick={() => navigate('/')}>Go Home</Button>
       </div>
     );
   }
@@ -218,11 +218,6 @@ export function Review() {
   return (
     <div className="bg-gray-50 min-h-screen py-8">
       <div className="container mx-auto px-4 max-w-2xl">
-        <Button variant="ghost" className="mb-4" onClick={() => navigate('/dashboard')} disabled={loading}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Dashboard
-        </Button>
-
         <Card>
           <CardHeader>
             <CardTitle>Leave a Review</CardTitle>

@@ -6,14 +6,11 @@ import { Input } from '@/app/components/ui/input';
 import { Card, CardContent, CardHeader } from '@/app/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/app/components/ui/avatar';
 import { Badge } from '@/app/components/ui/badge';
-import { Separator } from '@/app/components/ui/separator';
 import { 
   ArrowDownLeft,
-  ArrowLeft, 
   ArrowUpRight,
   Send, 
   Loader2, 
-  Package, 
   Mic, 
   MicOff,
   Square, 
@@ -28,6 +25,7 @@ import {
   Search,
   MoreVertical,
   MoreHorizontal,
+  Flag,
   Phone,
   PhoneOff,
   Video,
@@ -35,7 +33,6 @@ import {
   Volume2,
   VolumeX,
   RefreshCcw,
-  Info,
   ChevronLeft,
   Trash2,
   Edit2
@@ -344,6 +341,7 @@ export function Messages() {
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
   const [isTyping, setIsTyping] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [conversationFilter, setConversationFilter] = useState<'all' | 'unread' | 'archived'>('all');
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
@@ -417,6 +415,10 @@ export function Messages() {
   // Cache for user and item data to prevent re-fetching on every poll
   const userCache = useRef<Map<string, any>>(new Map());
   const itemCache = useRef<Map<string, any>>(new Map());
+  const openParticipantProfile = (userId?: string) => {
+    if (!userId) return;
+    navigate(`/profile/${userId}`);
+  };
 
   // Check for mobile view
   useEffect(() => {
@@ -469,12 +471,19 @@ export function Messages() {
   // Filter conversations based on search
   const filteredConversations = useMemo(() => {
     const normalizedSearch = searchQuery.toLowerCase();
-    return conversations.filter(convo => 
-      getUserDisplayName(convo.otherUser).toLowerCase().includes(normalizedSearch) ||
-      (convo.item?.title || '').toLowerCase().includes(normalizedSearch) ||
-      (convo.messages[convo.messages.length - 1]?.content || '').toLowerCase().includes(normalizedSearch)
-    );
-  }, [conversations, searchQuery]);
+    return conversations.filter((convo) => {
+      const matchesSearch =
+        getUserDisplayName(convo.otherUser).toLowerCase().includes(normalizedSearch) ||
+        (convo.item?.title || '').toLowerCase().includes(normalizedSearch) ||
+        (convo.messages[convo.messages.length - 1]?.content || '').toLowerCase().includes(normalizedSearch);
+
+      if (!matchesSearch) return false;
+
+      if (conversationFilter === 'unread') return convo.unreadCount > 0;
+      if (conversationFilter === 'archived') return false;
+      return true;
+    });
+  }, [conversations, searchQuery, conversationFilter]);
 
   // WebSocket connection for real-time updates
   useEffect(() => {
@@ -2757,25 +2766,48 @@ export function Messages() {
   };
 
   return (
-    <div className="bg-background min-h-screen">
-      <div className="container mx-auto px-0 sm:px-2">
-        <div className="hidden md:block p-4">
-          <Button variant="ghost" onClick={() => navigate('/dashboard')}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Dashboard
-          </Button>
-        </div>
-
-        <Card className="overflow-hidden md:mx-4">
-          <CardHeader className="hidden md:block">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-bold">Messages</h1>
-                {totalUnread > 0 && (
-                  <p className="text-sm text-muted-foreground">
-                    {totalUnread} unread message{totalUnread !== 1 ? 's' : ''}
-                  </p>
-                )}
+    <div className="min-h-screen bg-[#f1f3f5] text-foreground dark:bg-slate-950">
+      <div className="w-full px-0">
+        <Card className="w-full overflow-hidden border border-[#e6eaee] bg-white shadow-[0_24px_55px_-45px_rgba(15,23,42,0.45)] dark:border-white/10 dark:bg-slate-950/85">
+          <CardHeader className="hidden border-b border-[#e6eaee] bg-white px-5 py-4 dark:border-white/10 dark:bg-slate-950/95 md:block">
+            <div className="flex items-center gap-4">
+              <h1 className="text-lg font-semibold text-[#0f5f4c] dark:text-emerald-300">
+                Unitrade Messages
+              </h1>
+              <div className="flex items-center gap-1 rounded-md bg-[#f4f6f8] p-1 dark:bg-slate-900">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setConversationFilter('all')}
+                  className={`${conversationFilter === 'all' ? 'bg-white text-[#0f5f4c] shadow-sm dark:bg-slate-800 dark:text-emerald-300' : 'text-slate-500 dark:text-slate-400'} h-7 px-3 text-xs`}
+                >
+                  All Chats
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setConversationFilter('unread')}
+                  className={`${conversationFilter === 'unread' ? 'bg-white text-[#0f5f4c] shadow-sm dark:bg-slate-800 dark:text-emerald-300' : 'text-slate-500 dark:text-slate-400'} h-7 px-3 text-xs`}
+                >
+                  Unread
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setConversationFilter('archived')}
+                  className={`${conversationFilter === 'archived' ? 'bg-white text-[#0f5f4c] shadow-sm dark:bg-slate-800 dark:text-emerald-300' : 'text-slate-500 dark:text-slate-400'} h-7 px-3 text-xs`}
+                >
+                  Archived
+                </Button>
+              </div>
+              <div className="relative ml-auto w-full max-w-xs">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <Input
+                  placeholder="Search conversations..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="h-9 border-[#d8dee5] bg-[#f8fafb] pl-9 text-sm focus-visible:ring-emerald-500 dark:border-slate-700 dark:bg-slate-900/90"
+                />
               </div>
             </div>
           </CardHeader>
@@ -2785,52 +2817,73 @@ export function Messages() {
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
             ) : (
-              <div className="flex h-[calc(100dvh-76px)] sm:h-[calc(100dvh-88px)] md:h-[calc(100vh-180px)]">
+              <div className="flex h-[calc(100dvh-76px)] sm:h-[calc(100dvh-88px)] md:h-[calc(100vh-190px)]">
                 {/* Conversations List - WhatsApp style sidebar */}
                 {(showConversations || !isMobileView) && (
-                  <div className={`${isMobileView ? 'absolute inset-0 z-50 w-full' : 'w-full md:w-1/3'} border-r bg-card flex flex-col`}>
+                  <div className={`${isMobileView ? 'absolute inset-0 z-50 w-full' : 'w-full md:w-[320px] lg:w-[340px]'} border-r border-[#e6eaee] bg-[#f7f8f9] dark:border-white/10 dark:bg-slate-950/90 flex flex-col`}>
                     {/* Mobile header for conversations list */}
                     {isMobileView && (
-                      <div className="p-4 border-b flex items-center">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => navigate('/dashboard')}
-                        >
-                          <ArrowLeft className="h-5 w-5" />
-                        </Button>
-                        <h1 className="ml-4 text-xl font-bold">Messages</h1>
+                      <div className="space-y-3 border-b border-[#e6eaee] bg-white p-4 dark:border-white/10 dark:bg-slate-950">
+                        <div className="flex items-center">
+                        <h1 className="text-xl font-bold text-[#143d3a] dark:text-slate-100">Messages</h1>
                         {totalUnread > 0 && (
-                          <Badge className="ml-2 bg-green-600">
+                          <Badge className="ml-2 border-0 bg-[#0f766e] text-white shadow-sm">
                             {totalUnread}
                           </Badge>
                         )}
                       </div>
-                    )}
-                    
-                    {/* Search bar */}
-                    <div className="p-4 border-b">
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                        <Input
-                          placeholder="Search messages..."
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
-                          className="pl-9"
-                        />
+                        <div className="flex items-center gap-1 rounded-md bg-[#f4f6f8] p-1 dark:bg-slate-900">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setConversationFilter('all')}
+                            className={`${conversationFilter === 'all' ? 'bg-white text-[#0f5f4c] shadow-sm dark:bg-slate-800 dark:text-emerald-300' : 'text-slate-500 dark:text-slate-400'} h-7 px-3 text-xs`}
+                          >
+                            All Chats
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setConversationFilter('unread')}
+                            className={`${conversationFilter === 'unread' ? 'bg-white text-[#0f5f4c] shadow-sm dark:bg-slate-800 dark:text-emerald-300' : 'text-slate-500 dark:text-slate-400'} h-7 px-3 text-xs`}
+                          >
+                            Unread
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setConversationFilter('archived')}
+                            className={`${conversationFilter === 'archived' ? 'bg-white text-[#0f5f4c] shadow-sm dark:bg-slate-800 dark:text-emerald-300' : 'text-slate-500 dark:text-slate-400'} h-7 px-3 text-xs`}
+                          >
+                            Archived
+                          </Button>
+                        </div>
+                        <div className="relative">
+                          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                          <Input
+                            placeholder="Search conversations..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="h-9 border-[#d8dee5] bg-[#f8fafb] pl-9 text-sm focus-visible:ring-emerald-500 dark:border-slate-700 dark:bg-slate-900/90"
+                          />
+                        </div>
                       </div>
-                    </div>
+                    )}
 
                     {/* Conversations */}
                     <div className="flex-1 overflow-y-auto">
                       {filteredConversations.length === 0 ? (
-                        <div className="text-center py-12 px-4">
+                        <div className="px-4 py-12 text-center">
                           <p className="text-muted-foreground mb-4">
-                            {searchQuery ? 'No conversations found' : 'No messages yet'}
+                            {conversationFilter === 'archived'
+                              ? 'No archived conversations'
+                              : searchQuery
+                                ? 'No conversations found'
+                                : 'No messages yet'}
                           </p>
                           {!searchQuery && (
                             <Button 
-                              className="mt-4"
+                              className="mt-4 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white hover:from-emerald-600 hover:to-cyan-600"
                               onClick={() => navigate('/marketplace')}
                             >
                               Browse Marketplace
@@ -2845,8 +2898,8 @@ export function Messages() {
                           return (
                             <div
                               key={index}
-                              className={`cursor-pointer border-b p-3 transition-colors hover:bg-accent sm:p-4 ${
-                                isSelected ? 'bg-muted' : ''
+                              className={`group cursor-pointer border-b border-[#eceff3] p-3 transition-all duration-200 hover:bg-[#f4fbf8] dark:border-white/5 dark:hover:bg-emerald-900/20 sm:p-4 ${
+                                isSelected ? 'bg-[#e8f7f0] dark:bg-emerald-900/35' : ''
                               }`}
                               onClick={() => handleSelectConversation(convo)}
                             >
@@ -2855,16 +2908,16 @@ export function Messages() {
                                   {convo.otherUser.avatar && (
                                     <AvatarImage src={convo.otherUser.avatar} />
                                   )}
-                                  <AvatarFallback className="text-lg">
+                                  <AvatarFallback className="bg-[#0f766e] text-lg text-white">
                                     {getUserInitial(convo.otherUser)}
                                   </AvatarFallback>
                                 </Avatar>
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center justify-between mb-1">
-                                    <p className="font-semibold truncate">
+                                    <p className="truncate font-semibold text-slate-900 dark:text-slate-100">
                                       {getUserDisplayName(convo.otherUser)}
                                     </p>
-                                    <p className="text-xs text-muted-foreground">
+                                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
                                       {formatTime(convo.lastMessageTime)}
                                     </p>
                                   </div>
@@ -2885,7 +2938,7 @@ export function Messages() {
                                       ) : 'Start a conversation...'}
                                     </p>
                                     {convo.unreadCount > 0 && (
-                                      <Badge className="bg-green-600 text-white h-5 w-5 min-w-5 p-0 flex items-center justify-center">
+                                      <Badge className="flex h-5 min-w-5 items-center justify-center rounded-full border-0 bg-[#0f766e] p-0 text-white shadow-sm">
                                         {convo.unreadCount}
                                       </Badge>
                                     )}
@@ -2902,11 +2955,11 @@ export function Messages() {
 
                 {/* Chat Area */}
                 {(!isMobileView || !showConversations) && (
-                  <div className={`${isMobileView ? 'w-full' : 'w-full md:w-2/3'} flex flex-col`}>
+                  <div className={`${isMobileView ? 'w-full' : 'w-full md:flex-1'} flex flex-col bg-[#f5f5f5] dark:bg-slate-900/65 ${!isMobileView && selectedConversation ? 'lg:border-r lg:border-[#e6eaee] lg:dark:border-white/10' : ''}`}>
                     {selectedConversation ? (
                       <>
                         {/* Chat Header */}
-                        <div className="flex flex-wrap items-start justify-between gap-3 border-b bg-card p-3 sm:p-4">
+                        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[#e6eaee] bg-white p-3 dark:border-white/10 dark:bg-slate-950/95 sm:p-4">
                           <div className="flex min-w-0 items-center gap-2 sm:gap-3">
                             {isMobileView && (
                               <Button
@@ -2917,75 +2970,68 @@ export function Messages() {
                                 <ChevronLeft className="h-5 w-5" />
                               </Button>
                             )}
-                            <Avatar className="h-10 w-10">
-                              {selectedConversation.otherUser.avatar && (
-                                <AvatarImage src={selectedConversation.otherUser.avatar} />
-                              )}
-                              <AvatarFallback>
-                                {getUserInitial(selectedConversation.otherUser)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                                <p className="font-semibold">
-                                  {getUserDisplayName(selectedConversation.otherUser)}
-                                </p>
-                                {typingUsers.has(selectedConversation.otherUser.id) && (
-                                  <span className="text-xs text-green-600 animate-pulse">
-                                    typing...
-                                  </span>
+                            <button
+                              type="button"
+                              onClick={() => openParticipantProfile(selectedConversation.otherUser.id)}
+                              className="flex items-center gap-3 text-left"
+                              title="View profile"
+                            >
+                              <Avatar className="h-10 w-10">
+                                {selectedConversation.otherUser.avatar && (
+                                  <AvatarImage src={selectedConversation.otherUser.avatar} />
                                 )}
-                                {selectedConversation.item && (
-                                  <Badge variant="outline" className="text-xs h-5 ml-2">
-                                    {selectedConversation.item.sellerId === selectedConversation.otherUser.id ? 'Seller' : 'Buyer'}
-                                  </Badge>
-                                )}
-                              </div>
-                              {selectedConversation.otherUser.phone && (
-                                <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
-                                  <Phone className="h-3 w-3" />
-                                  {selectedConversation.otherUser.phone}
-                                </div>
-                              )}
-                              {selectedConversation.item ? (
-                                <div className="flex items-center gap-2 mt-1">
-                                  <Package className="h-3 w-3 text-muted-foreground" />
-                                  <p className="text-xs text-muted-foreground">
-                                    {selectedConversation.item.title}
+                                <AvatarFallback>
+                                  {getUserInitial(selectedConversation.otherUser)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                                  <p className="font-semibold text-[#1f2937] dark:text-slate-100">
+                                    {getUserDisplayName(selectedConversation.otherUser)}
                                   </p>
+                                  {typingUsers.has(selectedConversation.otherUser.id) && (
+                                    <span className="animate-pulse text-xs text-cyan-600 dark:text-cyan-300">
+                                      typing...
+                                    </span>
+                                  )}
                                 </div>
-                              ) : (
-                                <p className="text-xs text-muted-foreground">
-                                  Click to view profile
+                                {selectedConversation.otherUser.phone && (
+                                  <div className="mb-1 flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+                                    <Phone className="h-3 w-3" />
+                                    {selectedConversation.otherUser.phone}
+                                  </div>
+                                )}
+                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                  {selectedConversation.item ? 'Active conversation' : 'Click to view profile'}
                                 </p>
-                              )}
-                            </div>
+                              </div>
+                            </button>
                           </div>
                           <div className="flex shrink-0 items-center gap-1 sm:gap-2">
-                            {selectedConversation.item && (
-                              <>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="hidden sm:inline-flex"
-                                  onClick={() => navigate(`/item/${selectedConversation.item!.id}`)}
-                                >
-                                  View Item
-                                </Button>
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  className="sm:hidden"
-                                  onClick={() => navigate(`/item/${selectedConversation.item!.id}`)}
-                                  aria-label="View item"
-                                >
-                                  <Info className="h-4 w-4" />
-                                </Button>
-                              </>
-                            )}
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="border border-cyan-200 bg-white text-cyan-700 hover:bg-cyan-50 dark:border-cyan-500/35 dark:bg-cyan-500/10 dark:text-cyan-200 dark:hover:bg-cyan-500/20"
+                              onClick={() => startCall('audio')}
+                              disabled={placingCall || currentUser?.role === 'admin' || Boolean(activeCall)}
+                              title="Audio Call"
+                            >
+                              <Phone className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="border border-emerald-200 bg-white text-emerald-700 hover:bg-emerald-50 dark:border-emerald-500/35 dark:bg-emerald-500/10 dark:text-emerald-200 dark:hover:bg-emerald-500/20"
+                              onClick={() => startCall('video')}
+                              disabled={placingCall || currentUser?.role === 'admin' || Boolean(activeCall)}
+                              title="Video Call"
+                            >
+                              <Video className="h-4 w-4" />
+                            </Button>
                             <Button 
                               size="icon" 
                               variant="ghost"
+                              className="border border-rose-200 bg-rose-50/80 text-rose-600 hover:bg-rose-100 dark:border-rose-500/35 dark:bg-rose-500/10 dark:text-rose-300 dark:hover:bg-rose-500/20"
                               onClick={handleDeleteConversation}
                               title="Delete Conversation"
                               disabled={currentUser?.role === 'admin'}
@@ -2995,49 +3041,18 @@ export function Messages() {
                           </div>
                         </div>
 
-                        <div className="border-b bg-muted/30 px-3 py-2 sm:px-4">
-                          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                            <div>
-                              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                                Calls
-                              </p>
-                            </div>
-                            <div className="flex w-full gap-2 sm:w-auto">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="flex-1 sm:flex-none"
-                                onClick={() => startCall('audio')}
-                                disabled={placingCall || currentUser?.role === 'admin' || Boolean(activeCall)}
-                              >
-                                <Phone className="mr-1 h-4 w-4" />
-                                {placingCall ? 'Calling...' : 'Audio Call'}
-                              </Button>
-                              <Button
-                                size="sm"
-                                className="flex-1 bg-green-600 hover:bg-green-700 sm:flex-none"
-                                onClick={() => startCall('video')}
-                                disabled={placingCall || currentUser?.role === 'admin' || Boolean(activeCall)}
-                              >
-                                <Video className="mr-1 h-4 w-4" />
-                                {placingCall ? 'Calling...' : 'Video Call'}
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-
                         {/* Messages */}
                         <div 
                           ref={scrollContainerRef} 
-                          className="flex-1 overflow-y-auto bg-gradient-to-b from-gray-50 to-white p-3 sm:p-4"
+                          className="flex-1 overflow-y-auto bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.1),_transparent_52%),linear-gradient(180deg,_rgba(255,255,255,0.9)_0%,_rgba(236,253,245,0.55)_48%,_rgba(224,242,254,0.45)_100%)] p-3 dark:bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.2),_transparent_54%),linear-gradient(180deg,_rgba(15,23,42,0.92)_0%,_rgba(6,78,59,0.26)_50%,_rgba(7,89,133,0.2)_100%)] sm:p-4"
                         >
                           {selectedConversation.messages.length === 0 ? (
-                            <div className="h-full flex flex-col items-center justify-center text-center p-8">
-                              <Avatar className="h-20 w-20 mb-4">
+                            <div className="flex h-full flex-col items-center justify-center p-8 text-center">
+                              <Avatar className="mb-4 h-20 w-20 ring-4 ring-white/80 shadow-xl dark:ring-white/10">
                                 {selectedConversation.otherUser.avatar && (
                                   <AvatarImage src={selectedConversation.otherUser.avatar} />
                                 )}
-                                <AvatarFallback className="text-2xl">
+                                <AvatarFallback className="bg-gradient-to-br from-emerald-500 to-cyan-500 text-2xl text-white">
                                   {getUserInitial(selectedConversation.otherUser)}
                                 </AvatarFallback>
                               </Avatar>
@@ -3073,8 +3088,8 @@ export function Messages() {
                                     minute: '2-digit',
                                   });
                                   const bubbleClass = isOutgoingCall
-                                    ? 'bg-[#0A6550] border-emerald-300/20 rounded-tr-none'
-                                    : 'bg-[#1C2636] border-white/10 rounded-tl-none';
+                                    ? 'bg-gradient-to-br from-emerald-500 to-teal-600 border-emerald-300/30 rounded-tr-none'
+                                    : 'bg-gradient-to-br from-slate-700 to-slate-800 border-white/15 rounded-tl-none';
                                   return (
                                     <div
                                       key={msg.id}
@@ -3111,21 +3126,21 @@ export function Messages() {
 
                                 // Determine alignment and styling
                                 let isRightAligned = isMe;
-                                let bubbleClass = isMe 
-                                  ? 'bg-green-600 text-white rounded-tr-none' 
-                                  : 'bg-muted text-foreground rounded-tl-none';
+                                let bubbleClass = isMe
+                                  ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 text-white rounded-tr-none shadow-md'
+                                  : 'bg-white/95 border border-emerald-100 text-slate-900 rounded-tl-none shadow-sm dark:bg-slate-900/85 dark:border-slate-700 dark:text-slate-100';
 
                                 if (isAdmin) {
                                   // For admin, align based on participants order in ID
                                   const [id1] = selectedConversation.otherUser.id.split('::');
                                   if (msg.senderId === id1) {
                                     isRightAligned = false;
-                                    bubbleClass = 'bg-card border border-border text-foreground rounded-tl-none';
-                                  } else {
-                                    isRightAligned = true;
-                                    bubbleClass = 'bg-blue-50 dark:bg-blue-950/35 border border-blue-100 dark:border-blue-700/40 text-foreground rounded-tr-none';
+                                      bubbleClass = 'bg-white/95 border border-slate-200 text-slate-900 rounded-tl-none shadow-sm dark:bg-slate-900/85 dark:border-slate-700 dark:text-slate-100';
+                                    } else {
+                                      isRightAligned = true;
+                                      bubbleClass = 'bg-gradient-to-r from-sky-500 to-cyan-500 text-white rounded-tr-none shadow-md';
+                                    }
                                   }
-                                }
 
                                 return (
                                   <div
@@ -3144,7 +3159,7 @@ export function Messages() {
                                     )}
                                     <div
                                       className={`relative max-w-[85%] rounded-2xl p-3 sm:max-w-[78%] md:max-w-[70%] ${
-                                        isDeleted ? 'bg-muted text-muted-foreground italic' : bubbleClass
+                                        isDeleted ? 'bg-slate-100/85 text-slate-500 italic dark:bg-slate-800/60 dark:text-slate-400' : bubbleClass
                                       }`}
                                     >
                                       {isAdmin && (
@@ -3160,7 +3175,7 @@ export function Messages() {
                                             <Button
                                               size="sm"
                                               variant={isMe || (isAdmin && isRightAligned) ? 'secondary' : 'ghost'}
-                                              className={isMe || (isAdmin && isRightAligned) ? '' : 'text-green-600 hover:text-green-700'}
+                                              className={isMe || (isAdmin && isRightAligned) ? '' : 'text-cyan-600 hover:text-cyan-700 dark:text-cyan-300 dark:hover:text-cyan-200'}
                                               onClick={() => msg.audioData && playAudio(msg.id, msg.audioData)}
                                             >
                                               {playingAudioId === msg.id ? (
@@ -3169,7 +3184,7 @@ export function Messages() {
                                                 <Play className="h-4 w-4" />
                                               )}
                                             </Button>
-                                            <span className={`text-xs ${isMe || (isAdmin && isRightAligned) ? 'text-green-100' : 'text-muted-foreground'}`}>
+                                            <span className={`text-xs ${isMe || (isAdmin && isRightAligned) ? 'text-white/80' : 'text-muted-foreground'}`}>
                                               Voice Message
                                             </span>
                                           </div>
@@ -3198,9 +3213,9 @@ export function Messages() {
                                               <Input 
                                                 value={editContent} 
                                                 onChange={(e) => setEditContent(e.target.value)}
-                                                className="h-8 text-black"
+                                                className="h-8 border-emerald-200 bg-white/95 text-slate-900 focus-visible:ring-emerald-500 dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-100"
                                               />
-                                              <Button size="sm" onClick={handleSaveEdit} className="h-8">Save</Button>
+                                              <Button size="sm" onClick={handleSaveEdit} className="h-8 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white hover:from-emerald-600 hover:to-cyan-600">Save</Button>
                                               <Button size="sm" variant="ghost" onClick={() => setEditingMessageId(null)} className="h-8">Cancel</Button>
                                             </div>
                                           ) : (
@@ -3212,7 +3227,7 @@ export function Messages() {
                                         </div>
                                       )}
                                       <div className={`flex items-center justify-end mt-1 ${
-                                        isDeleted ? 'text-gray-400' : (isMe || (isAdmin && isRightAligned)) ? 'text-green-100' : 'text-gray-400'
+                                        isDeleted ? 'text-slate-400' : (isMe || (isAdmin && isRightAligned)) ? 'text-white/80' : 'text-slate-400 dark:text-slate-500'
                                       }`}>
                                         <p className="text-xs">
                                           {new Date(msg.timestamp).toLocaleTimeString([], { 
@@ -3275,11 +3290,11 @@ export function Messages() {
                                       {getUserInitial(selectedConversation.otherUser)}
                                     </AvatarFallback>
                                   </Avatar>
-                                  <div className="bg-muted rounded-2xl rounded-tl-none p-3">
+                                  <div className="rounded-2xl rounded-tl-none border border-emerald-100 bg-white/90 p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900/85">
                                     <div className="flex gap-1">
-                                      <div className="h-2 w-2 bg-gray-400 rounded-full animate-bounce" />
-                                      <div className="h-2 w-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                                      <div className="h-2 w-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                                      <div className="h-2 w-2 rounded-full bg-emerald-500 animate-bounce" />
+                                      <div className="h-2 w-2 rounded-full bg-cyan-500 animate-bounce" style={{ animationDelay: '150ms' }} />
+                                      <div className="h-2 w-2 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: '300ms' }} />
                                     </div>
                                   </div>
                                 </div>
@@ -3289,13 +3304,13 @@ export function Messages() {
                         </div>
 
                         {/* Message Input */}
-                        <div className="space-y-3 border-t bg-card p-3 sm:p-4">
+                        <div className="space-y-3 border-t border-white/60 bg-gradient-to-r from-white/90 via-emerald-50/60 to-cyan-50/60 p-3 dark:border-white/10 dark:from-slate-950/85 dark:via-emerald-950/20 dark:to-cyan-950/20 sm:p-4">
                           {attachment && (
                             <div className="relative inline-block">
                               <img 
                                 src={attachment} 
                                 alt="Preview" 
-                                className="h-20 w-20 object-cover rounded-md border cursor-pointer hover:opacity-90"
+                                className="h-20 w-20 cursor-pointer rounded-md border border-emerald-200 object-cover shadow-sm hover:opacity-90 dark:border-emerald-500/40"
                                 onClick={() => window.open(attachment, '_blank')}
                               />
                               <button
@@ -3308,13 +3323,13 @@ export function Messages() {
                           )}
 
                           {recordedAudio && (
-                            <div className="bg-blue-50 dark:bg-blue-950/35 border border-blue-200 dark:border-blue-700/40 rounded-lg p-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="rounded-lg border border-cyan-200 bg-gradient-to-r from-sky-50 to-cyan-50 p-3 dark:border-cyan-500/35 dark:from-cyan-900/25 dark:to-sky-900/20 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                               <div className="flex items-center gap-2">
-                                <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center">
+                                <div className="h-8 w-8 rounded-full bg-gradient-to-r from-cyan-500 to-sky-500 flex items-center justify-center">
                                   <Mic className="h-4 w-4 text-white" />
                                 </div>
                                 <div className="space-y-1">
-                                  <span className="text-sm text-blue-700 font-medium">Voice message recorded</span>
+                                  <span className="text-sm text-cyan-700 font-medium dark:text-cyan-200">Voice message recorded</span>
                                   <audio 
                                     src={recordedAudio} 
                                     controls 
@@ -3332,7 +3347,7 @@ export function Messages() {
                                 </Button>
                                 <Button
                                   size="sm"
-                                  className="bg-blue-600 hover:bg-blue-700"
+                                  className="bg-gradient-to-r from-cyan-500 to-sky-500 text-white hover:from-cyan-600 hover:to-sky-600"
                                   onClick={sendVoiceMessage}
                                   disabled={sending}
                                 >
@@ -3347,17 +3362,17 @@ export function Messages() {
                           )}
 
                           {isRecording && (
-                            <div className="bg-red-50 dark:bg-red-950/35 border border-red-200 dark:border-red-700/40 rounded-lg p-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="rounded-lg border border-rose-200 bg-rose-50/95 p-3 dark:border-rose-500/35 dark:bg-rose-950/25 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                               <div className="flex items-center gap-2">
                                 <div className="h-3 w-3 rounded-full bg-red-600 animate-pulse"></div>
                                 <div>
-                                  <span className="text-sm text-red-700 font-medium">Recording...</span>
-                                  <p className="text-xs text-red-600">{formatRecordingTime()}</p>
+                                  <span className="text-sm text-rose-700 font-medium dark:text-rose-300">Recording...</span>
+                                  <p className="text-xs text-rose-600 dark:text-rose-300/80">{formatRecordingTime()}</p>
                                 </div>
                               </div>
                               <Button
                                 size="sm"
-                                className="bg-red-600 hover:bg-red-700"
+                                className="bg-rose-600 text-white hover:bg-rose-700"
                                 onClick={stopRecording}
                               >
                                 <Square className="h-4 w-4 mr-1" />
@@ -3377,7 +3392,7 @@ export function Messages() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="shrink-0"
+                              className="shrink-0 border border-emerald-200 bg-white/85 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-500/40 dark:bg-slate-900/80 dark:text-emerald-300 dark:hover:bg-emerald-500/10"
                               onClick={() => fileInputRef.current?.click()}
                               disabled={sending || isRecording || !!recordedAudio}
                             >
@@ -3397,13 +3412,13 @@ export function Messages() {
                                 }
                               }}
                               disabled={sending || isRecording || !!recordedAudio || currentUser?.role === 'admin'}
-                              className="min-w-0 flex-1"
+                              className="min-w-0 flex-1 border-emerald-200 bg-white/90 shadow-sm focus-visible:ring-emerald-500 dark:border-slate-700 dark:bg-slate-900/85"
                             />
                             <Button
                               onClick={isRecording ? stopRecording : startRecording}
                               variant={isRecording ? 'destructive' : 'ghost'}
                               size="icon"
-                              className="shrink-0"
+                              className={`shrink-0 ${isRecording ? '' : 'border border-cyan-200 bg-white/85 text-cyan-700 hover:bg-cyan-50 dark:border-cyan-500/40 dark:bg-slate-900/80 dark:text-cyan-300 dark:hover:bg-cyan-500/10'}`}
                               disabled={sending || !!recordedAudio || !!attachment || currentUser?.role === 'admin'}
                             >
                               <Mic className="h-5 w-5" />
@@ -3411,7 +3426,7 @@ export function Messages() {
                             <Button
                               onClick={handleSendMessage}
                               disabled={sending || (!newMessage.trim() && !recordedAudio && !attachment) || currentUser?.role === 'admin'}
-                              className="shrink-0 bg-green-600 hover:bg-green-700"
+                              className="shrink-0 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white hover:from-emerald-600 hover:to-cyan-600"
                             >
                               {sending ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -3423,18 +3438,18 @@ export function Messages() {
                         </div>
                       </>
                     ) : (
-                      <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
+                      <div className="flex flex-1 flex-col items-center justify-center p-8 text-center">
                         <div className="max-w-md">
-                          <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
-                            <ImageIcon className="h-10 w-10 text-gray-400" />
+                          <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-r from-emerald-500 to-cyan-500 shadow-xl">
+                            <ImageIcon className="h-10 w-10 text-white" />
                           </div>
-                          <h3 className="text-xl font-semibold mb-2">No conversation selected</h3>
+                          <h3 className="mb-2 text-xl font-semibold text-slate-900 dark:text-slate-100">No conversation selected</h3>
                           <p className="text-sm text-muted-foreground mb-6">
                             Select a conversation from the list to start messaging, or browse the marketplace to contact sellers.
                           </p>
                           <Button
                             onClick={() => navigate('/marketplace')}
-                            className="bg-green-600 hover:bg-green-700"
+                            className="bg-gradient-to-r from-emerald-500 to-cyan-500 text-white hover:from-emerald-600 hover:to-cyan-600"
                           >
                             Browse Marketplace
                           </Button>
@@ -3443,6 +3458,61 @@ export function Messages() {
                     )}
                   </div>
                 )}
+
+                {!isMobileView && selectedConversation && (
+                  <aside className="hidden w-[260px] flex-col bg-white dark:bg-slate-950/95 lg:flex xl:w-[290px]">
+                    <div className="border-b border-[#e6eaee] px-4 py-5 text-center dark:border-white/10">
+                      <button
+                        type="button"
+                        onClick={() => openParticipantProfile(selectedConversation.otherUser.id)}
+                        className="mx-auto block"
+                        title="View profile"
+                      >
+                        <Avatar className="mx-auto h-20 w-20 border-2 border-white shadow-md dark:border-slate-800">
+                          {selectedConversation.otherUser.avatar && (
+                            <AvatarImage src={selectedConversation.otherUser.avatar} />
+                          )}
+                          <AvatarFallback className="bg-[#0f766e] text-xl text-white">
+                            {getUserInitial(selectedConversation.otherUser)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <h3 className="mt-3 text-xl font-semibold text-slate-900 dark:text-slate-100">
+                          {getUserDisplayName(selectedConversation.otherUser)}
+                        </h3>
+                        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                          {selectedConversation.otherUser.email || 'Campus Member'}
+                        </p>
+                      </button>
+                      <Badge className="mt-3 border-0 bg-[#f7efe0] px-3 py-1 text-[#7a5b1f] dark:bg-amber-500/15 dark:text-amber-200">
+                        Verified Student
+                      </Badge>
+                    </div>
+                    <div className="space-y-3 px-4 py-5 text-sm">
+                      <div className="rounded-xl border border-[#edf1f4] bg-[#f8fafb] p-3 dark:border-white/10 dark:bg-slate-900">
+                        <p className="text-xs uppercase tracking-wide text-slate-400">Email</p>
+                        <p className="mt-1 truncate text-slate-700 dark:text-slate-200">
+                          {selectedConversation.otherUser.email || 'Not available'}
+                        </p>
+                      </div>
+                      <div className="rounded-xl border border-[#edf1f4] bg-[#f8fafb] p-3 dark:border-white/10 dark:bg-slate-900">
+                        <p className="text-xs uppercase tracking-wide text-slate-400">Phone</p>
+                        <p className="mt-1 text-slate-700 dark:text-slate-200">
+                          {selectedConversation.otherUser.phone || 'Not available'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-auto border-t border-[#e6eaee] p-4 dark:border-white/10">
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-500/10"
+                        onClick={() => navigate(currentUser?.userType === 'seller' ? '/seller/reports' : '/buyer/report')}
+                      >
+                        <Flag className="mr-2 h-4 w-4" />
+                        Report User
+                      </Button>
+                    </div>
+                  </aside>
+                )}
               </div>
             )}
           </CardContent>
@@ -3450,7 +3520,7 @@ export function Messages() {
 
         {incomingCall && (
           <div
-            className="fixed inset-x-3 z-[110] mx-auto w-full max-w-md rounded-xl border border-border/70 bg-card/95 p-4 shadow-lg backdrop-blur sm:inset-x-auto sm:right-4"
+            className="fixed inset-x-3 z-[110] mx-auto w-full max-w-md rounded-xl border border-emerald-200/70 bg-gradient-to-r from-white/95 to-cyan-50/90 p-4 shadow-[0_24px_60px_-35px_rgba(14,116,144,0.6)] backdrop-blur-xl dark:border-emerald-500/35 dark:from-slate-950/95 dark:to-cyan-950/35 sm:inset-x-auto sm:right-4"
             style={{ bottom: 'max(1rem, calc(env(safe-area-inset-bottom) + 1rem))' }}
           >
             <div className="flex items-start justify-between gap-3">
@@ -3458,17 +3528,17 @@ export function Messages() {
                 <p className="text-sm font-semibold">
                   Incoming {incomingCall.mode === 'video' ? 'video' : 'audio'} call
                 </p>
-                <p className="text-sm text-muted-foreground truncate">{incomingCall.senderName}</p>
+                <p className="truncate text-sm text-slate-600 dark:text-slate-300">{incomingCall.senderName}</p>
               </div>
               <Button variant="ghost" size="icon" onClick={declineIncomingCall} disabled={placingCall}>
                 <X className="h-4 w-4" />
               </Button>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-2">
-              <Button variant="outline" onClick={declineIncomingCall} disabled={placingCall}>
+              <Button variant="outline" className="border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-300 dark:hover:bg-rose-500/20" onClick={declineIncomingCall} disabled={placingCall}>
                 Decline
               </Button>
-              <Button className="bg-green-600 hover:bg-green-700" onClick={acceptIncomingCall} disabled={placingCall}>
+              <Button className="bg-gradient-to-r from-emerald-500 to-cyan-500 text-white hover:from-emerald-600 hover:to-cyan-600" onClick={acceptIncomingCall} disabled={placingCall}>
                 {incomingCall.mode === 'video' ? <Video className="mr-1 h-4 w-4" /> : <Phone className="mr-1 h-4 w-4" />}
                 Accept
               </Button>

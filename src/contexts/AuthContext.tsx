@@ -36,7 +36,7 @@ interface AuthContextType {
   currentUser: User | null;
   accessToken: string | null;
   refreshAuthToken: (tokenOverride?: string | null) => Promise<string | null>;
-  login: (email: string, password: string) => Promise<LoginResult>;
+  login: (email: string, password: string, options?: { rememberDevice?: boolean }) => Promise<LoginResult>;
   verifyTwoFactorCode: (token: string, code: string) => Promise<{ success: boolean; error?: string }>;
   resendTwoFactorCode: (token: string) => Promise<{ success: boolean; error?: string; message?: string; verificationCode?: string }>;
   resendConfirmationEmail: (email: string) => Promise<{ success: boolean; error?: string; message?: string; confirmationLink?: string }>;
@@ -88,16 +88,57 @@ const normalizeUser = (user: any): User => {
 };
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const AUTH_REMEMBER_KEY = 'authRememberDevice';
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const refreshInFlightRef = useRef<Promise<string | null> | null>(null);
+  const pendingRememberDeviceRef = useRef(false);
+  const sessionModeRef = useRef<'local' | 'session'>('local');
 
-  const applyAuthenticatedSession = (data: any) => {
+  const getStorage = (mode: 'local' | 'session') => (mode === 'local' ? localStorage : sessionStorage);
+  const clearStorage = (storage: Storage) => {
+    storage.removeItem('currentUser');
+    storage.removeItem('accessToken');
+    storage.removeItem('refreshToken');
+    storage.removeItem(AUTH_REMEMBER_KEY);
+  };
+  const clearStoredSession = () => {
+    clearStorage(localStorage);
+    clearStorage(sessionStorage);
+  };
+  const persistSession = (
+    user: User,
+    token: string,
+    nextRefreshToken: string | null,
+    mode: 'local' | 'session',
+  ) => {
+    const activeStorage = getStorage(mode);
+    const inactiveStorage = getStorage(mode === 'local' ? 'session' : 'local');
+    activeStorage.setItem('currentUser', JSON.stringify(user));
+    activeStorage.setItem('accessToken', token);
+    activeStorage.setItem(AUTH_REMEMBER_KEY, mode === 'local' ? 'true' : 'false');
+    if (nextRefreshToken) {
+      activeStorage.setItem('refreshToken', nextRefreshToken);
+    } else {
+      activeStorage.removeItem('refreshToken');
+    }
+    clearStorage(inactiveStorage);
+    sessionModeRef.current = mode;
+  };
+  const persistUserOnly = (user: User, mode: 'local' | 'session' = sessionModeRef.current) => {
+    const activeStorage = getStorage(mode);
+    const inactiveStorage = getStorage(mode === 'local' ? 'session' : 'local');
+    activeStorage.setItem('currentUser', JSON.stringify(user));
+    inactiveStorage.removeItem('currentUser');
+  };
+
+  const applyAuthenticatedSession = (data: any, options?: { rememberDevice?: boolean }) => {
     const normalizedUser = normalizeUser(data.user);
     const nextAccessToken = typeof data?.accessToken === 'string' ? data.accessToken : null;
     const nextRefreshToken = typeof data?.refreshToken === 'string' ? data.refreshToken : null;
+    const storageMode: 'local' | 'session' = options?.rememberDevice ? 'local' : 'session';
 
     if (!normalizedUser || !nextAccessToken) {
       return false;
@@ -106,42 +147,58 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setCurrentUser(normalizedUser);
     setAccessToken(nextAccessToken);
     setRefreshToken(nextRefreshToken);
-    localStorage.setItem('currentUser', JSON.stringify(normalizedUser));
-    localStorage.setItem('accessToken', nextAccessToken);
-    if (nextRefreshToken) {
-      localStorage.setItem('refreshToken', nextRefreshToken);
-    } else {
-      localStorage.removeItem('refreshToken');
-    }
+    persistSession(normalizedUser, nextAccessToken, nextRefreshToken, storageMode);
 
     return true;
   };
 
   // Check if user is stored in localStorage on mount
   useEffect(() => {
-    const storedUser = localStorage.getItem('currentUser');
-    const storedToken = localStorage.getItem('accessToken');
-    const storedRefreshToken = localStorage.getItem('refreshToken');
-    
-    if (storedUser && storedToken) {
+    const readStoredSession = (mode: 'local' | 'session') => {
+      const storage = getStorage(mode);
+      const storedUser = storage.getItem('currentUser');
+      const storedToken = storage.getItem('accessToken');
+      const storedRefreshToken = storage.getItem('refreshToken');
+      const rememberFlag = storage.getItem(AUTH_REMEMBER_KEY);
+
+      if (!storedUser || !storedToken) return null;
+      if (mode === 'local' && rememberFlag !== 'true') {
+        // Legacy sessions (before remember-me wiring) are cleared once to avoid forced auto-login.
+        clearStorage(storage);
+        return null;
+      }
       try {
-        const parsedUser = JSON.parse(storedUser);
-        setCurrentUser(normalizeUser(parsedUser));
-        setAccessToken(storedToken);
-        setRefreshToken(storedRefreshToken || null);
-        // Verify and refresh user data
-        refreshUserData(storedToken, storedRefreshToken);
+        const parsedUser = normalizeUser(JSON.parse(storedUser));
+        return {
+          mode,
+          user: parsedUser,
+          token: storedToken,
+          refreshToken: storedRefreshToken || null,
+        };
       } catch (error) {
         console.error('Failed to parse stored user data:', error);
-        localStorage.removeItem('currentUser');
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
+        clearStorage(storage);
+        return null;
       }
+    };
+
+    const storedSession = readStoredSession('local') || readStoredSession('session');
+    if (storedSession) {
+      sessionModeRef.current = storedSession.mode;
+      setCurrentUser(storedSession.user);
+      setAccessToken(storedSession.token);
+      setRefreshToken(storedSession.refreshToken);
+      // Verify and refresh user data
+      refreshUserData(storedSession.token, storedSession.refreshToken, storedSession.mode);
     }
     setLoading(false);
   }, []);
 
-  const refreshUserData = async (token: string, fallbackRefreshToken?: string | null) => {
+  const refreshUserData = async (
+    token: string,
+    fallbackRefreshToken?: string | null,
+    storageMode: 'local' | 'session' = sessionModeRef.current,
+  ) => {
     try {
       const response = await fetch(`${API_URL}/auth/me`, {
         headers: {
@@ -152,8 +209,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (response.ok) {
         const data = await response.json();
         const normalizedUser = normalizeUser(data.user);
+        const activeToken = getStorage(storageMode).getItem('accessToken') || accessToken;
+        if (activeToken && activeToken !== token) {
+          return;
+        }
         setCurrentUser(normalizedUser);
-        localStorage.setItem('currentUser', JSON.stringify(normalizedUser));
+        persistUserOnly(normalizedUser, storageMode);
       } else if (response.status === 401) {
         const nextToken = await refreshAuthToken(fallbackRefreshToken || null);
         if (!nextToken) {
@@ -170,8 +231,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (retryResponse.ok) {
           const retryData = await retryResponse.json();
           const normalizedUser = normalizeUser(retryData.user);
+          const activeToken = getStorage(storageMode).getItem('accessToken') || accessToken;
+          if (activeToken && activeToken !== nextToken) {
+            return;
+          }
           setCurrentUser(normalizedUser);
-          localStorage.setItem('currentUser', JSON.stringify(normalizedUser));
+          persistUserOnly(normalizedUser, storageMode);
         } else {
           logout();
         }
@@ -195,7 +260,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return await refreshInFlightRef.current;
     }
 
-    const tokenToUse = tokenOverride || refreshToken || localStorage.getItem('refreshToken');
+    const tokenToUse =
+      tokenOverride ||
+      refreshToken ||
+      getStorage(sessionModeRef.current).getItem('refreshToken') ||
+      localStorage.getItem('refreshToken') ||
+      sessionStorage.getItem('refreshToken');
     if (!tokenToUse) {
       return null;
     }
@@ -217,7 +287,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         // Another request/tab may have already rotated tokens; retry once with the latest token.
         if (!response.ok && response.status === 401) {
-          const latestToken = localStorage.getItem('refreshToken');
+          const latestToken =
+            getStorage(sessionModeRef.current).getItem('refreshToken') ||
+            localStorage.getItem('refreshToken') ||
+            sessionStorage.getItem('refreshToken');
           if (latestToken && latestToken !== tokenToUse) {
             response = await refreshWithToken(latestToken);
             usedToken = latestToken;
@@ -242,8 +315,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         setAccessToken(nextAccessToken);
         setRefreshToken(nextRefreshToken);
-        localStorage.setItem('accessToken', nextAccessToken);
-        localStorage.setItem('refreshToken', nextRefreshToken);
+        const activeStorage = getStorage(sessionModeRef.current);
+        const inactiveStorage = getStorage(sessionModeRef.current === 'local' ? 'session' : 'local');
+        activeStorage.setItem('accessToken', nextAccessToken);
+        activeStorage.setItem('refreshToken', nextRefreshToken);
+        activeStorage.setItem(
+          AUTH_REMEMBER_KEY,
+          sessionModeRef.current === 'local' ? 'true' : 'false',
+        );
+        inactiveStorage.removeItem('accessToken');
+        inactiveStorage.removeItem('refreshToken');
         return nextAccessToken;
       } catch (error) {
         console.error('Token refresh error:', error);
@@ -261,7 +342,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return refreshed;
   };
 
-  const login = async (email: string, password: string): Promise<LoginResult> => {
+  const login = async (
+    email: string,
+    password: string,
+    options?: { rememberDevice?: boolean },
+  ): Promise<LoginResult> => {
+    pendingRememberDeviceRef.current = options?.rememberDevice === true;
+    // Ensure stale sessions don't bleed into the next login.
+    clearStoredSession();
+    setCurrentUser(null);
+    setAccessToken(null);
+    setRefreshToken(null);
     try {
       const response = await fetch(`${API_URL}/signin`, {
         method: 'POST',
@@ -274,6 +365,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await response.json();
 
       if (!response.ok) {
+        pendingRememberDeviceRef.current = false;
         return { success: false, error: data.error || 'Login failed' };
       }
 
@@ -287,13 +379,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
       }
 
-      const applied = applyAuthenticatedSession(data);
+      const applied = applyAuthenticatedSession(data, {
+        rememberDevice: pendingRememberDeviceRef.current,
+      });
+      pendingRememberDeviceRef.current = false;
       if (!applied) {
         return { success: false, error: 'Login response was incomplete. Please try again.' };
       }
       
       return { success: true };
     } catch (error) {
+      pendingRememberDeviceRef.current = false;
       console.error('Login error:', error);
       return { success: false, error: error instanceof Error ? error.message : 'An error occurred during login' };
     }
@@ -314,13 +410,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { success: false, error: data.error || 'Invalid verification code' };
       }
 
-      const applied = applyAuthenticatedSession(data);
+      const applied = applyAuthenticatedSession(data, {
+        rememberDevice: pendingRememberDeviceRef.current,
+      });
+      pendingRememberDeviceRef.current = false;
       if (!applied) {
         return { success: false, error: 'Could not complete sign in. Please try again.' };
       }
 
       return { success: true };
     } catch (error) {
+      pendingRememberDeviceRef.current = false;
       console.error('Two-factor verification error:', error);
       return {
         success: false,
@@ -439,13 +539,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setCurrentUser(null);
     setAccessToken(null);
     setRefreshToken(null);
-    localStorage.removeItem('currentUser');
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
+    pendingRememberDeviceRef.current = false;
+    clearStoredSession();
   };
 
   const updateProfile = async (data: Partial<User>): Promise<{ success: boolean; error?: string }> => {
-    const token = accessToken || localStorage.getItem('accessToken');
+    const token =
+      accessToken ||
+      getStorage(sessionModeRef.current).getItem('accessToken') ||
+      localStorage.getItem('accessToken') ||
+      sessionStorage.getItem('accessToken');
     if (!token) {
       return { success: false, error: 'Please log in again and try once more.' };
     }
@@ -475,7 +578,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (response.ok) {
         const normalizedUser = normalizeUser(result.user);
         setCurrentUser(normalizedUser);
-        localStorage.setItem('currentUser', JSON.stringify(normalizedUser));
+        persistUserOnly(normalizedUser);
         return { success: true };
       }
 

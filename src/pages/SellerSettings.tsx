@@ -6,7 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app
 import { PasswordInput } from '@/app/components/ui/password-input';
 import { Label } from '@/app/components/ui/label';
 import { Switch } from '@/app/components/ui/switch';
-import { ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
@@ -90,11 +89,6 @@ export function SellerSettings() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl space-y-6">
-      <Button variant="ghost" onClick={() => navigate('/dashboard')}>
-        <ArrowLeft className="h-4 w-4 mr-2" />
-        Back to Dashboard
-      </Button>
-
       <Card>
         <CardHeader>
           <CardTitle>Seller Settings</CardTitle>

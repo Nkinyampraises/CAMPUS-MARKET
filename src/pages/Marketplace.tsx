@@ -6,7 +6,7 @@ import { Button } from '@/app/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/app/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
 import { Badge } from '@/app/components/ui/badge';
-import { Search, Filter, MapPin, Eye, Heart } from 'lucide-react';
+import { Search, Filter, MapPin, Heart, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { categories, getCategoryById, getLocationById, getUniversityName } from '@/data/mockData';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -14,9 +14,10 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { API_URL } from '@/lib/api';
 
 const formatCurrency = (amount: number) =>
-  new Intl.NumberFormat('en-US', {
+  new Intl.NumberFormat('fr-CM', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'XAF',
+    maximumFractionDigits: 0,
   }).format(amount || 0);
 
 type Listing = {
@@ -53,6 +54,13 @@ const toCount = (value: unknown) => {
 
 const MARKETPLACE_TYPES = new Set(['sell', 'rent']);
 const MARKETPLACE_SORTS = new Set(['recent', 'price-low', 'price-high']);
+const PRICE_RANGE_OPTIONS = [
+  { id: 'all', label: 'Any Price', min: 0, max: Infinity },
+  { id: 'under-100', label: 'Under 100,000 FCFA', min: 0, max: 100000 },
+  { id: '100-500', label: '100,000 - 500,000 FCFA', min: 100000, max: 500000 },
+  { id: '500-1000', label: '500,000 - 1,000,000 FCFA', min: 500000, max: 1000000 },
+  { id: '1000', label: '1,000,000+ FCFA', min: 1000000, max: Infinity },
+];
 
 export function Marketplace() {
   const navigate = useNavigate();
@@ -62,15 +70,20 @@ export function Marketplace() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedType, setSelectedType] = useState<string>('all');
+  const [selectedPriceRange, setSelectedPriceRange] = useState<string>('all');
+  const [selectedUniversity, setSelectedUniversity] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('recent');
   const [listings, setListings] = useState<Listing[]>([]);
   const [universitiesById, setUniversitiesById] = useState<Record<string, string>>({});
+  const [universitiesList, setUniversitiesList] = useState<{ id: string; name: string }[]>([]);
   const [savedItems, setSavedItems] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const query = String(searchParams.get('q') || '').trim();
     const rawType = String(searchParams.get('type') || '').toLowerCase();
     const rawCategory = String(searchParams.get('category') || '').trim();
+    const rawPrice = String(searchParams.get('price') || '').toLowerCase();
+    const rawUniversity = String(searchParams.get('university') || '').trim();
     const rawSort = String(searchParams.get('sort') || '').toLowerCase();
 
     const categoryById = categories.find((cat) => cat.id === rawCategory)?.id;
@@ -79,6 +92,8 @@ export function Marketplace() {
     setSearchQuery(query);
     setSelectedType(MARKETPLACE_TYPES.has(rawType) ? rawType : 'all');
     setSelectedCategory(categoryById || categoryByName || 'all');
+    setSelectedPriceRange(PRICE_RANGE_OPTIONS.some((range) => range.id === rawPrice) ? rawPrice : 'all');
+    setSelectedUniversity(rawUniversity || 'all');
     setSortBy(MARKETPLACE_SORTS.has(rawSort) ? rawSort : 'recent');
   }, [searchParams]);
 
@@ -111,17 +126,20 @@ export function Marketplace() {
           const data = await response.json().catch(() => ({}));
           if (response.ok && Array.isArray(data.universities)) {
             const resolved: Record<string, string> = {};
+            const list: { id: string; name: string }[] = [];
             data.universities.forEach((entry: any) => {
               const id = String(entry?.id || '').trim().toLowerCase();
               const name = String(entry?.name || '').trim();
               if (id && name) {
                 resolved[id] = name;
+                list.push({ id, name });
               }
               if (name) {
                 resolved[name.toLowerCase()] = name;
               }
             });
             setUniversitiesById(resolved);
+            setUniversitiesList(list);
           }
         }
       } catch {
@@ -335,6 +353,31 @@ export function Marketplace() {
       filtered = filtered.filter((item) => item.type === selectedType);
     }
 
+    if (selectedPriceRange !== 'all') {
+      const selectedRange = PRICE_RANGE_OPTIONS.find((range) => range.id === selectedPriceRange);
+      if (selectedRange) {
+        filtered = filtered.filter((item) => {
+          const price = Number(item.price || 0);
+          return price >= selectedRange.min && price < selectedRange.max;
+        });
+      }
+    }
+
+    if (selectedUniversity !== 'all') {
+      const rawFilter = selectedUniversity.toLowerCase();
+      const selectedLabel = (universitiesById[rawFilter] || rawFilter).toLowerCase();
+      filtered = filtered.filter((item) => {
+        const itemUniversity = String(item.seller?.university || '').trim().toLowerCase();
+        const itemUniversityLabel = resolveUniversityLabel(item.seller?.university).toLowerCase();
+        return (
+          itemUniversity === rawFilter ||
+          itemUniversityLabel === rawFilter ||
+          itemUniversity === selectedLabel ||
+          itemUniversityLabel === selectedLabel
+        );
+      });
+    }
+
     if (sortBy === 'price-low') {
       filtered = filtered.slice().sort((a, b) => (a.price || 0) - (b.price || 0));
     } else if (sortBy === 'price-high') {
@@ -344,194 +387,287 @@ export function Marketplace() {
     }
 
     return filtered;
-  }, [searchQuery, selectedCategory, selectedType, sortBy, listings]);
+  }, [searchQuery, selectedCategory, selectedType, selectedPriceRange, selectedUniversity, sortBy, listings]);
+
+  const saleCount = useMemo(
+    () => filteredItems.filter((item) => item.type === 'sell').length,
+    [filteredItems],
+  );
+  const rentCount = useMemo(
+    () => filteredItems.filter((item) => item.type === 'rent').length,
+    [filteredItems],
+  );
+  const totalVisibleLikes = useMemo(
+    () => filteredItems.reduce((total, item) => total + toCount(item.likesCount), 0),
+    [filteredItems],
+  );
+  const hasActiveFilters = Boolean(
+    searchQuery || selectedCategory !== 'all' || selectedType !== 'all' || selectedPriceRange !== 'all' || selectedUniversity !== 'all' || sortBy !== 'recent',
+  );
 
   return (
-    <div className="bg-background min-h-screen py-8 text-foreground">
-      <div className="container mx-auto px-4">
-        <div className="mb-8">
-          <div className="mb-2 flex flex-wrap items-center gap-2">
-            <h1 className="text-3xl font-bold">{t('marketplace.title', 'Marketplace')}</h1>
-            {sectionLabel && <Badge variant="outline">{t('marketplace.section', 'Section')}: {sectionLabel}</Badge>}
+    <div className="min-h-screen bg-[#f8f4f2] py-10">
+      <div className="mx-auto w-full max-w-none px-4 lg:px-6">
+        <section className="mb-6 flex flex-wrap items-start justify-between gap-6">
+          <div className="max-w-xl">
+            <h1 className="text-3xl font-semibold text-[#1f1f1f]">{t('marketplace.title', 'Student Marketplace')}</h1>
+            <p className="mt-2 text-sm text-[#6a6a6a]">
+              {t(
+                'marketplace.subtitle',
+                'Find the best deals on campus. Verified student sellers from top universities in Cameroon.',
+              )}
+            </p>
           </div>
-          <p className="text-muted-foreground">
-            {t('marketplace.subtitle', 'Browse items from students across Cameroon universities')}
-          </p>
-        </div>
-
-        <div className="bg-card rounded-lg border border-border shadow-sm p-3 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
-            <div className="lg:col-span-2 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder={t('marketplace.searchPlaceholder', 'Search items...')}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 h-9"
-              />
+          <div className="min-w-[200px]">
+            <div className="text-xs font-semibold uppercase tracking-[0.12em] text-[#8a8a8a]">
+              {t('marketplace.sortBy', 'Sort by')}
             </div>
-
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger size="sm">
-                <SelectValue placeholder={t('marketplace.allCategories', 'All Categories')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t('marketplace.allCategories', 'All Categories')}</SelectItem>
-                {categories.map((cat) => (
-                  <SelectItem key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={selectedType} onValueChange={setSelectedType}>
-              <SelectTrigger size="sm">
-                <SelectValue placeholder={t('marketplace.allTypes', 'All Types')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t('marketplace.allTypes', 'All Types')}</SelectItem>
-                <SelectItem value="sell">{t('marketplace.forSale', 'For Sale')}</SelectItem>
-                <SelectItem value="rent">{t('marketplace.forRent', 'For Rent')}</SelectItem>
-              </SelectContent>
-            </Select>
-
             <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger size="sm">
-                <SelectValue placeholder={t('marketplace.sortBy', 'Sort by')} />
+              <SelectTrigger className="mt-2 h-10 rounded-full border-[#e6e0dc] bg-white text-sm text-[#2a2a2a] shadow-sm">
+                <SelectValue placeholder={t('marketplace.recent', 'Newest Arrivals')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="recent">{t('marketplace.recent', 'Most Recent')}</SelectItem>
+                <SelectItem value="recent">{t('marketplace.recent', 'Newest Arrivals')}</SelectItem>
                 <SelectItem value="price-low">{t('marketplace.priceLow', 'Price: Low to High')}</SelectItem>
                 <SelectItem value="price-high">{t('marketplace.priceHigh', 'Price: High to Low')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
+        </section>
 
-          <div className="flex flex-wrap gap-2 mt-3">
-            {searchQuery && (
-              <Badge variant="secondary" className="cursor-pointer" onClick={() => setSearchQuery('')}>
-                {t('marketplace.searchLabel', 'Search')}: {searchQuery} x
-              </Badge>
-            )}
+        <section className="rounded-3xl border border-[#eee8e4] bg-white p-4 shadow-sm">
+          <div className="flex flex-col gap-3 lg:flex-row lg:flex-nowrap lg:items-center">
+            <div className="relative flex-1">
+              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8c8c8c]" />
+              <Input
+                type="text"
+                placeholder={t('marketplace.searchPlaceholder', 'Search by item name, category or campus...')}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="h-12 w-full rounded-full border-[#ece6e2] bg-[#fbfaf9] pl-11 text-sm text-[#2c2c2c] shadow-sm"
+              />
+            </div>
+
+            <div className="flex w-full flex-col gap-3 sm:flex-row lg:w-auto lg:flex-nowrap">
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger className="h-10 min-w-[180px] rounded-full border-[#ece6e2] bg-[#fbfaf9] text-xs font-semibold text-[#3a3a3a] shadow-sm">
+                  <Filter className="mr-2 h-4 w-4 text-[#6f6f6f]" />
+                  <SelectValue placeholder={t('marketplace.category', 'Category')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t('marketplace.allCategories', 'All Categories')}</SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={selectedPriceRange} onValueChange={setSelectedPriceRange}>
+                <SelectTrigger className="h-10 min-w-[180px] rounded-full border-[#ece6e2] bg-[#fbfaf9] text-xs font-semibold text-[#3a3a3a] shadow-sm">
+                  <SelectValue placeholder={t('marketplace.priceRange', 'Price Range')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {PRICE_RANGE_OPTIONS.map((range) => (
+                    <SelectItem key={range.id} value={range.id}>
+                      {range.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={selectedUniversity} onValueChange={setSelectedUniversity}>
+                <SelectTrigger className="h-10 min-w-[180px] rounded-full border-[#ece6e2] bg-[#fbfaf9] text-xs font-semibold text-[#3a3a3a] shadow-sm">
+                  <SelectValue placeholder={t('marketplace.university', 'University')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t('marketplace.allUniversities', 'All Universities')}</SelectItem>
+                  {universitiesList.map((university) => (
+                    <SelectItem key={university.id} value={university.id}>
+                      {university.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center gap-2">
             {selectedCategory !== 'all' && (
-              <Badge variant="secondary" className="cursor-pointer" onClick={() => setSelectedCategory('all')}>
-                {getCategoryById(selectedCategory)?.name} x
+              <Badge className="rounded-full bg-[#e5f6f0] px-3 py-1 text-xs font-medium text-[#1e7b5a]">
+                {getCategoryById(selectedCategory)?.name || selectedCategory}
+                <button
+                  className="ml-2 rounded-full p-0.5 hover:bg-white/60"
+                  onClick={() => setSelectedCategory('all')}
+                  aria-label="Clear category"
+                >
+                  <X className="h-3 w-3" />
+                </button>
               </Badge>
             )}
-            {selectedType !== 'all' && (
-              <Badge variant="secondary" className="cursor-pointer" onClick={() => setSelectedType('all')}>
-                {selectedType === 'sell' ? t('marketplace.forSale', 'For Sale') : t('marketplace.forRent', 'For Rent')} x
+            {selectedUniversity !== 'all' && (
+              <Badge className="rounded-full bg-[#e5f6f0] px-3 py-1 text-xs font-medium text-[#1e7b5a]">
+                {universitiesById[selectedUniversity.toLowerCase()] || selectedUniversity}
+                <button
+                  className="ml-2 rounded-full p-0.5 hover:bg-white/60"
+                  onClick={() => setSelectedUniversity('all')}
+                  aria-label="Clear university"
+                >
+                  <X className="h-3 w-3" />
+                </button>
               </Badge>
             )}
+            {selectedPriceRange !== 'all' && (
+              <Badge className="rounded-full bg-[#e5f6f0] px-3 py-1 text-xs font-medium text-[#1e7b5a]">
+                {PRICE_RANGE_OPTIONS.find((range) => range.id === selectedPriceRange)?.label || selectedPriceRange}
+                <button
+                  className="ml-2 rounded-full p-0.5 hover:bg-white/60"
+                  onClick={() => setSelectedPriceRange('all')}
+                  aria-label="Clear price range"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            )}
+            {searchQuery && (
+              <Badge className="rounded-full bg-[#e5f6f0] px-3 py-1 text-xs font-medium text-[#1e7b5a]">
+                {t('marketplace.searchLabel', 'Search')}: {searchQuery}
+                <button
+                  className="ml-2 rounded-full p-0.5 hover:bg-white/60"
+                  onClick={() => setSearchQuery('')}
+                  aria-label="Clear search"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            )}
+            {hasActiveFilters && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setSearchQuery('');
+                  setSelectedCategory('all');
+                  setSelectedPriceRange('all');
+                  setSelectedUniversity('all');
+                  setSelectedType('all');
+                  setSortBy('recent');
+                }}
+                className="h-7 rounded-full px-3 text-xs font-semibold text-[#1e7b5a] hover:bg-[#e5f6f0]"
+              >
+                {t('marketplace.clearAll', 'Clear all')}
+              </Button>
+            )}
+          </div>
+        </section>
+
+        <div className="mt-6 flex items-center justify-between text-xs font-semibold uppercase tracking-[0.2em] text-[#8a8a8a]">
+          <span>{t('marketplace.itemsFound', '{{count}} item(s) found', { count: filteredItems.length })}</span>
+          <div className="hidden items-center gap-4 text-[11px] text-[#9a9a9a] lg:flex">
+            <span>{t('marketplace.forSale', 'For Sale')}: {saleCount}</span>
+            <span>{t('marketplace.forRent', 'For Rent')}: {rentCount}</span>
+            <span>{t('marketplace.likes', 'Likes')}: {totalVisibleLikes}</span>
           </div>
         </div>
 
-        <div className="mb-4">
-          <p className="text-sm text-muted-foreground">
-            {t(
-              'marketplace.itemsFound',
-              '{{count}} item(s) found',
-              { count: filteredItems.length },
-            )}
-          </p>
-        </div>
-
         {filteredItems.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {filteredItems.map((item) => {
               const seller = item.seller || null;
-              const categoryLabel = getCategoryById(item.category)?.name || item.category || 'General';
+              const isSaved = savedItems.has(item.id);
 
               return (
                 <Card
                   key={item.id}
-                  className="overflow-hidden border border-border hover:shadow-lg transition-shadow cursor-pointer h-full flex flex-col"
+                  className="group flex h-full cursor-pointer flex-col overflow-hidden rounded-3xl border border-[#efe7e1] bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
                   onClick={() => navigate(`/item/${item.id}`)}
                 >
-                  <div className="relative h-44 sm:h-48 overflow-hidden bg-muted">
-                    <img
-                      src={item.images?.[0] || ''}
-                      alt={item.title}
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                    />
-                    <Badge className="absolute top-2 right-2" variant={item.type === 'sell' ? 'default' : 'secondary'}>
-                      {item.type === 'sell' ? t('marketplace.forSale', 'For Sale') : t('marketplace.forRent', 'For Rent')}
-                    </Badge>
-                    {item.condition === 'new' && (
-                      <Badge className="absolute top-2 left-2 bg-green-600">{t('marketplace.new', 'New')}</Badge>
+                  <div className="relative aspect-[4/3] overflow-hidden bg-[#f0ebe8]">
+                    {item.images?.[0] ? (
+                      <img
+                        src={item.images[0]}
+                        alt={item.title}
+                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-xs text-[#8a8a8a]">
+                        No image available
+                      </div>
                     )}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         handleSaveItem(item.id);
                       }}
-                      className="absolute bottom-2 right-2 p-2 bg-card/95 rounded-full shadow-md hover:bg-accent transition-colors"
+                      className="absolute right-3 top-3 rounded-full bg-white/90 p-2 shadow-sm transition-colors hover:bg-[#ffe7ec]"
+                      aria-label={isSaved ? 'Remove from favorites' : 'Save item'}
                     >
-                      <Heart className={`h-5 w-5 ${savedItems.has(item.id) ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
+                      <Heart className={`h-4 w-4 ${isSaved ? 'fill-[#e35166] text-[#e35166]' : 'text-[#8a8a8a]'}`} />
                     </button>
+                    {item.seller?.university && (
+                      <Badge className="absolute left-3 bottom-3 rounded-full bg-[#111111] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-white">
+                        {t('marketplace.verifiedStudent', 'Verified Student')}
+                      </Badge>
+                    )}
                   </div>
 
-                  <CardContent className="p-3 flex-1">
-                    <p className="text-xs text-muted-foreground mb-1">{categoryLabel}</p>
-                    <h3 className="font-semibold mb-1 line-clamp-2">{item.title}</h3>
-                    <p className="text-base font-bold text-green-600 mb-2">
-                      {formatCurrency(item.price)}
-                      {item.type === 'rent' && item.rentalPeriod && (
-                        <span className="text-sm font-normal text-muted-foreground">/{item.rentalPeriod}</span>
-                      )}
+                  <CardContent className="flex-1 space-y-3 p-4">
+                    <h3 className="line-clamp-1 text-sm font-semibold text-[#1f1f1f]">{item.title}</h3>
+                    <p className="line-clamp-2 text-xs text-[#777777]">
+                      {item.description || t('marketplace.noDescription', 'No description provided.')}
                     </p>
-
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
-                      <MapPin className="h-3 w-3" />
-                      {resolveLocationLabel(item)}
-                    </div>
-
-                    <div className="flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-1">
-                        <div className="h-6 w-6 rounded-full bg-green-100 dark:bg-green-900/40 flex items-center justify-center">
-                          <span className="text-xs font-medium text-green-600">{(seller?.name || 'S').charAt(0)}</span>
-                        </div>
-                        <span className="text-muted-foreground">{seller?.name || t('marketplace.unknownSeller', 'Unknown Seller')}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Eye className="h-3 w-3" />
-                          {toCount(item.views)}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Heart className="h-3 w-3 text-rose-500" />
-                          {toCount(item.likesCount)}
-                        </span>
-                      </div>
+                    <p className="text-lg font-semibold text-[#111111]">{formatCurrency(item.price)}</p>
+                    <div className="flex items-center gap-2 text-xs text-[#8a8a8a]">
+                      <span className="inline-flex items-center gap-1">
+                        <MapPin className="h-3 w-3" />
+                        {resolveLocationLabel(item)}
+                      </span>
                     </div>
                   </CardContent>
 
-                  <CardFooter className="p-3 pt-0">
-                    <Button
-                      className="w-full bg-green-600 hover:bg-green-700"
+                  <CardFooter className="flex items-center justify-between p-4 pt-0 text-xs text-[#7a7a7a]">
+                    <span className="truncate">{seller?.name || t('marketplace.unknownSeller', 'Unknown Seller')}</span>
+                    <button
+                      className="text-xs font-semibold text-[#1e7b5a] hover:text-[#155c44]"
                       onClick={(e) => {
                         e.stopPropagation();
                         navigate(`/item/${item.id}`);
                       }}
                     >
                       {t('marketplace.viewDetails', 'View Details')}
-                    </Button>
+                    </button>
                   </CardFooter>
                 </Card>
               );
             })}
           </div>
         ) : (
-          <div className="text-center py-12">
-            <Filter className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">{t('marketplace.noItems', 'No items found')}</h3>
-            <p className="text-muted-foreground">{t('marketplace.tryFilters', 'Try adjusting your search or filters')}</p>
-          </div>
+          <Card className="mt-6 rounded-3xl border border-[#efe7e1] bg-white shadow-sm">
+            <CardContent className="py-12 text-center">
+              <Filter className="mx-auto mb-4 h-10 w-10 text-[#9a9a9a]" />
+              <h3 className="mb-2 text-lg font-semibold text-[#1f1f1f]">{t('marketplace.noItems', 'No items found')}</h3>
+              <p className="mx-auto mb-6 max-w-md text-sm text-[#7a7a7a]">
+                {t('marketplace.tryFilters', 'Try adjusting your search or filters')}
+              </p>
+              {hasActiveFilters && (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setSelectedCategory('all');
+                    setSelectedType('all');
+                    setSortBy('recent');
+                  }}
+                  className="rounded-full border-[#e6e0dc] text-[#1e7b5a] hover:bg-[#e5f6f0]"
+                >
+                  {t('marketplace.clearFilters', 'Clear Filters')}
+                </Button>
+              )}
+            </CardContent>
+          </Card>
         )}
       </div>
     </div>
   );
 }
-

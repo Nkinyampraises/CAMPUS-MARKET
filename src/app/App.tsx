@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
@@ -53,6 +53,333 @@ import { SellerDisputes } from '@/pages/SellerDisputes';
 import { Toaster } from '@/app/components/ui/sonner';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { LanguageProvider } from '@/contexts/LanguageContext';
+import { AdminSectionLayout } from '@/components/AdminSectionLayout';
+import { BuyerSectionLayout } from '@/components/BuyerSectionLayout';
+import { SellerSectionLayout } from '@/components/SellerSectionLayout';
+
+function AppLayout() {
+  const location = useLocation();
+  const isLoginPage = location.pathname === '/login';
+
+  return (
+    <div className="min-h-screen flex flex-col bg-background text-foreground">
+      <Header />
+      <main className="flex-1 overflow-x-hidden">
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/confirm-email" element={<ConfirmEmail />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/marketplace" element={<Marketplace />} />
+          <Route path="/item/:id" element={<ItemDetails />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/add-listing" element={<AddListing />} />
+          <Route path="/messages" element={<Messages />} />
+          <Route path="/profile/:userId" element={<Profile />} />
+          <Route path="/checkout/:itemId" element={<Checkout />} />
+          <Route path="/payment-review" element={<PaymentReview />} />
+          <Route path="/orders/:id" element={<OrderDetails />} />
+          <Route path="/subscription" element={<Subscription />} />
+          <Route
+            path="/admin"
+            element={(
+              <AdminSectionLayout>
+                <Admin />
+              </AdminSectionLayout>
+            )}
+          />
+          <Route
+            path="/admin/profile"
+            element={(
+              <AdminSectionLayout>
+                <Profile />
+              </AdminSectionLayout>
+            )}
+          />
+          <Route
+            path="/admin-approvals"
+            element={(
+              <AdminSectionLayout>
+                <AdminApprovals />
+              </AdminSectionLayout>
+            )}
+          />
+          <Route
+            path="/admin/user-management"
+            element={(
+              <AdminSectionLayout>
+                <UserManagement />
+              </AdminSectionLayout>
+            )}
+          />
+          <Route
+            path="/admin/user-details"
+            element={(
+              <AdminSectionLayout>
+                <AdminUserDetails />
+              </AdminSectionLayout>
+            )}
+          />
+          <Route
+            path="/admin/user-details/:id"
+            element={(
+              <AdminSectionLayout>
+                <AdminUserDetails />
+              </AdminSectionLayout>
+            )}
+          />
+          <Route
+            path="/admin/inbox"
+            element={(
+              <AdminSectionLayout>
+                <AdminInbox />
+              </AdminSectionLayout>
+            )}
+          />
+          <Route
+            path="/admin/reviews"
+            element={(
+              <AdminSectionLayout>
+                <AdminReviews />
+              </AdminSectionLayout>
+            )}
+          />
+          <Route
+            path="/admin/universities"
+            element={(
+              <AdminSectionLayout>
+                <AdminUniversities />
+              </AdminSectionLayout>
+            )}
+          />
+          <Route
+            path="/admin/categories"
+            element={(
+              <AdminSectionLayout>
+                <AdminCategories />
+              </AdminSectionLayout>
+            )}
+          />
+          <Route
+            path="/admin/analytics"
+            element={(
+              <AdminSectionLayout>
+                <AdminAnalytics />
+              </AdminSectionLayout>
+            )}
+          />
+          <Route path="/review" element={<Review />} />
+          <Route path="/buyer/review" element={<Review />} />
+          <Route path="/favorites" element={<Favorites />} />
+          <Route
+            path="/buyer/dashboard"
+            element={(
+              <BuyerSectionLayout>
+                <Dashboard />
+              </BuyerSectionLayout>
+            )}
+          />
+          <Route
+            path="/buyer/profile"
+            element={(
+              <BuyerSectionLayout>
+                <Profile />
+              </BuyerSectionLayout>
+            )}
+          />
+          <Route
+            path="/buyer/orders"
+            element={(
+              <BuyerSectionLayout>
+                <BuyerOrders />
+              </BuyerSectionLayout>
+            )}
+          />
+          <Route
+            path="/buyer/rentals"
+            element={(
+              <BuyerSectionLayout>
+                <BuyerRentals />
+              </BuyerSectionLayout>
+            )}
+          />
+          <Route
+            path="/buyer/rental-details/:id"
+            element={(
+              <BuyerSectionLayout>
+                <RentalDetails />
+              </BuyerSectionLayout>
+            )}
+          />
+          <Route
+            path="/buyer/payments"
+            element={(
+              <BuyerSectionLayout>
+                <BuyerPayments />
+              </BuyerSectionLayout>
+            )}
+          />
+          <Route
+            path="/buyer/receipt/:id"
+            element={(
+              <BuyerSectionLayout>
+                <BuyerReceipt />
+              </BuyerSectionLayout>
+            )}
+          />
+          <Route
+            path="/buyer/settings"
+            element={(
+              <BuyerSectionLayout>
+                <Settings />
+              </BuyerSectionLayout>
+            )}
+          />
+          <Route
+            path="/buyer/notifications"
+            element={(
+              <BuyerSectionLayout>
+                <Notifications />
+              </BuyerSectionLayout>
+            )}
+          />
+          <Route
+            path="/buyer/help"
+            element={(
+              <BuyerSectionLayout>
+                <HelpSupport />
+              </BuyerSectionLayout>
+            )}
+          />
+          <Route
+            path="/buyer/report"
+            element={(
+              <BuyerSectionLayout>
+                <BuyerReport />
+              </BuyerSectionLayout>
+            )}
+          />
+          <Route
+            path="/buyer/disputes"
+            element={(
+              <BuyerSectionLayout>
+                <BuyerDisputes />
+              </BuyerSectionLayout>
+            )}
+          />
+          <Route
+            path="/buyer/recently-viewed"
+            element={(
+              <BuyerSectionLayout>
+                <RecentlyViewed />
+              </BuyerSectionLayout>
+            )}
+          />
+          <Route
+            path="/seller/dashboard"
+            element={(
+              <SellerSectionLayout>
+                <Dashboard />
+              </SellerSectionLayout>
+            )}
+          />
+          <Route
+            path="/seller/profile"
+            element={(
+              <SellerSectionLayout>
+                <Profile />
+              </SellerSectionLayout>
+            )}
+          />
+          <Route
+            path="/seller/manage-listings"
+            element={(
+              <SellerSectionLayout>
+                <SellerManageListings />
+              </SellerSectionLayout>
+            )}
+          />
+          <Route
+            path="/seller/edit-listing/:id"
+            element={(
+              <SellerSectionLayout>
+                <SellerEditListing />
+              </SellerSectionLayout>
+            )}
+          />
+          <Route
+            path="/seller/orders"
+            element={(
+              <SellerSectionLayout>
+                <SellerOrders />
+              </SellerSectionLayout>
+            )}
+          />
+          <Route
+            path="/seller/order-details/:id"
+            element={(
+              <SellerSectionLayout>
+                <SellerOrderDetails />
+              </SellerSectionLayout>
+            )}
+          />
+          <Route
+            path="/seller/rentals"
+            element={(
+              <SellerSectionLayout>
+                <SellerRentals />
+              </SellerSectionLayout>
+            )}
+          />
+          <Route
+            path="/seller/settings"
+            element={(
+              <SellerSectionLayout>
+                <SellerSettings />
+              </SellerSectionLayout>
+            )}
+          />
+          <Route
+            path="/seller/notifications"
+            element={(
+              <SellerSectionLayout>
+                <SellerNotifications />
+              </SellerSectionLayout>
+            )}
+          />
+          <Route
+            path="/seller/help"
+            element={(
+              <SellerSectionLayout>
+                <SellerHelp />
+              </SellerSectionLayout>
+            )}
+          />
+          <Route
+            path="/seller/reports"
+            element={(
+              <SellerSectionLayout>
+                <SellerReports />
+              </SellerSectionLayout>
+            )}
+          />
+          <Route
+            path="/seller/disputes"
+            element={(
+              <SellerSectionLayout>
+                <SellerDisputes />
+              </SellerSectionLayout>
+            )}
+          />
+        </Routes>
+      </main>
+      {!isLoginPage && <Footer />}
+      <Toaster />
+    </div>
+  );
+}
 
 export default function App() {
   return (
@@ -60,65 +387,7 @@ export default function App() {
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
         <LanguageProvider>
           <Router>
-            <div className="min-h-screen flex flex-col bg-background text-foreground">
-              <Header />
-              <main className="flex-1 overflow-x-hidden">
-                <Routes>
-                  <Route path="/" element={<Home />} />
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/forgot-password" element={<ForgotPassword />} />
-                  <Route path="/reset-password" element={<ResetPassword />} />
-                  <Route path="/confirm-email" element={<ConfirmEmail />} />
-                  <Route path="/register" element={<Register />} />
-                  <Route path="/marketplace" element={<Marketplace />} />
-                  <Route path="/item/:id" element={<ItemDetails />} />
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/add-listing" element={<AddListing />} />
-                  <Route path="/messages" element={<Messages />} />
-                  <Route path="/profile/:userId" element={<Profile />} />
-                  <Route path="/checkout/:itemId" element={<Checkout />} />
-                  <Route path="/payment-review" element={<PaymentReview />} />
-                  <Route path="/orders/:id" element={<OrderDetails />} />
-                  <Route path="/subscription" element={<Subscription />} />
-                  <Route path="/admin" element={<Admin />} />
-                  <Route path="/admin-approvals" element={<AdminApprovals />} />
-                  <Route path="/admin/user-management" element={<UserManagement />} />
-                  <Route path="/admin/user-details" element={<AdminUserDetails />} />
-                  <Route path="/admin/user-details/:id" element={<AdminUserDetails />} />
-                  <Route path="/admin/inbox" element={<AdminInbox />} />
-                  <Route path="/admin/reviews" element={<AdminReviews />} />
-                  <Route path="/admin/universities" element={<AdminUniversities />} />
-                  <Route path="/admin/categories" element={<AdminCategories />} />
-                  <Route path="/admin/analytics" element={<AdminAnalytics />} />
-                  <Route path="/review" element={<Review />} />
-                  <Route path="/buyer/review" element={<Review />} />
-                  <Route path="/favorites" element={<Favorites />} />
-                  <Route path="/buyer/orders" element={<BuyerOrders />} />
-                  <Route path="/buyer/rentals" element={<BuyerRentals />} />
-                  <Route path="/buyer/rental-details/:id" element={<RentalDetails />} />
-                  <Route path="/buyer/payments" element={<BuyerPayments />} />
-                  <Route path="/buyer/receipt/:id" element={<BuyerReceipt />} />
-                  <Route path="/buyer/settings" element={<Settings />} />
-                  <Route path="/buyer/notifications" element={<Notifications />} />
-                  <Route path="/buyer/help" element={<HelpSupport />} />
-                  <Route path="/buyer/report" element={<BuyerReport />} />
-                  <Route path="/buyer/disputes" element={<BuyerDisputes />} />
-                  <Route path="/buyer/recently-viewed" element={<RecentlyViewed />} />
-                  <Route path="/seller/manage-listings" element={<SellerManageListings />} />
-                  <Route path="/seller/edit-listing/:id" element={<SellerEditListing />} />
-                  <Route path="/seller/orders" element={<SellerOrders />} />
-                  <Route path="/seller/order-details/:id" element={<SellerOrderDetails />} />
-                  <Route path="/seller/rentals" element={<SellerRentals />} />
-                  <Route path="/seller/settings" element={<SellerSettings />} />
-                  <Route path="/seller/notifications" element={<SellerNotifications />} />
-                  <Route path="/seller/help" element={<SellerHelp />} />
-                  <Route path="/seller/reports" element={<SellerReports />} />
-                  <Route path="/seller/disputes" element={<SellerDisputes />} />
-                </Routes>
-              </main>
-              <Footer />
-              <Toaster />
-            </div>
+            <AppLayout />
           </Router>
         </LanguageProvider>
       </ThemeProvider>

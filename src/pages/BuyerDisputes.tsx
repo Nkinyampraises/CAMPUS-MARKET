@@ -6,7 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app
 import { Badge } from '@/app/components/ui/badge';
 import { Label } from '@/app/components/ui/label';
 import { Textarea } from '@/app/components/ui/textarea';
-import { ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
@@ -113,11 +112,6 @@ export function BuyerDisputes() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-5xl space-y-6">
-      <Button variant="ghost" onClick={() => navigate('/dashboard')}>
-        <ArrowLeft className="h-4 w-4 mr-2" />
-        Back to Dashboard
-      </Button>
-
       <Card>
         <CardHeader>
           <CardTitle>Dispute Center</CardTitle>

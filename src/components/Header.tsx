@@ -13,17 +13,12 @@ import {
   Home,
   LayoutDashboard,
   Settings,
-  Clock,
   Heart,
   Bell,
   CircleHelp,
   Eye,
   Flag,
   ShieldAlert,
-  Star,
-  Building2,
-  ListTree,
-  BarChart3,
   Languages,
   Check,
 } from 'lucide-react';
@@ -37,6 +32,7 @@ import {
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useLanguage } from '@/contexts/LanguageContext';
 import appLogo from '@/assets/image/logoi.png';
+import { cn } from '@/app/components/ui/utils';
 
 export function Header() {
   const { currentUser, logout, isAuthenticated } = useAuth();
@@ -52,39 +48,72 @@ export function Header() {
   const isActive = (path: string) => {
     return location.pathname === path;
   };
+  const isAdminArea =
+    location.pathname === '/admin' ||
+    location.pathname.startsWith('/admin/') ||
+    location.pathname.startsWith('/admin-');
+  const isBuyerArea = location.pathname === '/buyer/dashboard' || location.pathname.startsWith('/buyer/');
+  const isSellerArea = location.pathname === '/seller/dashboard' || location.pathname.startsWith('/seller/');
+  const dashboardPath =
+    currentUser?.role === 'admin'
+      ? '/admin'
+      : currentUser?.userType === 'buyer'
+        ? '/buyer/dashboard'
+        : '/seller/dashboard';
+  const isDashboardArea =
+    currentUser?.role === 'admin'
+      ? isAdminArea
+      : currentUser?.userType === 'buyer'
+        ? isBuyerArea
+        : isSellerArea || location.pathname === '/dashboard';
+  const profilePath =
+    currentUser?.role === 'admin'
+      ? '/admin/profile'
+      : currentUser?.userType === 'buyer'
+        ? '/buyer/profile'
+        : '/seller/profile';
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border/60 bg-[linear-gradient(90deg,rgba(2,44,66,0.92),rgba(3,56,66,0.9),rgba(2,44,66,0.92))] text-white backdrop-blur-xl supports-[backdrop-filter]:bg-[linear-gradient(90deg,rgba(2,44,66,0.82),rgba(3,56,66,0.78),rgba(2,44,66,0.82))] sm:bg-background/85 sm:text-foreground sm:supports-[backdrop-filter]:bg-background/70">
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent" />
-      <div className="container mx-auto px-2 py-1.5 sm:px-4 sm:py-3">
+    <header className="sticky top-0 z-40 border-b border-[#0b5d71] bg-[#062f40]/95 text-white backdrop-blur-xl supports-[backdrop-filter]:bg-[#062f40]/85">
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[2px] bg-gradient-to-r from-transparent via-[#12bfd5] to-transparent" />
+      <div className="container mx-auto px-3 py-1.5 sm:px-4 sm:py-3">
         <div className="flex items-center justify-between gap-2 lg:gap-4">
           <Link to="/" className="group flex items-center gap-2.5 transition-transform hover:scale-[1.01]">
-            <span className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl border border-white/50 bg-white/90 shadow-sm dark:border-white/20 dark:bg-white/10 sm:h-12 sm:w-12 sm:rounded-2xl sm:border-white/70 sm:bg-white/85">
-              <span className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(20,184,166,0.22),rgba(56,189,248,0.22))]" />
-              <img src={appLogo} alt="UNITRADE logo" className="relative h-8 w-8 rounded-lg object-cover sm:h-10 sm:w-10 sm:rounded-xl" />
+            <span className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-[#5ea8be] bg-[#042737] shadow-sm sm:h-12 sm:w-12">
+              <img src={appLogo} alt="UNITRADE logo" className="relative h-8 w-8 rounded-full object-cover sm:h-10 sm:w-10" />
             </span>
             <div className="hidden md:block">
-              <h1 className="text-xl font-bold text-foreground">UNITRADE</h1>
-              <p className="text-xs text-muted-foreground">{t('brand.universities', 'Cameroon Universities')}</p>
+              <h1 className="text-[2rem] font-bold leading-none tracking-tight text-white">UNITRADE</h1>
+              <p className="text-sm text-[#a2c3cf]">{t('brand.universities', 'Cameroon Universities')}</p>
             </div>
           </Link>
 
           <nav className="flex items-center justify-end gap-1 sm:gap-1.5 lg:gap-2">
             <Button
-              variant={isActive('/') ? 'default' : 'ghost'}
+              variant="ghost"
               size="sm"
               onClick={() => navigate('/')}
-              className={`${isActive('/') ? 'shadow-sm' : ''} h-8 w-8 rounded-full p-0 text-white hover:bg-white/20 sm:h-9 sm:w-auto sm:px-3 sm:text-foreground sm:hover:bg-accent`}
+              className={cn(
+                'h-8 w-8 rounded-full p-0 sm:h-9 sm:w-auto sm:px-4',
+                isActive('/')
+                  ? 'bg-[#2ad8cc] text-[#053848] hover:bg-[#40e2d7]'
+                  : 'text-[#def0f5] hover:bg-[#0f4d62] hover:text-white',
+              )}
             >
               <Home className="h-4 w-4 sm:mr-2" />
               <span className="hidden sm:inline">{t('nav.home', 'Home')}</span>
             </Button>
 
             <Button
-              variant={isActive('/marketplace') ? 'default' : 'ghost'}
+              variant="ghost"
               size="sm"
               onClick={() => navigate('/marketplace')}
-              className={`${isActive('/marketplace') ? 'shadow-sm' : ''} h-8 w-8 rounded-full p-0 text-white hover:bg-white/20 sm:h-9 sm:w-auto sm:px-3 sm:text-foreground sm:hover:bg-accent`}
+              className={cn(
+                'h-8 w-8 rounded-full p-0 sm:h-9 sm:w-auto sm:px-4',
+                isActive('/marketplace')
+                  ? 'bg-[#2ad8cc] text-[#053848] hover:bg-[#40e2d7]'
+                  : 'text-[#def0f5] hover:bg-[#0f4d62] hover:text-white',
+              )}
             >
               <ShoppingBag className="h-4 w-4 sm:mr-2" />
               <span className="hidden sm:inline">{t('nav.marketplace', 'Marketplace')}</span>
@@ -92,12 +121,27 @@ export function Header() {
 
             {isAuthenticated ? (
               <>
-                {currentUser?.userType === 'seller' && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate(dashboardPath)}
+                  className={cn(
+                    'h-8 w-8 rounded-full p-0 sm:h-9 sm:w-auto sm:px-4',
+                    isDashboardArea
+                      ? 'bg-[#2ad8cc] text-[#053848] hover:bg-[#40e2d7]'
+                      : 'text-[#def0f5] hover:bg-[#0f4d62] hover:text-white',
+                  )}
+                >
+                  <LayoutDashboard className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">{t('nav.dashboard', 'Dashboard')}</span>
+                </Button>
+
+                {currentUser?.role !== 'admin' && currentUser?.userType === 'seller' && (
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => navigate('/add-listing')}
-                    className="hidden md:flex"
+                    className="hidden text-[#def0f5] hover:bg-[#0f4d62] hover:text-white md:flex"
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     {t('nav.listItem', 'List Item')}
@@ -109,7 +153,7 @@ export function Header() {
                     variant="ghost"
                     size="sm"
                     onClick={() => navigate('/favorites')}
-                    className="hidden md:flex"
+                    className="hidden text-[#def0f5] hover:bg-[#0f4d62] hover:text-white md:flex"
                   >
                     <Heart className="h-4 w-4 mr-2" />
                     {t('nav.favorites', 'Favorites')}
@@ -120,166 +164,161 @@ export function Header() {
                   variant="ghost"
                   size="sm"
                   onClick={() => navigate('/messages')}
-                  className="relative h-8 w-8 rounded-full p-0 text-white hover:bg-white/20 sm:h-9 sm:w-9 sm:text-foreground sm:hover:bg-accent"
+                  className="relative h-8 w-8 rounded-full p-0 text-[#def0f5] hover:bg-[#0f4d62] hover:text-white sm:h-9 sm:w-9"
                 >
                   <MessageSquare className="h-4 w-4" />
                 </Button>
 
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-8 rounded-full border border-white/20 px-1.5 text-white hover:bg-white/20 sm:h-9 sm:border-transparent sm:px-2 sm:text-foreground sm:hover:border-border/70 sm:hover:bg-accent">
-                      <Avatar className="h-6 w-6 sm:h-7 sm:w-7">
-                        {currentUser?.profilePicture ? (
-                          <AvatarImage src={currentUser.profilePicture} alt={currentUser.name} />
-                        ) : null}
-                        <AvatarFallback className="text-xs bg-primary/15 text-primary">
-                          {currentUser?.name?.charAt(0).toUpperCase() || 'U'}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="hidden md:inline max-w-[120px] truncate">
-                        {currentUser?.name}
-                      </span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56 rounded-xl">
-                    <DropdownMenuItem onClick={() => navigate('/dashboard')}>
-                      <LayoutDashboard className="h-4 w-4 mr-2" />
-                      {t('nav.dashboard', 'My Dashboard')}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate(`/profile/${currentUser?.id}`)}>
-                      <User className="h-4 w-4 mr-2" />
-                      {t('nav.profile', 'My Profile')}
-                    </DropdownMenuItem>
-                    {currentUser?.role !== 'admin' && currentUser?.userType === 'buyer' && (
-                      <>
-                        <DropdownMenuItem onClick={() => navigate('/buyer/orders')}>
-                          <ShoppingBag className="h-4 w-4 mr-2" />
-                          {t('nav.orders', 'My Orders')}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate('/buyer/rentals')}>
-                          <Package className="h-4 w-4 mr-2" />
-                          {t('nav.rentals', 'My Rentals')}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate('/buyer/payments')}>
-                          <CreditCard className="h-4 w-4 mr-2" />
-                          {t('nav.paymentHistory', 'Payment History')}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate('/buyer/notifications')}>
-                          <Bell className="h-4 w-4 mr-2" />
-                          {t('nav.notifications', 'Notifications')}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate('/buyer/recently-viewed')}>
-                          <Eye className="h-4 w-4 mr-2" />
-                          {t('nav.recentlyViewed', 'Recently Viewed')}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate('/buyer/disputes')}>
-                          <ShieldAlert className="h-4 w-4 mr-2" />
-                          {t('nav.disputes', 'Dispute Center')}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate('/buyer/report')}>
-                          <Flag className="h-4 w-4 mr-2" />
-                          {t('nav.reportProblem', 'Report Problem')}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate('/buyer/settings')}>
-                          <Settings className="h-4 w-4 mr-2" />
-                          {t('nav.settings', 'Settings')}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate('/buyer/help')}>
-                          <CircleHelp className="h-4 w-4 mr-2" />
-                          {t('nav.help', 'Help & Support')}
-                        </DropdownMenuItem>
-                      </>
-                    )}
-                    {currentUser?.role !== 'admin' && currentUser?.userType === 'seller' && (
-                      <>
-                        <DropdownMenuItem onClick={() => navigate('/seller/manage-listings')}>
-                          <Package className="h-4 w-4 mr-2" />
-                          {t('nav.manageListings', 'Manage Listings')}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate('/seller/orders')}>
-                          <ShoppingBag className="h-4 w-4 mr-2" />
-                          {t('nav.orders', 'Orders')}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate('/seller/rentals')}>
-                          <Package className="h-4 w-4 mr-2" />
-                          {t('nav.rentals', 'Rentals')}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate('/seller/notifications')}>
-                          <Bell className="h-4 w-4 mr-2" />
-                          {t('nav.notifications', 'Notifications')}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate('/seller/settings')}>
-                          <Settings className="h-4 w-4 mr-2" />
-                          {t('nav.settings', 'Settings')}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate('/seller/help')}>
-                          <CircleHelp className="h-4 w-4 mr-2" />
-                          {t('nav.help', 'Help & Support')}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate('/seller/reports')}>
-                          <Flag className="h-4 w-4 mr-2" />
-                          {t('nav.reportProblem', 'Report Problem')}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate('/seller/disputes')}>
-                          <ShieldAlert className="h-4 w-4 mr-2" />
-                          {t('nav.disputes', 'Disputes')}
-                        </DropdownMenuItem>
-                      </>
-                    )}
-                    {currentUser?.role === 'admin' && (
-                      <>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => navigate('/admin-approvals')}>
-                          <Clock className="h-4 w-4 mr-2" />
-                          {t('nav.accountApprovals', 'Account Approvals')}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate('/admin')}>
-                          <Settings className="h-4 w-4 mr-2" />
-                          {t('nav.adminPanel', 'Admin Panel')}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate('/admin/inbox')}>
-                          <Bell className="h-4 w-4 mr-2" />
-                          {t('nav.inbox', 'Inbox')}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate('/admin/reviews')}>
-                          <Star className="h-4 w-4 mr-2" />
-                          {t('nav.reviews', 'Reviews')}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate('/admin/universities')}>
-                          <Building2 className="h-4 w-4 mr-2" />
-                          {t('nav.universities', 'Universities')}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate('/admin/categories')}>
-                          <ListTree className="h-4 w-4 mr-2" />
-                          {t('nav.categories', 'Categories')}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate('/admin/analytics')}>
-                          <BarChart3 className="h-4 w-4 mr-2" />
-                          {t('nav.analytics', 'Analytics')}
-                        </DropdownMenuItem>
-                      </>
-                    )}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleLogout} variant="destructive">
-                      <LogOut className="h-4 w-4 mr-2" />
-                      {t('nav.logout', 'Logout')}
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                {currentUser?.role === 'admin' || currentUser?.userType === 'buyer' || currentUser?.userType === 'seller' ? (
+                  <button
+                    type="button"
+                    onClick={() => navigate(profilePath)}
+                    className="flex items-center gap-1.5 rounded-full border border-[#3f7286] px-1.5 py-1 text-white transition-colors hover:bg-[#0f4d62] hover:text-white"
+                    title={t('nav.profile', 'My Profile')}
+                  >
+                    <Avatar className="h-6 w-6 sm:h-7 sm:w-7">
+                      {currentUser?.profilePicture ? (
+                        <AvatarImage src={currentUser.profilePicture} alt={currentUser.name} />
+                      ) : null}
+                      <AvatarFallback className="text-xs bg-primary/15 text-primary">
+                        {currentUser?.name?.charAt(0).toUpperCase() || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="hidden md:inline max-w-[110px] truncate">{currentUser?.name}</span>
+                  </button>
+                ) : (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-8 rounded-full border border-[#3f7286] px-1.5 text-[#def0f5] hover:bg-[#0f4d62] hover:text-white sm:h-9 sm:px-2">
+                        <Avatar className="h-6 w-6 sm:h-7 sm:w-7">
+                          {currentUser?.profilePicture ? (
+                            <AvatarImage src={currentUser.profilePicture} alt={currentUser.name} />
+                          ) : null}
+                          <AvatarFallback className="text-xs bg-primary/15 text-primary">
+                            {currentUser?.name?.charAt(0).toUpperCase() || 'U'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="hidden md:inline max-w-[120px] truncate">
+                          {currentUser?.name}
+                        </span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56 rounded-xl">
+                      <DropdownMenuItem onClick={() => navigate(currentUser?.userType === 'buyer' ? '/buyer/dashboard' : '/dashboard')}>
+                        <LayoutDashboard className="h-4 w-4 mr-2" />
+                        {t('nav.dashboard', 'My Dashboard')}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => navigate(currentUser?.userType === 'buyer' ? '/buyer/profile' : `/profile/${currentUser?.id}`)}>
+                        <User className="h-4 w-4 mr-2" />
+                        {t('nav.profile', 'My Profile')}
+                      </DropdownMenuItem>
+                      {currentUser?.userType === 'buyer' && (
+                        <>
+                          <DropdownMenuItem onClick={() => navigate('/buyer/orders')}>
+                            <ShoppingBag className="h-4 w-4 mr-2" />
+                            {t('nav.orders', 'My Orders')}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => navigate('/buyer/rentals')}>
+                            <Package className="h-4 w-4 mr-2" />
+                            {t('nav.rentals', 'My Rentals')}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => navigate('/buyer/payments')}>
+                            <CreditCard className="h-4 w-4 mr-2" />
+                            {t('nav.paymentHistory', 'Payment History')}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => navigate('/buyer/notifications')}>
+                            <Bell className="h-4 w-4 mr-2" />
+                            {t('nav.notifications', 'Notifications')}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => navigate('/buyer/recently-viewed')}>
+                            <Eye className="h-4 w-4 mr-2" />
+                            {t('nav.recentlyViewed', 'Recently Viewed')}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => navigate('/buyer/disputes')}>
+                            <ShieldAlert className="h-4 w-4 mr-2" />
+                            {t('nav.disputes', 'Dispute Center')}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => navigate('/buyer/report')}>
+                            <Flag className="h-4 w-4 mr-2" />
+                            {t('nav.reportProblem', 'Report Problem')}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => navigate('/buyer/settings')}>
+                            <Settings className="h-4 w-4 mr-2" />
+                            {t('nav.settings', 'Settings')}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => navigate('/buyer/help')}>
+                            <CircleHelp className="h-4 w-4 mr-2" />
+                            {t('nav.help', 'Help & Support')}
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                      {currentUser?.userType === 'seller' && (
+                        <>
+                          <DropdownMenuItem onClick={() => navigate('/seller/manage-listings')}>
+                            <Package className="h-4 w-4 mr-2" />
+                            {t('nav.manageListings', 'Manage Listings')}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => navigate('/seller/orders')}>
+                            <ShoppingBag className="h-4 w-4 mr-2" />
+                            {t('nav.orders', 'Orders')}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => navigate('/seller/rentals')}>
+                            <Package className="h-4 w-4 mr-2" />
+                            {t('nav.rentals', 'Rentals')}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => navigate('/seller/notifications')}>
+                            <Bell className="h-4 w-4 mr-2" />
+                            {t('nav.notifications', 'Notifications')}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => navigate('/seller/settings')}>
+                            <Settings className="h-4 w-4 mr-2" />
+                            {t('nav.settings', 'Settings')}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => navigate('/seller/help')}>
+                            <CircleHelp className="h-4 w-4 mr-2" />
+                            {t('nav.help', 'Help & Support')}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => navigate('/seller/reports')}>
+                            <Flag className="h-4 w-4 mr-2" />
+                            {t('nav.reportProblem', 'Report Problem')}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => navigate('/seller/disputes')}>
+                            <ShieldAlert className="h-4 w-4 mr-2" />
+                            {t('nav.disputes', 'Disputes')}
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={handleLogout} variant="destructive">
+                        <LogOut className="h-4 w-4 mr-2" />
+                        {t('nav.logout', 'Logout')}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleLogout}
+                  className="hidden text-[#def0f5] hover:bg-[#0f4d62] hover:text-white md:flex"
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  {t('nav.logout', 'Logout')}
+                </Button>
               </>
             ) : (
               <div className="flex items-center gap-2">
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="px-2 sm:px-3"
+                  className="px-2 text-[#def0f5] hover:bg-[#0f4d62] hover:text-white sm:px-3"
                   onClick={() => navigate('/login')}
                 >
                   {t('auth.login', 'Login')}
                 </Button>
                 <Button
                   size="sm"
-                  className="px-2 sm:px-3"
+                  className="rounded-full bg-[#2ad8cc] px-2 text-[#053848] hover:bg-[#40e2d7] sm:px-4"
                   onClick={() => navigate('/register')}
                 >
                   {t('auth.signup', 'Sign Up')}
@@ -292,7 +331,7 @@ export function Header() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-8 w-8 rounded-full p-0 text-white hover:bg-white/20 max-[420px]:hidden sm:h-9 sm:w-auto sm:gap-1.5 sm:px-2 sm:text-foreground sm:hover:bg-accent"
+                  className="h-8 w-8 rounded-full p-0 text-[#def0f5] hover:bg-[#0f4d62] hover:text-white max-[420px]:hidden sm:h-9 sm:w-auto sm:gap-1.5 sm:px-2"
                   title={t('language.select', 'Select language')}
                 >
                   <Languages className="h-4 w-4" />

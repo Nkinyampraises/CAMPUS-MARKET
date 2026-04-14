@@ -2452,6 +2452,12 @@ app.post("/make-server-50b25a4f/auth/confirm-email", async (c) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to confirm email";
     console.error("Email confirmation error:", message);
+    if (/MaxClientsInSessionMode|too many clients|remaining connection slots/i.test(message)) {
+      return c.json(
+        { error: "Service is temporarily busy. Please try confirming your email again in a few seconds." },
+        503,
+      );
+    }
     return c.json({ error: message }, 500);
   }
 });

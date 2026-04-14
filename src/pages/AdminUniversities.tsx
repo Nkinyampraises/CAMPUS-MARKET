@@ -4,7 +4,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/app/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
-import { ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
@@ -199,11 +198,6 @@ export function AdminUniversities() {
 
   return (
     <div className="container mx-auto max-w-5xl px-3 py-8 sm:px-4">
-      <Button variant="ghost" className="mb-4" onClick={() => navigate('/admin')}>
-        <ArrowLeft className="h-4 w-4 mr-2" />
-        Back to Admin
-      </Button>
-
       <Card>
         <CardHeader>
           <CardTitle>Admin Universities</CardTitle>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/app/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Alert, AlertDescription } from '@/app/components/ui/alert';
@@ -9,6 +9,7 @@ import { API_URL } from '@/lib/api';
 type ConfirmationStatus = 'loading' | 'success' | 'error';
 
 export function ConfirmEmail() {
+  const navigate = useNavigate();
   const [status, setStatus] = useState<ConfirmationStatus>('loading');
   const [message, setMessage] = useState('Confirming your email...');
 
@@ -19,6 +20,7 @@ export function ConfirmEmail() {
 
   useEffect(() => {
     let cancelled = false;
+    let redirectTimer: ReturnType<typeof setTimeout> | null = null;
 
     const confirmEmail = async () => {
       if (!token) {
@@ -49,7 +51,10 @@ export function ConfirmEmail() {
 
         if (!cancelled) {
           setStatus('success');
-          setMessage(data.message || 'Email confirmed successfully. You can now log in.');
+          setMessage(data.message || 'Email confirmed successfully. Redirecting to login...');
+          redirectTimer = setTimeout(() => {
+            navigate('/login', { replace: true });
+          }, 1500);
         }
       } catch (_error) {
         if (!cancelled) {
@@ -63,8 +68,11 @@ export function ConfirmEmail() {
 
     return () => {
       cancelled = true;
+      if (redirectTimer) {
+        clearTimeout(redirectTimer);
+      }
     };
-  }, [token]);
+  }, [navigate, token]);
 
   return (
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4 bg-background">

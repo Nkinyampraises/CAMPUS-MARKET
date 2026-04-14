@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
@@ -42,8 +42,12 @@ const getInitial = (value: string | undefined) => value?.trim().charAt(0).toUppe
 export function Profile() {
   const { currentUser, isAuthenticated, updateProfile, accessToken } = useAuth();
   const navigate = useNavigate();
+  const { userId } = useParams();
   const [isEditing, setIsEditing] = useState(false);
   const [uploadingProfilePicture, setUploadingProfilePicture] = useState(false);
+  type ProfileUser = NonNullable<typeof currentUser>;
+  const [profileUser, setProfileUser] = useState<ProfileUser | null>(currentUser ?? null);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [formData, setFormData] = useState({
     name: currentUser?.name || '',
     phone: currentUser?.phone || '',
@@ -62,6 +66,40 @@ export function Profile() {
   }, [currentUser]);
 
   useEffect(() => {
+    if (!currentUser) return;
+    if (!userId || userId === currentUser.id) {
+      setProfileUser(currentUser);
+      setIsEditing(false);
+      return;
+    }
+
+    setIsEditing(false);
+    setIsLoadingProfile(true);
+
+    const fetchProfile = async () => {
+      try {
+        const response = await fetch(`${API_URL}/users/${userId}`, {
+          headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          toast.error(data.error || 'Unable to load profile');
+          setProfileUser(null);
+          return;
+        }
+        setProfileUser(data.user || null);
+      } catch {
+        toast.error('Unable to load profile');
+        setProfileUser(null);
+      } finally {
+        setIsLoadingProfile(false);
+      }
+    };
+
+    fetchProfile();
+  }, [userId, currentUser, accessToken]);
+
+  useEffect(() => {
     if (!isAuthenticated || !currentUser) {
       navigate('/login');
     }
@@ -71,9 +109,40 @@ export function Profile() {
     return null;
   }
 
-  const universityName = getUniversityName(currentUser.university);
+  const isOwnProfile = !userId || userId === currentUser.id;
+  const viewedUser = isOwnProfile ? currentUser : profileUser;
+
+  if (isLoadingProfile && !isOwnProfile) {
+    return (
+      <div className="min-h-screen bg-[#f5f7f6] py-8">
+        <div className="mx-auto w-full max-w-[1220px] px-4 lg:px-6">
+          <Card className="rounded-2xl border border-[#d3e3dc] bg-white p-8 text-center shadow-sm">
+            <div className="inline-flex items-center gap-2 text-[#0f6f58]">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading profile...
+            </div>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  if (!viewedUser) {
+    return (
+      <div className="min-h-screen bg-[#f5f7f6] py-8">
+        <div className="mx-auto w-full max-w-[1220px] px-4 lg:px-6">
+          <Card className="rounded-2xl border border-[#d3e3dc] bg-white p-8 text-center shadow-sm">
+            <p className="text-sm text-[#4f6b62]">Profile not available.</p>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  const universityName = getUniversityName(viewedUser.university);
 
   const handleSaveProfile = async () => {
+    if (!isOwnProfile) return;
     const result = await updateProfile({
       name: formData.name,
       phone: formData.phone,
@@ -139,21 +208,21 @@ export function Profile() {
     }
   };
 
-  const displayName = isEditing ? formData.name || currentUser.name : currentUser.name;
+  const displayName = isEditing ? formData.name || currentUser.name : viewedUser.name;
   const displayProfilePicture =
-    isEditing ? formData.profilePicture || currentUser.profilePicture || '' : currentUser.profilePicture || '';
-  const joinedLabel = currentUser.createdAt
-    ? new Date(currentUser.createdAt).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
+    isEditing ? formData.profilePicture || currentUser.profilePicture || '' : viewedUser.profilePicture || '';
+  const joinedLabel = viewedUser.createdAt
+    ? new Date(viewedUser.createdAt).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
     : 'Recently joined';
-  const reviewAverage = Number.isFinite(currentUser.rating) ? currentUser.rating.toFixed(1) : '0.0';
+  const reviewAverage = Number.isFinite(viewedUser.rating) ? viewedUser.rating.toFixed(1) : '0.0';
   const visibilityLabel =
-    currentUser.privacyOptions?.profileVisibility === 'private' ? 'Private Profile' : 'Public Profile';
-  const subscriptionLabel = formatLabel(currentUser.subscriptionStatus, 'Trial Access');
+    viewedUser.privacyOptions?.profileVisibility === 'private' ? 'Private Profile' : 'Public Profile';
+  const subscriptionLabel = formatLabel(viewedUser.subscriptionStatus, 'Trial Access');
   const completionItems = [
     { label: 'Profile photo added', complete: Boolean((displayProfilePicture || '').trim()) },
-    { label: 'Phone number added', complete: Boolean((formData.phone || currentUser.phone || '').trim()) },
-    { label: 'Student ID added', complete: Boolean((formData.studentId || currentUser.studentId || '').trim()) },
-    { label: 'University linked', complete: Boolean(currentUser.university) },
+    { label: 'Phone number added', complete: Boolean((viewedUser.phone || '').trim()) },
+    { label: 'Student ID added', complete: Boolean((viewedUser.studentId || '').trim()) },
+    { label: 'University linked', complete: Boolean(viewedUser.university) },
   ];
   const completionPercent = Math.round(
     (completionItems.filter((item) => item.complete).length / completionItems.length) * 100,
@@ -162,64 +231,64 @@ export function Profile() {
     {
       label: 'Average Rating',
       value: reviewAverage,
-      caption: `${currentUser.reviewCount} student review${currentUser.reviewCount === 1 ? '' : 's'}`,
+      caption: `${viewedUser.reviewCount} student review${viewedUser.reviewCount === 1 ? '' : 's'}`,
       icon: Star,
       accent: 'from-amber-400 to-orange-500',
     },
     {
       label: 'Account Type',
-      value: formatLabel(currentUser.userType, 'Buyer'),
-      caption: currentUser.role === 'admin' ? 'Admin access enabled' : 'Campus marketplace member',
+      value: formatLabel(viewedUser.userType, 'Buyer'),
+      caption: viewedUser.role === 'admin' ? 'Admin access enabled' : 'Campus marketplace member',
       icon: ShieldCheck,
       accent: 'from-emerald-500 to-teal-500',
     },
     {
       label: 'Subscription',
       value: subscriptionLabel,
-      caption: currentUser.subscriptionEndDate
-        ? `Ends ${new Date(currentUser.subscriptionEndDate).toLocaleDateString()}`
+      caption: viewedUser.subscriptionEndDate
+        ? `Ends ${new Date(viewedUser.subscriptionEndDate).toLocaleDateString()}`
         : 'Trial or default access',
       icon: Award,
       accent: 'from-sky-500 to-cyan-500',
     },
   ];
   const heroMeta = [
-    { label: 'Email', value: currentUser.email, icon: Mail },
-    { label: 'Phone', value: currentUser.phone || 'Add a phone number', icon: Phone },
+    { label: 'Email', value: viewedUser.email, icon: Mail },
+    { label: 'Phone', value: viewedUser.phone || 'Add a phone number', icon: Phone },
     { label: 'Member Since', value: joinedLabel, icon: CalendarDays },
-    { label: 'Student ID', value: currentUser.studentId || 'Add your student ID', icon: IdCard },
+    { label: 'Student ID', value: viewedUser.studentId || 'Add your student ID', icon: IdCard },
   ];
   const detailCards = [
-    { label: 'Full name', value: currentUser.name, icon: User },
-    { label: 'Email address', value: currentUser.email, icon: Mail },
-    { label: 'Phone number', value: currentUser.phone || 'Not added yet', icon: Phone },
+    { label: 'Full name', value: viewedUser.name, icon: User },
+    { label: 'Email address', value: viewedUser.email, icon: Mail },
+    { label: 'Phone number', value: viewedUser.phone || 'Not added yet', icon: Phone },
     { label: 'University', value: universityName, icon: GraduationCap },
-    { label: 'Student ID', value: currentUser.studentId || 'Not added yet', icon: IdCard },
+    { label: 'Student ID', value: viewedUser.studentId || 'Not added yet', icon: IdCard },
     { label: 'Member since', value: joinedLabel, icon: CalendarDays },
   ];
   const trustItems = [
     {
       title: 'Verified student',
-      description: currentUser.isVerified
+      description: viewedUser.isVerified
         ? 'Your campus identity is confirmed and visible on your profile.'
         : 'Complete account verification to strengthen trust faster.',
-      active: currentUser.isVerified,
+      active: viewedUser.isVerified,
       icon: CheckCircle,
     },
     {
       title: 'Trading access',
-      description: currentUser.isBanned
+      description: viewedUser.isBanned
         ? 'This account is currently restricted from marketplace activity.'
-        : currentUser.isApproved
+        : viewedUser.isApproved
           ? 'You are approved to trade across the marketplace.'
           : 'Approval is still pending review.',
-      active: currentUser.isApproved && !currentUser.isBanned,
+      active: viewedUser.isApproved && !viewedUser.isBanned,
       icon: ShieldCheck,
     },
     {
       title: 'Marketplace identity',
       description:
-        currentUser.userType === 'seller'
+        viewedUser.userType === 'seller'
           ? 'You are set up to list items, handle orders, and grow your reputation.'
           : 'You are ready to browse, save favorites, and buy from trusted students.',
       active: true,
@@ -229,111 +298,102 @@ export function Profile() {
   const nextSteps = completionItems.filter((item) => !item.complete);
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.12),_transparent_48%),radial-gradient(circle_at_85%_20%,_rgba(14,165,233,0.12),_transparent_35%),linear-gradient(160deg,_#f8fafc_0%,_#f0fdf4_36%,_#eff6ff_100%)] dark:bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.18),_transparent_52%),radial-gradient(circle_at_85%_20%,_rgba(14,165,233,0.18),_transparent_36%),linear-gradient(160deg,_#031b14_0%,_#081420_52%,_#04161d_100%)]">
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -top-24 left-[-4rem] h-72 w-72 rounded-full bg-emerald-300/35 blur-3xl dark:bg-emerald-500/15" />
-        <div className="absolute right-[-6rem] top-24 h-80 w-80 rounded-full bg-sky-300/30 blur-3xl dark:bg-sky-500/12" />
-        <div className="absolute bottom-[-6rem] left-1/3 h-72 w-72 rounded-full bg-amber-200/25 blur-3xl dark:bg-amber-400/10" />
-      </div>
-
-      <div className="relative mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#f5f7f6] py-8">
+      <div className="mx-auto flex w-full max-w-[1220px] flex-col gap-6 px-4 lg:px-6">
         <section className="space-y-4">
-          <div className="relative overflow-hidden rounded-[2rem] border border-white/70 bg-[linear-gradient(135deg,rgba(236,253,245,0.92)_0%,rgba(239,246,255,0.92)_52%,rgba(255,251,235,0.9)_100%)] p-6 shadow-[0_40px_120px_-55px_rgba(15,118,110,0.55)] backdrop-blur-sm sm:p-8 dark:border-white/10 dark:bg-[linear-gradient(135deg,rgba(6,78,59,0.38)_0%,rgba(3,105,161,0.28)_55%,rgba(113,63,18,0.24)_100%)]">
-              <div className="pointer-events-none absolute inset-0 opacity-70">
-                <div className="absolute right-10 top-10 h-28 w-28 rounded-full border border-white/40 bg-white/30 dark:border-white/10 dark:bg-white/5" />
-                <div className="absolute bottom-6 left-10 h-20 w-20 rounded-[1.5rem] border border-white/40 bg-white/30 dark:border-white/10 dark:bg-white/5" />
-              </div>
-
-              <div className="relative flex flex-col gap-8">
+          <div className="overflow-hidden rounded-2xl border border-[#d3e3dc] bg-white p-6 shadow-sm sm:p-8">
+              <div className="flex flex-col gap-8">
                 <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
                   <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
                     <div className="relative">
-                      <Avatar className="h-28 w-28 rounded-[2rem] ring-4 ring-white shadow-xl dark:ring-slate-950">
+                      <Avatar className="h-28 w-28 rounded-3xl border border-[#c4ded3] ring-4 ring-[#e6f4ef] shadow-sm">
                         {displayProfilePicture ? <AvatarImage src={displayProfilePicture} alt={displayName} /> : null}
-                        <AvatarFallback className="bg-emerald-100 text-4xl font-semibold text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200">
+                        <AvatarFallback className="bg-[#dff2ea] text-4xl font-semibold text-[#0f5f4c]">
                           {getInitial(displayName)}
                         </AvatarFallback>
                       </Avatar>
-                      <div className="absolute -bottom-2 -right-2 inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/80 bg-white text-emerald-600 shadow-lg dark:border-white/10 dark:bg-slate-900 dark:text-emerald-300">
+                      <div className="absolute -bottom-2 -right-2 inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-[#c4ded3] bg-white text-[#0f5f4c] shadow-sm">
                         <Camera className="h-4 w-4" />
                       </div>
                     </div>
 
                     <div className="space-y-3">
-                      <div className="inline-flex items-center gap-2 rounded-full bg-white/75 px-3 py-1 text-xs font-semibold uppercase tracking-[0.28em] text-emerald-700 shadow-sm dark:bg-white/10 dark:text-emerald-200">
+                      <div className="inline-flex items-center gap-2 rounded-full bg-[#e8f5ef] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#0f6f58]">
                         <Sparkles className="h-3.5 w-3.5" />
                         Profile Studio
                       </div>
                       <div>
-                        <h1 className="text-3xl font-serif leading-tight text-slate-950 dark:text-white sm:text-4xl">
+                        <h1 className="text-3xl font-semibold leading-tight text-[#0b1f1a] sm:text-4xl">
                           {displayName}
                         </h1>
-                        <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-600 dark:text-slate-300">
+                        <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-[#4f6b62]">
                           <span className="inline-flex items-center gap-2">
-                            <MapPin className="h-4 w-4 text-emerald-600 dark:text-emerald-300" />
+                            <MapPin className="h-4 w-4 text-[#0f6f58]" />
                             {universityName}
                           </span>
                           <span className="inline-flex items-center gap-2">
-                            <ShieldCheck className="h-4 w-4 text-sky-600 dark:text-sky-300" />
-                            {formatLabel(currentUser.userType, 'Buyer')} account
-                          </span>
-                        </p>
-                      </div>
+                            <ShieldCheck className="h-4 w-4 text-[#0f6f58]" />
+                          {formatLabel(viewedUser.userType, 'Buyer')} account
+                        </span>
+                      </p>
+                    </div>
                       <div className="flex flex-wrap gap-2">
-                        <Badge className="rounded-full border-0 bg-emerald-600/10 px-3 py-1 text-emerald-700 dark:bg-emerald-400/15 dark:text-emerald-200">
-                          {currentUser.isVerified ? 'Verified Student' : 'Verification Pending'}
+                        <Badge className="rounded-full border-0 bg-[#e8f5ef] px-3 py-1 text-[#0f6f58]">
+                          {viewedUser.isVerified ? 'Verified Student' : 'Verification Pending'}
                         </Badge>
-                        <Badge className="rounded-full border-0 bg-sky-600/10 px-3 py-1 text-sky-700 dark:bg-sky-400/15 dark:text-sky-200">
-                          {currentUser.isBanned
+                        <Badge className="rounded-full border-0 bg-[#ecf4f1] px-3 py-1 text-[#365f53]">
+                          {viewedUser.isBanned
                             ? 'Restricted Account'
-                            : currentUser.isApproved
+                            : viewedUser.isApproved
                               ? 'Approved to Trade'
                               : 'Approval Pending'}
                         </Badge>
-                        <Badge className="rounded-full border-0 bg-amber-500/10 px-3 py-1 text-amber-700 dark:bg-amber-400/15 dark:text-amber-200">
+                        <Badge className="rounded-full border-0 bg-[#fff4df] px-3 py-1 text-[#8a6822]">
                           {visibilityLabel}
                         </Badge>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap gap-3">
-                    <Button
-                      variant={isEditing ? 'outline' : 'default'}
-                      className={
-                        isEditing
-                          ? 'rounded-full border-white/70 bg-white/70 px-5 backdrop-blur hover:bg-white dark:border-white/10 dark:bg-white/10 dark:hover:bg-white/15'
-                          : 'rounded-full bg-emerald-600 px-5 hover:bg-emerald-700'
-                      }
-                      onClick={() => {
-                        if (isEditing) {
-                          setIsEditing(false);
-                          resetForm();
-                          return;
+                  {isOwnProfile && (
+                    <div className="flex flex-wrap gap-3">
+                      <Button
+                        variant={isEditing ? 'outline' : 'default'}
+                        className={
+                          isEditing
+                            ? 'rounded-full border-[#bdd8cd] bg-white px-5 text-[#124a3b] hover:bg-[#f3faf7]'
+                            : 'rounded-full bg-[#0f6f58] px-5 text-white hover:bg-[#0d5f4b]'
                         }
+                        onClick={() => {
+                          if (isEditing) {
+                            setIsEditing(false);
+                            resetForm();
+                            return;
+                          }
 
-                        setIsEditing(true);
-                      }}
-                    >
-                      <Edit className="mr-2 h-4 w-4" />
-                      {isEditing ? 'Cancel editing' : 'Edit profile'}
-                    </Button>
-                  </div>
+                          setIsEditing(true);
+                        }}
+                      >
+                        <Edit className="mr-2 h-4 w-4" />
+                        {isEditing ? 'Cancel editing' : 'Edit profile'}
+                      </Button>
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                   {heroMeta.map((item) => (
                     <div
                       key={item.label}
-                      className="rounded-[1.5rem] border border-white/70 bg-white/65 p-4 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-white/5"
+                      className="rounded-2xl border border-[#d3e3dc] bg-[#f9fcfb] p-4 shadow-sm"
                     >
-                      <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-900 text-white dark:bg-white dark:text-slate-950">
+                      <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-[#0f6f58] text-white">
                         <item.icon className="h-4 w-4" />
                       </div>
-                      <p className="mt-3 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                      <p className="mt-3 text-xs font-semibold uppercase tracking-[0.15em] text-[#5f7a71]">
                         {item.label}
                       </p>
-                      <p className="mt-1 text-sm font-medium text-slate-900 dark:text-slate-100">
+                      <p className="mt-1 text-sm font-medium text-[#0f2c24]">
                         {item.value}
                       </p>
                     </div>
@@ -346,37 +406,37 @@ export function Profile() {
             {summaryCards.map((card) => (
               <div
                 key={card.label}
-                className="rounded-[1.75rem] border border-slate-200/80 bg-white/80 p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/80"
+                className="rounded-2xl border border-[#d3e3dc] bg-white p-5 shadow-sm"
               >
                 <div className={`inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br ${card.accent} text-white shadow-lg`}>
                   <card.icon className="h-5 w-5" />
                 </div>
-                <p className="mt-3 text-xs font-semibold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
+                <p className="mt-3 text-xs font-semibold uppercase tracking-[0.15em] text-[#5f7a71]">
                   {card.label}
                 </p>
-                <p className="mt-1 text-2xl font-semibold text-slate-950 dark:text-white">{card.value}</p>
-                <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{card.caption}</p>
+                <p className="mt-1 text-2xl font-semibold text-[#0f2c24]">{card.value}</p>
+                <p className="mt-1 text-sm text-[#4f6b62]">{card.caption}</p>
               </div>
             ))}
 
-            <div className="rounded-[1.75rem] bg-slate-950 p-5 text-white shadow-[0_25px_70px_-35px_rgba(15,23,42,0.8)] dark:bg-slate-900">
+            <div className="rounded-2xl border border-[#0f6f58] bg-[#0f6f58] p-5 text-white shadow-sm">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.25em] text-emerald-200/80">
+                  <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[#bde9db]">
                     Profile Strength
                   </p>
                   <p className="mt-1 text-3xl font-semibold">{completionPercent}%</p>
                 </div>
-                <Sparkles className="h-6 w-6 text-emerald-300" />
+                <Sparkles className="h-6 w-6 text-[#bde9db]" />
               </div>
-              <div className="mt-4 h-2.5 rounded-full bg-white/10">
-                <div className="h-2.5 rounded-full bg-gradient-to-r from-emerald-400 via-teal-300 to-sky-300" style={{ width: `${completionPercent}%` }} />
+              <div className="mt-4 h-2.5 rounded-full bg-white/20">
+                <div className="h-2.5 rounded-full bg-[#7ce6c8]" style={{ width: `${completionPercent}%` }} />
               </div>
-              <div className="mt-4 space-y-2 text-sm text-slate-300">
+              <div className="mt-4 space-y-2 text-sm text-[#daf1e9]">
                 {completionItems.map((item) => (
                   <div key={item.label} className="flex items-center justify-between gap-3">
                     <span>{item.label}</span>
-                    <span className={item.complete ? 'text-emerald-300' : 'text-slate-500'}>
+                    <span className={item.complete ? 'text-[#9af2d7]' : 'text-[#8fd1bf]'}>
                       {item.complete ? 'Done' : 'Missing'}
                     </span>
                   </div>
@@ -388,28 +448,28 @@ export function Profile() {
 
         <section className="space-y-5">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-emerald-700 dark:text-emerald-300">
+            <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[#0f6f58]">
               Account View
             </p>
-            <h2 className="mt-2 text-2xl font-serif text-slate-950 dark:text-white sm:text-3xl">
+            <h2 className="mt-2 text-2xl font-semibold text-[#0b1f1a] sm:text-3xl">
               Profile details
             </h2>
-            <p className="mt-2 max-w-2xl text-sm text-slate-600 dark:text-slate-300">
+            <p className="mt-2 max-w-2xl text-sm text-[#4f6b62]">
               Keep your profile sharp, trustworthy, and easy for other students to understand at a glance.
             </p>
           </div>
 
           <div className="grid gap-6 xl:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)]">
-              <Card className="rounded-[2rem] border border-white/70 bg-white/88 shadow-[0_30px_90px_-55px_rgba(15,118,110,0.5)] backdrop-blur-sm dark:border-white/10 dark:bg-slate-950/70">
+              <Card className="rounded-2xl border border-[#d3e3dc] bg-white shadow-sm">
                 <CardHeader className="space-y-3">
-                  <div className="inline-flex w-fit items-center gap-2 rounded-full bg-emerald-600/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-emerald-700 dark:bg-emerald-400/15 dark:text-emerald-200">
+                  <div className="inline-flex w-fit items-center gap-2 rounded-full bg-[#e8f5ef] px-3 py-1 text-xs font-semibold uppercase tracking-[0.15em] text-[#0f6f58]">
                     <User className="h-3.5 w-3.5" />
                     Personal Profile
                   </div>
-                  <CardTitle className="text-2xl font-serif text-slate-950 dark:text-white">
+                  <CardTitle className="text-2xl font-semibold text-[#0b1f1a]">
                     {isEditing ? 'Polish your public profile' : 'The details students will see first'}
                   </CardTitle>
-                  <CardDescription className="max-w-2xl text-sm">
+                  <CardDescription className="max-w-2xl text-sm text-[#4f6b62]">
                     {isEditing
                       ? 'Update the essentials that make you look credible, clear, and easy to trust.'
                       : 'These details shape how buyers and sellers experience your account across the marketplace.'}
@@ -418,11 +478,11 @@ export function Profile() {
                 <CardContent>
                   {isEditing ? (
                     <div className="space-y-5">
-                      <div className="rounded-[1.75rem] border border-emerald-100/80 bg-emerald-50/70 p-5 dark:border-emerald-500/15 dark:bg-emerald-500/10">
+                      <div className="rounded-2xl border border-[#cfe4db] bg-[#f2faf6] p-5">
                         <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-                          <Avatar className="h-24 w-24 rounded-[1.5rem] ring-4 ring-white dark:ring-slate-950">
+                          <Avatar className="h-24 w-24 rounded-2xl border border-[#c4ded3] ring-4 ring-[#e6f4ef]">
                             {displayProfilePicture ? <AvatarImage src={displayProfilePicture} alt={displayName} /> : null}
-                            <AvatarFallback className="bg-emerald-100 text-3xl font-semibold text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200">
+                            <AvatarFallback className="bg-[#dff2ea] text-3xl font-semibold text-[#0f5f4c]">
                               {getInitial(displayName)}
                             </AvatarFallback>
                           </Avatar>
@@ -434,13 +494,13 @@ export function Profile() {
                               accept="image/*"
                               disabled={uploadingProfilePicture}
                               onChange={(e) => handleProfilePictureUpload(e.target.files?.[0] || null)}
-                              className="bg-white/80 dark:bg-slate-950/60"
+                              className="border-[#cfe0d8] bg-white"
                             />
-                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                            <p className="text-xs text-[#5f7a71]">
                               JPG, PNG, or WEBP up to 5MB. A clear photo helps your account feel more trustworthy.
                             </p>
                             {uploadingProfilePicture && (
-                              <p className="inline-flex items-center gap-2 text-xs font-medium text-emerald-700 dark:text-emerald-200">
+                              <p className="inline-flex items-center gap-2 text-xs font-medium text-[#0f6f58]">
                                 <Loader2 className="h-3 w-3 animate-spin" />
                                 Uploading profile picture...
                               </p>
@@ -456,7 +516,7 @@ export function Profile() {
                             id="name"
                             value={formData.name}
                             onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-                            className="bg-white dark:bg-slate-950/60"
+                            className="border-[#cfe0d8] bg-white"
                           />
                         </div>
 
@@ -466,7 +526,7 @@ export function Profile() {
                             id="phone"
                             value={formData.phone}
                             onChange={(e) => setFormData((prev) => ({ ...prev, phone: e.target.value }))}
-                            className="bg-white dark:bg-slate-950/60"
+                            className="border-[#cfe0d8] bg-white"
                           />
                         </div>
 
@@ -476,20 +536,20 @@ export function Profile() {
                             id="studentId"
                             value={formData.studentId}
                             onChange={(e) => setFormData((prev) => ({ ...prev, studentId: e.target.value }))}
-                            className="bg-white dark:bg-slate-950/60"
+                            className="border-[#cfe0d8] bg-white"
                           />
                         </div>
 
                         <div className="space-y-2">
                           <Label>Email address</Label>
-                          <Input value={currentUser.email} disabled className="bg-slate-100 dark:bg-slate-900" />
-                          <p className="text-xs text-slate-500 dark:text-slate-400">Email cannot be changed here.</p>
+                          <Input value={currentUser.email} disabled className="bg-[#eef3f1]" />
+                          <p className="text-xs text-[#5f7a71]">Email cannot be changed here.</p>
                         </div>
 
                         <div className="space-y-2 md:col-span-2">
                           <Label>University</Label>
-                          <Input value={universityName} disabled className="bg-slate-100 dark:bg-slate-900" />
-                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                          <Input value={universityName} disabled className="bg-[#eef3f1]" />
+                          <p className="text-xs text-[#5f7a71]">
                             Your university stays fixed so your campus identity remains consistent.
                           </p>
                         </div>
@@ -499,7 +559,7 @@ export function Profile() {
                         <Button
                           onClick={handleSaveProfile}
                           disabled={uploadingProfilePicture}
-                          className="flex-1 rounded-full bg-emerald-600 hover:bg-emerald-700"
+                          className="flex-1 rounded-full bg-[#0f6f58] text-white hover:bg-[#0d5f4b]"
                         >
                           Save changes
                         </Button>
@@ -509,7 +569,7 @@ export function Profile() {
                             setIsEditing(false);
                             resetForm();
                           }}
-                          className="flex-1 rounded-full"
+                          className="flex-1 rounded-full border-[#c2d9cf] text-[#124a3b] hover:bg-[#f3faf7]"
                         >
                           Cancel
                         </Button>
@@ -520,15 +580,15 @@ export function Profile() {
                       {detailCards.map((item) => (
                         <div
                           key={item.label}
-                          className="rounded-[1.5rem] border border-slate-200/80 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-900/60"
+                          className="rounded-2xl border border-[#d3e3dc] bg-[#f9fcfb] p-4"
                         >
-                          <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-slate-900 shadow-sm dark:bg-slate-800 dark:text-white">
+                          <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-[#0f6f58] shadow-sm">
                             <item.icon className="h-4 w-4" />
                           </div>
-                          <p className="mt-3 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                          <p className="mt-3 text-xs font-semibold uppercase tracking-[0.15em] text-[#5f7a71]">
                             {item.label}
                           </p>
-                          <p className="mt-1 text-sm font-medium text-slate-900 dark:text-slate-100">
+                          <p className="mt-1 text-sm font-medium text-[#0f2c24]">
                             {item.value}
                           </p>
                         </div>

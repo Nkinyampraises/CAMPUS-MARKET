@@ -145,35 +145,6 @@ export function BuyerDashboard() {
           </div>
         </div>
 
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>Quick Access</CardTitle>
-            <CardDescription>Open buyer pages for orders, rentals, payments, support, and account settings.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              <Button variant="outline" onClick={() => navigate('/buyer/orders')}>My Orders</Button>
-              <Button variant="outline" onClick={() => navigate('/buyer/rentals')}>My Rentals</Button>
-              <Button variant="outline" onClick={() => navigate('/buyer/payments')}>Payment History</Button>
-              <Button variant="outline" onClick={() => navigate('/buyer/notifications')}>
-                <Bell className="h-4 w-4 mr-2" />
-                Notifications
-              </Button>
-              <Button variant="outline" onClick={() => navigate('/buyer/disputes')}>
-                <ShieldAlert className="h-4 w-4 mr-2" />
-                Disputes
-              </Button>
-              <Button variant="outline" onClick={() => navigate('/buyer/report')}>
-                <Flag className="h-4 w-4 mr-2" />
-                Report Problem
-              </Button>
-              <Button variant="outline" onClick={() => navigate('/buyer/recently-viewed')}>Recently Viewed</Button>
-              <Button variant="outline" onClick={() => navigate('/buyer/settings')}>Settings</Button>
-              <Button variant="outline" onClick={() => navigate('/buyer/help')}>Help and Support</Button>
-            </div>
-          </CardContent>
-        </Card>
-
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">

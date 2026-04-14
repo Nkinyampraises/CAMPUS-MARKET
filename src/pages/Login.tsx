@@ -5,16 +5,21 @@ import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
 import { PasswordInput } from '@/app/components/ui/password-input';
 import { Label } from '@/app/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/app/components/ui/card';
+import { Checkbox } from '@/app/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/app/components/ui/alert';
-import { ShoppingBag, Loader2, Sparkles, ShieldCheck, MapPin, MessageCircle } from 'lucide-react';
+import { Loader2, Mail, Lock, ShieldCheck, BadgeCheck } from 'lucide-react';
 import { toast } from 'sonner';
+import appLogo from '@/assets/image/logoi.png';
+
+const loginHeroImage =
+  'https://images.pexels.com/photos/9158720/pexels-photo-9158720.jpeg?cs=srgb&dl=pexels-mikhail-nilov-9158720.jpg&fm=jpg';
 
 export function Login() {
   const navigate = useNavigate();
   const { login, resendConfirmationEmail } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberDevice, setRememberDevice] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [resendingConfirmation, setResendingConfirmation] = useState(false);
@@ -29,7 +34,7 @@ export function Login() {
     setLoading(true);
 
     try {
-      const result = await login(email, password);
+      const result = await login(email, password, { rememberDevice });
       if (result.success) {
         toast.success('Login successful!');
         navigate('/dashboard');
@@ -74,207 +79,196 @@ export function Login() {
   };
 
   return (
-    <div
-      className="relative min-h-[calc(100vh-4rem)] overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.12),_transparent_55%),radial-gradient(circle_at_30%_20%,_rgba(14,165,233,0.16),_transparent_50%),linear-gradient(120deg,_#f8fafc_0%,_#eefbf6_45%,_#f2f7ff_100%)] dark:bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.18),_transparent_55%),radial-gradient(circle_at_30%_20%,_rgba(14,165,233,0.2),_transparent_50%),linear-gradient(120deg,_#031b14_0%,_#051f2c_55%,_#041a21_100%)]"
-      style={
-        {
-          '--login-accent': '#1f7a34',
-          '--login-accent-2': '#0ea5a5',
-          '--login-ink': '#072917',
-        } as React.CSSProperties
-      }
-    >
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -top-32 right-[-6rem] h-72 w-72 rounded-full bg-emerald-300/40 blur-3xl dark:bg-emerald-500/20" />
-        <div className="absolute bottom-[-10rem] left-[-6rem] h-80 w-80 rounded-full bg-sky-200/50 blur-3xl dark:bg-sky-500/20" />
-        <div className="absolute left-1/2 top-12 h-16 w-16 -translate-x-1/2 rounded-2xl border border-emerald-200/70 bg-white/60 backdrop-blur-md dark:border-emerald-500/30 dark:bg-white/10" />
-      </div>
+    <div className="min-h-screen bg-[#f5f5f5]">
+      <div className="mx-auto grid min-h-screen max-w-[1440px] lg:grid-cols-[1.05fr_0.95fr]">
+        <section className="relative hidden overflow-hidden lg:flex lg:flex-col lg:justify-between">
+          <img src={loginHeroImage} alt="Black student studying with laptop" className="absolute inset-0 h-full w-full object-cover" />
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(8,103,75,0.78)_0%,rgba(6,92,67,0.85)_40%,rgba(3,68,49,0.92)_100%)]" />
 
-      <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-12 lg:py-16">
-        <div className="grid items-stretch gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
-          <Card className="h-full rounded-3xl border border-emerald-100/80 bg-white/90 shadow-[0_30px_80px_-40px_rgba(15,118,110,0.45)] backdrop-blur-sm dark:border-emerald-500/20 dark:bg-slate-950/60 animate-[login-rise_0.65s_ease-out] lg:order-1 lg:col-start-1">
-            <CardHeader className="space-y-3 text-left">
-              <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-2xl bg-emerald-100/80 text-[color:var(--login-accent)] flex items-center justify-center dark:bg-emerald-500/20">
-                  <ShoppingBag className="h-6 w-6" />
-                </div>
-                <div>
-                  <CardTitle className="text-2xl font-serif text-[color:var(--login-ink)] dark:text-white">
-                    Welcome back
-                  </CardTitle>
-                  <CardDescription className="text-sm">
-                    Sign in to manage your campus listings and orders.
-                  </CardDescription>
-                </div>
+          <div className="relative z-10 px-10 pt-10 text-white xl:px-14 xl:pt-12">
+            <div className="mb-20 flex items-center gap-3">
+              <img src={appLogo} alt="UNITRADE logo" className="h-11 w-11 rounded-2xl object-cover" />
+              <p className="text-[2rem] font-bold tracking-tight">UNITRADE</p>
+            </div>
+
+            <h2 className="max-w-sm text-6xl font-bold leading-[1.03]">
+              Academic Commerce <span className="text-emerald-300">Redefined.</span>
+            </h2>
+            <p className="mt-8 max-w-[35rem] text-[1.95rem] leading-[1.45] text-emerald-50/90">
+              The exclusive marketplace for Cameroon&apos;s academic community. Buy, sell, and trade with verified peers
+              across university campuses.
+            </p>
+
+            <div className="mt-16 grid max-w-xl grid-cols-2 gap-10">
+              <div className="space-y-1">
+                <p className="text-5xl font-semibold leading-none text-emerald-300">15k+</p>
+                <p className="text-[1.05rem] uppercase tracking-[0.2em] text-emerald-50/85">Active students</p>
               </div>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {error && (
-                  <Alert variant="destructive">
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                )}
+              <div className="space-y-1 border-l border-emerald-200/40 pl-10">
+                <p className="text-5xl font-semibold leading-none text-emerald-300">24+</p>
+                <p className="text-[1.05rem] uppercase tracking-[0.2em] text-emerald-50/85">Partner institutions</p>
+              </div>
+            </div>
+          </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+          <div className="relative z-10 flex items-center gap-10 px-10 pb-8 text-xs uppercase tracking-[0.18em] text-emerald-100/80 xl:px-14">
+            <span className="inline-flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4" />
+              SSL secured
+            </span>
+            <span className="inline-flex items-center gap-2">
+              <BadgeCheck className="h-4 w-4" />
+              Student verified
+            </span>
+          </div>
+        </section>
+
+        <section className="flex items-center justify-center px-5 py-10 sm:px-9 lg:px-16 xl:px-20">
+          <div className="w-full max-w-[520px]">
+            <h1 className="text-4xl font-bold leading-tight text-[#161616] sm:text-5xl">Welcome Back</h1>
+            <p className="mt-4 max-w-md text-xl text-[#4b4b4b]">
+              Please enter your student credentials to access your account.
+            </p>
+
+            <form onSubmit={handleSubmit} className="mt-10 space-y-6">
+              {error && (
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
+              <div className="space-y-3">
+                <Label htmlFor="email" className="text-[1.04rem] font-medium text-[#212121]">
+                  Institutional Email
+                </Label>
+                <div className="relative">
+                  <Mail className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#7f8b84]" />
                   <Input
                     id="email"
                     type="email"
-                    placeholder="your.email@student.ub.cm"
+                    placeholder="student@ubuea.cm"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    className="h-14 rounded-xl border-[#e3e3e3] bg-white pl-12 text-base text-[#1d1d1d] placeholder:text-[#a9afac] focus-visible:border-[#0a5f48] focus-visible:ring-[#0a5f48]/20"
                     required
                   />
                 </div>
+              </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <Label htmlFor="password" className="text-[1.04rem] font-medium text-[#212121]">
+                    Password
+                  </Label>
+                  <Link to="/forgot-password" className="text-sm font-medium text-[#0b5d46] hover:underline">
+                    Forgot Password?
+                  </Link>
+                </div>
+                <div className="relative">
+                  <Lock className="pointer-events-none absolute left-4 top-1/2 z-10 h-5 w-5 -translate-y-1/2 text-[#7f8b84]" />
                   <PasswordInput
                     id="password"
                     placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    className="h-14 rounded-xl border-[#e3e3e3] bg-white pl-12 text-base text-[#1d1d1d] placeholder:text-[#a9afac] focus-visible:border-[#0a5f48] focus-visible:ring-[#0a5f48]/20"
                     required
                   />
                 </div>
+              </div>
 
-                <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-                  <Link to="/forgot-password" className="text-emerald-600 hover:underline">
-                    Forgot password?
-                  </Link>
-                  <Button
-                    type="button"
-                    variant="link"
-                    className="h-auto p-0 text-emerald-600 hover:text-emerald-700"
-                    onClick={handleResendConfirmation}
-                    disabled={resendingConfirmation}
-                  >
-                    {resendingConfirmation ? (
-                      <>
-                        <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-                        Sending...
-                      </>
-                    ) : (
-                      'Resend confirmation email'
-                    )}
-                  </Button>
-                </div>
+              <div className="flex items-center gap-3">
+                <Checkbox
+                  id="remember-device"
+                  checked={rememberDevice}
+                  onCheckedChange={(checked) => setRememberDevice(checked === true)}
+                  className="h-5 w-5 rounded-md border-[#c9d0cb] data-[state=checked]:border-[#075942] data-[state=checked]:bg-[#075942]"
+                />
+                <Label htmlFor="remember-device" className="cursor-pointer text-[1.02rem] font-normal text-[#404040]">
+                  Remember me on this device
+                </Label>
+              </div>
 
-                {confirmationMessage && (
-                  <Alert>
-                    <AlertDescription>
-                      {confirmationMessage}{' '}
-                      {confirmationLink && (
-                        <a
-                          href={confirmationLink}
-                          className="font-medium text-emerald-700 underline underline-offset-2"
-                        >
-                          Open confirmation link
-                        </a>
-                      )}
-                    </AlertDescription>
-                  </Alert>
+              <Button
+                type="submit"
+                className="h-14 w-full rounded-xl bg-[#075942] text-[1.05rem] font-semibold text-white shadow-[0_20px_28px_-20px_rgba(7,89,66,0.9)] hover:bg-[#054a37]"
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Logging in...
+                  </>
+                ) : (
+                  'Sign In to Account'
                 )}
+              </Button>
 
-                <Button
-                  type="submit"
-                  className="w-full bg-emerald-600 hover:bg-emerald-700"
-                  disabled={loading}
+              <div className="flex items-center gap-4 text-xs uppercase tracking-[0.2em] text-[#b8b8b8]">
+                <span className="h-px flex-1 bg-[#e1e1e1]" />
+                New to UNITRADE?
+                <span className="h-px flex-1 bg-[#e1e1e1]" />
+              </div>
+
+              <Button
+                type="button"
+                variant="secondary"
+                asChild
+                className="h-14 w-full rounded-xl bg-[#e2e2e2] text-[1.05rem] font-semibold text-[#1e1e1e] hover:bg-[#d7d7d7]"
+              >
+                <Link to="/register">Create Student Account</Link>
+              </Button>
+
+              {confirmationMessage && (
+                <Alert className="border-emerald-200/70 bg-emerald-50 text-[#0a5b44]">
+                  <AlertDescription>
+                    {confirmationMessage}{' '}
+                    {confirmationLink && (
+                      <a href={confirmationLink} className="font-semibold underline underline-offset-2">
+                        Open confirmation link
+                      </a>
+                    )}
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              <p className="pt-4 text-center text-[1.02rem] text-[#4a4a4a]">
+                Didn&apos;t receive verification?{' '}
+                <button
+                  type="button"
+                  onClick={handleResendConfirmation}
+                  disabled={resendingConfirmation}
+                  className="font-semibold text-[#0b5d46] underline-offset-2 hover:underline disabled:opacity-60"
                 >
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Logging in...
-                    </>
-                  ) : (
-                    'Login'
-                  )}
-                </Button>
-              </form>
-            </CardContent>
-            <CardFooter className="flex flex-col items-start gap-2 text-sm">
-              <p className="text-muted-foreground">
-                Don't have an account?{' '}
-                <Link to="/register" className="text-emerald-600 hover:underline">
-                  Sign up
-                </Link>
+                  {resendingConfirmation ? 'Sending...' : 'Resend Confirmation'}
+                </button>
               </p>
-            </CardFooter>
-          </Card>
+            </form>
 
-          <section className="relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border border-emerald-200/40 bg-gradient-to-br from-emerald-900 via-emerald-800 to-slate-900 p-8 text-white shadow-[0_30px_80px_-40px_rgba(3,105,81,0.6)] animate-[login-slide_0.8s_ease-out] lg:order-2 lg:col-start-2">
-            <div className="absolute inset-0 opacity-60">
-              <div className="absolute -right-16 top-10 h-40 w-40 rounded-full border border-white/20 bg-white/5" />
-              <div className="absolute bottom-12 left-8 h-24 w-24 rounded-2xl border border-white/20 bg-white/5" />
+            <div className="mt-12 flex items-center justify-center gap-8 text-[0.66rem] uppercase tracking-[0.2em] text-[#9b9b9b]">
+              <span className="inline-flex items-center gap-2">
+                <BadgeCheck className="h-3.5 w-3.5" />
+                UB verified
+              </span>
+              <span className="inline-flex items-center gap-2">
+                <ShieldCheck className="h-3.5 w-3.5" />
+                256-bit AES
+              </span>
             </div>
 
-            <div className="relative space-y-6">
-              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs uppercase tracking-[0.35em] text-emerald-100">
-                UNITRADE
-              </div>
-              <h2 className="text-3xl font-serif leading-tight text-white sm:text-4xl">
-                A trusted marketplace built for campus life.
-              </h2>
-              <p className="text-sm text-emerald-50/80 sm:text-base">
-                Sell, rent, and discover essentials from verified students. Keep payments safe, chat instantly, and
-                meet at trusted pickup spots around your university.
-              </p>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                {[
-                  {
-                    title: 'Verified students',
-                    detail: 'Profiles built around your campus community.',
-                    icon: ShieldCheck,
-                    delay: '0ms',
-                  },
-                  {
-                    title: 'Chat & negotiate',
-                    detail: 'Message sellers before you commit.',
-                    icon: MessageCircle,
-                    delay: '120ms',
-                  },
-                  {
-                    title: 'Safe pickups',
-                    detail: 'Approved locations for every exchange.',
-                    icon: MapPin,
-                    delay: '240ms',
-                  },
-                  {
-                    title: 'Smart listings',
-                    detail: 'Highlight items with premium visibility.',
-                    icon: Sparkles,
-                    delay: '360ms',
-                  },
-                ].map((item) => (
-                  <div
-                    key={item.title}
-                    className="rounded-2xl border border-white/15 bg-white/10 p-4 text-sm shadow-sm animate-[login-fade_0.9s_ease-out] backdrop-blur-sm"
-                    style={{ animationDelay: item.delay }}
-                  >
-                    <item.icon className="mb-3 h-5 w-5 text-emerald-200" />
-                    <p className="font-semibold">{item.title}</p>
-                    <p className="mt-1 text-xs text-emerald-100/70">{item.detail}</p>
-                  </div>
-                ))}
+            <div className="mt-10 flex flex-wrap items-center justify-between gap-4 text-[0.72rem] uppercase tracking-[0.18em] text-[#a2a2a2]">
+              <p>© 2026 UNITRADE Cameroon</p>
+              <div className="flex items-center gap-5">
+                <a href="#" className="hover:text-[#737373]">
+                  Privacy policy
+                </a>
+                <a href="#" className="hover:text-[#737373]">
+                  Terms of service
+                </a>
               </div>
             </div>
-
-            <div className="relative mt-8 grid grid-cols-3 gap-3 text-xs">
-              {[
-                { label: 'New listings', value: 'Every day' },
-                { label: 'Escrow ready', value: 'Mobile money' },
-                { label: 'Support', value: '24/7 help desk' },
-              ].map((stat) => (
-                <div key={stat.label} className="rounded-2xl border border-white/15 bg-white/10 p-3 text-center">
-                  <p className="text-lg font-semibold">{stat.value}</p>
-                  <p className="mt-1 text-[0.65rem] uppercase tracking-[0.2em] text-emerald-100/70">{stat.label}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-        </div>
+          </div>
+        </section>
       </div>
     </div>
   );

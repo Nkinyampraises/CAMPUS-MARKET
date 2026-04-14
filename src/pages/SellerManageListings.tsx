@@ -4,7 +4,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/app/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
-import { ArrowLeft, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
+import { categories as categoryCatalog } from '@/data/mockData';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
@@ -92,15 +93,53 @@ export function SellerManageListings() {
     fetchListings();
   }, [currentUser, accessToken]);
 
-  const categories = useMemo(() => {
-    const unique = Array.from(new Set(listings.map((listing) => listing.category).filter(Boolean)));
-    unique.sort((a, b) => String(a).localeCompare(String(b)));
-    return unique;
+  const normalizeCategory = (value: unknown) => {
+    const raw = String(value ?? '').trim();
+    if (!raw) return '';
+    const fromId = categoryCatalog.find((category) => String(category.id) === raw);
+    if (fromId) return String(fromId.id);
+    const fromName = categoryCatalog.find((category) => category.name.toLowerCase() === raw.toLowerCase());
+    if (fromName) return String(fromName.id);
+    return raw;
+  };
+
+  const getCategoryLabel = (value: unknown) => {
+    const raw = String(value ?? '').trim();
+    if (!raw) return '-';
+    const fromId = categoryCatalog.find((category) => String(category.id) === raw);
+    if (fromId) return fromId.name;
+    const fromName = categoryCatalog.find((category) => category.name.toLowerCase() === raw.toLowerCase());
+    return fromName?.name || raw;
+  };
+
+  const categoryOptions = useMemo(() => {
+    const options = categoryCatalog.map((category) => ({
+      value: String(category.id),
+      label: category.name,
+    }));
+    const knownValues = new Set(options.map((option) => option.value));
+
+    listings.forEach((listing) => {
+      const raw = String(listing.category ?? '').trim();
+      if (!raw) return;
+
+      const normalizedValue = normalizeCategory(raw);
+      if (knownValues.has(normalizedValue)) return;
+
+      options.push({
+        value: normalizedValue,
+        label: getCategoryLabel(raw),
+      });
+      knownValues.add(normalizedValue);
+    });
+
+    return options.sort((a, b) => a.label.localeCompare(b.label));
   }, [listings]);
 
   const filteredListings = useMemo(() => {
     return listings.filter((listing) => {
-      const matchesCategory = categoryFilter === 'all' || listing.category === categoryFilter;
+      const listingCategory = normalizeCategory(listing.category);
+      const matchesCategory = categoryFilter === 'all' || listingCategory === categoryFilter;
       const matchesStatus = statusFilter === 'all' || listing.status === statusFilter;
       const matchesType = typeFilter === 'all' || listing.type === typeFilter;
       return matchesCategory && matchesStatus && matchesType;
@@ -144,11 +183,7 @@ export function SellerManageListings() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
-      <div className="flex items-center justify-between mb-4">
-        <Button variant="ghost" onClick={() => navigate('/dashboard')}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Dashboard
-        </Button>
+      <div className="mb-4 flex justify-end">
         <Button className="bg-green-600 hover:bg-green-700" onClick={() => navigate('/add-listing')}>
           <Plus className="h-4 w-4 mr-2" />
           Add Listing
@@ -171,8 +206,10 @@ export function SellerManageListings() {
                 onChange={(e) => setCategoryFilter(e.target.value)}
               >
                 <option value="all">All</option>
-                {categories.map((category) => (
-                  <option key={category} value={category}>{category}</option>
+                {categoryOptions.map((category) => (
+                  <option key={category.value} value={category.value}>
+                    {category.label}
+                  </option>
                 ))}
               </select>
             </div>
@@ -229,7 +266,7 @@ export function SellerManageListings() {
                   {filteredListings.map((listing) => (
                     <tr key={listing.id} className="border-t">
                       <td className="p-3 font-medium min-w-[240px]">{listing.title || 'Listing'}</td>
-                      <td className="p-3">{listing.category || '-'}</td>
+                      <td className="p-3">{getCategoryLabel(listing.category)}</td>
                       <td className="p-3">{listing.type || '-'}</td>
                       <td className="p-3">
                         <Badge variant={listing.status === 'available' ? 'default' : 'secondary'}>

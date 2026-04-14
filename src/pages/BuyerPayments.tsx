@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/app/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
-import { ArrowLeft, Download } from 'lucide-react';
+import { Download } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
@@ -65,11 +65,6 @@ export function BuyerPayments() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
-      <Button variant="ghost" className="mb-4" onClick={() => navigate('/dashboard')}>
-        <ArrowLeft className="h-4 w-4 mr-2" />
-        Back to Dashboard
-      </Button>
-
       <Card>
         <CardHeader>
           <CardTitle>Payment History</CardTitle>

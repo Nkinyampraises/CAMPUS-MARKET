@@ -5,6 +5,13 @@ import { Button } from '@/app/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/app/components/ui/dialog';
 import { Input } from '@/app/components/ui/input';
 import { Label } from '@/app/components/ui/label';
 import { DollarSign, Heart, MessageSquare, Package, Plus, ShoppingBag, Wallet } from 'lucide-react';
@@ -18,6 +25,7 @@ const formatMoney = (value: number) =>
 export function SellerDashboard() {
   const { currentUser, accessToken, refreshAuthToken, logout } = useAuth();
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<'sales' | 'listings' | 'messages'>('sales');
 
   const [myListings, setMyListings] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
@@ -28,6 +36,7 @@ export function SellerDashboard() {
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [withdrawPhone, setWithdrawPhone] = useState(currentUser?.phone || '');
   const [withdrawProvider, setWithdrawProvider] = useState<'mtn-momo' | 'orange-money'>('mtn-momo');
+  const [showWithdrawDialog, setShowWithdrawDialog] = useState(false);
 
   const requestWithAuthRetry = async (path: string, init?: RequestInit) => {
     if (!accessToken) {
@@ -260,30 +269,17 @@ export function SellerDashboard() {
             <h1 className="text-3xl font-bold">Seller Dashboard</h1>
             <p className="text-muted-foreground">Manage listings, delivery proofs, and escrow releases.</p>
           </div>
-          <Button className="w-full bg-green-600 hover:bg-green-700 sm:w-auto" onClick={() => navigate('/add-listing')}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add New Listing
-          </Button>
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+            <Button variant="outline" className="w-full sm:w-auto" onClick={() => setShowWithdrawDialog(true)}>
+              <Wallet className="mr-2 h-4 w-4" />
+              Withdraw Funds
+            </Button>
+            <Button className="w-full bg-green-600 hover:bg-green-700 sm:w-auto" onClick={() => navigate('/add-listing')}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add New Listing
+            </Button>
+          </div>
         </div>
-
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>Quick Access</CardTitle>
-            <CardDescription>Open seller pages for listings, orders, rentals, support, and settings.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              <Button variant="outline" onClick={() => navigate('/seller/manage-listings')}>Manage Listings</Button>
-              <Button variant="outline" onClick={() => navigate('/seller/orders')}>Orders</Button>
-              <Button variant="outline" onClick={() => navigate('/seller/rentals')}>Rentals</Button>
-              <Button variant="outline" onClick={() => navigate('/seller/notifications')}>Notifications</Button>
-              <Button variant="outline" onClick={() => navigate('/seller/settings')}>Settings</Button>
-              <Button variant="outline" onClick={() => navigate('/seller/help')}>Help and Support</Button>
-              <Button variant="outline" onClick={() => navigate('/seller/reports')}>Report Problem</Button>
-              <Button variant="outline" onClick={() => navigate('/seller/disputes')}>Disputes</Button>
-            </div>
-          </CardContent>
-        </Card>
 
         <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
           <Card>
@@ -342,11 +338,10 @@ export function SellerDashboard() {
           </Card>
         </div>
 
-        <Tabs defaultValue="sales" className="space-y-4">
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'sales' | 'listings' | 'messages')} className="space-y-4">
           <TabsList>
             <TabsTrigger value="sales">Orders ({orders.length})</TabsTrigger>
             <TabsTrigger value="listings">My Listings ({myListings.length})</TabsTrigger>
-            <TabsTrigger value="wallet">Wallet</TabsTrigger>
             <TabsTrigger value="messages">Messages ({messages.length})</TabsTrigger>
           </TabsList>
 
@@ -435,51 +430,6 @@ export function SellerDashboard() {
             )}
           </TabsContent>
 
-          <TabsContent value="wallet">
-            <Card>
-              <CardHeader>
-                <CardTitle>Wallet & Withdrawals</CardTitle>
-                <CardDescription>Only available balance can be withdrawn to mobile money.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="border rounded-lg p-3">
-                    <p className="text-sm text-muted-foreground">Pending Balance</p>
-                    <p className="text-xl font-semibold text-orange-600">{formatMoney(wallet.pendingBalance || 0)}</p>
-                  </div>
-                  <div className="border rounded-lg p-3">
-                    <p className="text-sm text-muted-foreground">Available Balance</p>
-                    <p className="text-xl font-semibold text-green-600">{formatMoney(wallet.availableBalance || 0)}</p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="space-y-2">
-                    <Label>Amount</Label>
-                    <Input value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} placeholder="5000" type="number" min={0} step="any" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Phone Number</Label>
-                    <Input value={withdrawPhone} onChange={(e) => setWithdrawPhone(e.target.value)} placeholder="671234567" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Provider</Label>
-                    <select
-                      className="w-full border rounded-md h-10 px-3 text-sm"
-                      value={withdrawProvider}
-                      onChange={(e) => setWithdrawProvider(e.target.value as 'mtn-momo' | 'orange-money')}
-                    >
-                      <option value="mtn-momo">MTN MoMo</option>
-                      <option value="orange-money">Orange Money</option>
-                    </select>
-                  </div>
-                </div>
-                <Button className="w-full bg-green-600 hover:bg-green-700 sm:w-auto" disabled={withdrawing} onClick={handleWithdraw}>
-                  {withdrawing ? 'Processing...' : 'Withdraw to Mobile Money'}
-                </Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
           <TabsContent value="messages">
             <Card>
               <CardHeader>
@@ -496,6 +446,56 @@ export function SellerDashboard() {
           </TabsContent>
         </Tabs>
       </div>
+
+      <Dialog open={showWithdrawDialog} onOpenChange={setShowWithdrawDialog}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Withdraw Funds</DialogTitle>
+            <DialogDescription>Only available balance can be withdrawn to mobile money.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="border rounded-lg p-3">
+                <p className="text-sm text-muted-foreground">Pending Balance</p>
+                <p className="text-xl font-semibold text-orange-600">{formatMoney(wallet.pendingBalance || 0)}</p>
+              </div>
+              <div className="border rounded-lg p-3">
+                <p className="text-sm text-muted-foreground">Available Balance</p>
+                <p className="text-xl font-semibold text-green-600">{formatMoney(wallet.availableBalance || 0)}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="space-y-2">
+                <Label>Amount</Label>
+                <Input value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} placeholder="5000" type="number" min={0} step="any" />
+              </div>
+              <div className="space-y-2">
+                <Label>Phone Number</Label>
+                <Input value={withdrawPhone} onChange={(e) => setWithdrawPhone(e.target.value)} placeholder="671234567" />
+              </div>
+              <div className="space-y-2">
+                <Label>Provider</Label>
+                <select
+                  className="w-full border rounded-md h-10 px-3 text-sm"
+                  value={withdrawProvider}
+                  onChange={(e) => setWithdrawProvider(e.target.value as 'mtn-momo' | 'orange-money')}
+                >
+                  <option value="mtn-momo">MTN MoMo</option>
+                  <option value="orange-money">Orange Money</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+              <Button variant="outline" onClick={() => setShowWithdrawDialog(false)}>
+                Cancel
+              </Button>
+              <Button className="bg-green-600 hover:bg-green-700" disabled={withdrawing} onClick={handleWithdraw}>
+                {withdrawing ? 'Processing...' : 'Withdraw to Mobile Money'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
