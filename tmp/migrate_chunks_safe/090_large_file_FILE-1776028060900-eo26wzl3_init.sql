@@ -1,0 +1,2 @@
+-- chunk: large init
+INSERT INTO public.kv_store_50b25a4f (key, value) VALUES ('file:FILE-1776028060900-eo26wzl3', '{"id":"FILE-1776028060900-eo26wzl3","size":2274813,"ownerId":"signup-0c7feddd-2d0b-4f23-80be-863d39990468","category":"profile","dataBase64":"","uploadedAt":"2026-04-12T21:07:40.902Z","contentType":"image/png","originalName":"Keep_out_of_the_reach_of_children__4_.png"}'::jsonb) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;

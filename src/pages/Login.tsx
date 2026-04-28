@@ -83,7 +83,7 @@ export function Login() {
       <div className="mx-auto grid min-h-screen max-w-[1440px] lg:grid-cols-[1.05fr_0.95fr]">
         <section className="relative hidden overflow-hidden lg:flex lg:flex-col lg:justify-between">
           <img src={loginHeroImage} alt="Black student studying with laptop" className="absolute inset-0 h-full w-full object-cover" />
-          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(8,103,75,0.78)_0%,rgba(6,92,67,0.85)_40%,rgba(3,68,49,0.92)_100%)]" />
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(31,175,154,0.55)_0%,rgba(26,150,135,0.6)_40%,rgba(21,120,110,0.7)_100%)]" />
 
           <div className="relative z-10 px-10 pt-10 text-white xl:px-14 xl:pt-12">
             <div className="mb-20 flex items-center gap-3">
@@ -92,7 +92,7 @@ export function Login() {
             </div>
 
             <h2 className="max-w-sm text-6xl font-bold leading-[1.03]">
-              Academic Commerce <span className="text-emerald-300">Redefined.</span>
+              Academic Commerce <span className="text-[#1FAF9A]">Redefined.</span>
             </h2>
             <p className="mt-8 max-w-[35rem] text-[1.95rem] leading-[1.45] text-emerald-50/90">
               The exclusive marketplace for Cameroon&apos;s academic community. Buy, sell, and trade with verified peers
@@ -182,7 +182,7 @@ export function Login() {
                   id="remember-device"
                   checked={rememberDevice}
                   onCheckedChange={(checked) => setRememberDevice(checked === true)}
-                  className="h-5 w-5 rounded-md border-[#c9d0cb] data-[state=checked]:border-[#075942] data-[state=checked]:bg-[#075942]"
+                  className="h-5 w-5 rounded-md border-[#c9d0cb] data-[state=checked]:border-[#1FAF9A] data-[state=checked]:bg-[#1FAF9A]"
                 />
                 <Label htmlFor="remember-device" className="cursor-pointer text-[1.02rem] font-normal text-[#404040]">
                   Remember me on this device
@@ -191,7 +191,7 @@ export function Login() {
 
               <Button
                 type="submit"
-                className="h-14 w-full rounded-xl bg-[#075942] text-[1.05rem] font-semibold text-white shadow-[0_20px_28px_-20px_rgba(7,89,66,0.9)] hover:bg-[#054a37]"
+                className="h-14 w-full rounded-xl bg-[#1FAF9A] text-[1.05rem] font-semibold text-white shadow-[0_20px_28px_-20px_rgba(31,175,154,0.6)] hover:bg-[#27b9a6]"
                 disabled={loading}
               >
                 {loading ? (

@@ -5,7 +5,21 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "dev": "vite"
+    "dev": "vite",
+    "ai:download-amazon:sample": "python scripts/ai/download-amazon-reviews23.py --categories All_Beauty --samples 180 --output data/ai/fine_tune_source.amazon_reviews23.sample.json",
+    "ai:prepare-finetune": "node scripts/ai/prepare-finetune-jsonl.mjs",
+    "ai:prepare-finetune:marketplace": "node scripts/ai/prepare-finetune-jsonl.mjs --input data/ai/fine_tune_source.marketplace.json --output tmp/ai/fine_tune_train_marketplace.jsonl",
+    "ai:prepare-finetune:amazon": "node scripts/ai/prepare-finetune-jsonl.mjs --input data/ai/fine_tune_source.amazon_reviews23.sample.json --output tmp/ai/fine_tune_train_amazon.jsonl",
+    "ai:prepare-finetune:amazon:split": "node scripts/ai/prepare-finetune-jsonl.mjs --input data/ai/fine_tune_source.amazon_reviews23.sample.json --output tmp/ai/fine_tune_train_amazon.jsonl --validation-output tmp/ai/fine_tune_validation_amazon.jsonl --validation-ratio 0.1 --seed 42",
+    "ai:prepare-hf-sft:marketplace": "node scripts/ai/prepare-hf-sft-jsonl.mjs --input data/ai/fine_tune_source.marketplace.json --output tmp/ai/hf_sft_train_marketplace.jsonl",
+    "ai:prepare-hf-sft:amazon": "node scripts/ai/prepare-hf-sft-jsonl.mjs --input data/ai/fine_tune_source.amazon_reviews23.sample.json --output tmp/ai/hf_sft_train_amazon.jsonl",
+    "ai:prepare-finetune:multi-assistant": "node scripts/ai/prepare-finetune-jsonl.mjs --input data/ai/fine_tune_source.marketplace.json --output tmp/ai/fine_tune_train_multi_assistant.jsonl --system \"You are Kori, a high-capability assistant for student marketplaces in Cameroon. Respond with clear reasoning, concise structure, practical options, and grounded recommendations from available listings only. Ask short follow-up questions when details are missing.\"",
+    "ai:prepare-hf-sft:multi-assistant": "node scripts/ai/prepare-hf-sft-jsonl.mjs --input data/ai/fine_tune_source.marketplace.json --output tmp/ai/hf_sft_train_multi_assistant.jsonl --system \"You are Kori, a high-capability assistant for student marketplaces in Cameroon. Respond with clear reasoning, concise structure, practical options, and grounded recommendations from available listings only. Ask short follow-up questions when details are missing.\"",
+    "ai:openai:finetune:amazon:dry-run": "python scripts/ai/openai-finetune.py --train-file tmp/ai/fine_tune_train_amazon.jsonl --validation-file tmp/ai/fine_tune_validation_amazon.jsonl --model gpt-4.1-mini-2025-04-14 --dry-run",
+    "ai:openai:finetune:amazon": "python scripts/ai/openai-finetune.py --train-file tmp/ai/fine_tune_train_amazon.jsonl --validation-file tmp/ai/fine_tune_validation_amazon.jsonl --model gpt-4.1-mini-2025-04-14 --suffix kori-amazon",
+    "ai:openai:finetune:amazon:wait": "python scripts/ai/openai-finetune.py --train-file tmp/ai/fine_tune_train_amazon.jsonl --validation-file tmp/ai/fine_tune_validation_amazon.jsonl --model gpt-4.1-mini-2025-04-14 --suffix kori-amazon --wait",
+    "ai:hf:autotrain:amazon": "python scripts/ai/hf-autotrain-sft.py --train-file tmp/ai/hf_sft_train_amazon.jsonl --project-name kori-amazon-sft",
+    "ai:hf:autotrain:amazon:wait": "python scripts/ai/hf-autotrain-sft.py --train-file tmp/ai/hf_sft_train_amazon.jsonl --project-name kori-amazon-sft --wait --wait-minutes 30"
   },
   "dependencies": {
     "@capacitor/android": "^8.2.0",

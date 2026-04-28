@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/app/components/ui/button';
@@ -28,67 +28,126 @@ import { AdminPayouts } from './AdminPayouts';
 
 import { API_URL } from '@/lib/api';
 
-const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('en-US', {
+const formatCurrency = (amount: number) => {
+  const value = Number(amount);
+  return new Intl.NumberFormat('fr-FR', {
     style: 'currency',
-    currency: 'USD',
-  }).format(amount);
+    currency: 'XAF',
+    maximumFractionDigits: 0,
+  }).format(Number.isFinite(value) ? value : 0);
 };
 
 export function Admin() {
-  const { currentUser, accessToken } = useAuth();
+  const { currentUser, accessToken, refreshAuthToken, logout } = useAuth();
   const navigate = useNavigate();
+  const isAdmin = currentUser?.role === 'admin';
   const [searchQuery, setSearchQuery] = useState('');
   const [users, setUsers] = useState<any[]>([]);
   const [listings, setListings] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [allMessages, setAllMessages] = useState([]);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!accessToken) return;
-      try {
-        const results = await Promise.allSettled([
-          fetch(`${API_URL}/admin/users`, { headers: { 'Authorization': `Bearer ${accessToken}` } }),
-          fetch(`${API_URL}/listings`, { headers: { 'Authorization': `Bearer ${accessToken}` } }),
-          fetch(`${API_URL}/admin/transactions`, { headers: { 'Authorization': `Bearer ${accessToken}` } }),
-          fetch(`${API_URL}/admin/messages`, { headers: { 'Authorization': `Bearer ${accessToken}` } })
-        ]);
-
-        if (results[0].status === 'fulfilled' && results[0].value.ok) {
-          const usersData = await results[0].value.json();
-          setUsers(usersData.users);
-        }
-        if (results[1].status === 'fulfilled' && results[1].value.ok) {
-          const listingsData = await results[1].value.json();
-          setListings(listingsData.listings);
-        }
-        if (results[2].status === 'fulfilled' && results[2].value.ok) {
-          const transactionsData = await results[2].value.json();
-          setTransactions(transactionsData.transactions);
-        }
-        if (results[3].status === 'fulfilled' && results[3].value.ok) {
-          const messagesData = await results[3].value.json();
-          setAllMessages(messagesData.messages || []);
-        }
-      } catch (error) {
-        console.error('Dashboard fetch error:', error);
-        toast.error('Failed to fetch dashboard data');
+  const requestWithAuthRetry = useCallback(
+    async (path: string, init?: RequestInit) => {
+      if (!accessToken) {
+        return { response: null as Response | null, data: { error: 'Unauthorized' } };
       }
-    };
 
-    if (currentUser?.role === 'admin') {
-      fetchData();
-      const interval = setInterval(fetchData, 10000);
-      return () => clearInterval(interval);
+      const makeRequest = async (token: string) => {
+        const response = await fetch(`${API_URL}${path}`, {
+          ...(init || {}),
+          headers: {
+            ...(init?.headers || {}),
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const data = await response.json().catch(() => ({}));
+        return { response, data };
+      };
+
+      try {
+        const firstAttempt = await makeRequest(accessToken);
+        if (firstAttempt.response.status !== 401) {
+          return firstAttempt;
+        }
+
+        const refreshedToken = await refreshAuthToken();
+        if (!refreshedToken) {
+          return firstAttempt;
+        }
+
+        return await makeRequest(refreshedToken);
+      } catch (error) {
+        return {
+          response: null as Response | null,
+          data: { error: error instanceof Error ? error.message : 'Unable to reach server' },
+        };
+      }
+    },
+    [accessToken, refreshAuthToken],
+  );
+
+  const handleSessionExpired = useCallback(() => {
+    toast.error('Session expired. Please log in again.');
+    logout();
+    navigate('/login');
+  }, [logout, navigate]);
+
+  const fetchData = useCallback(async () => {
+    if (!accessToken) return;
+    try {
+      const [usersResult, listingsResult, transactionsResult, messagesResult] = await Promise.all([
+        requestWithAuthRetry('/admin/users'),
+        requestWithAuthRetry('/listings'),
+        requestWithAuthRetry('/admin/transactions'),
+        requestWithAuthRetry('/admin/messages'),
+      ]);
+
+      const unauthorized =
+        usersResult.response?.status === 401 ||
+        listingsResult.response?.status === 401 ||
+        transactionsResult.response?.status === 401 ||
+        messagesResult.response?.status === 401;
+
+      if (unauthorized) {
+        handleSessionExpired();
+        return;
+      }
+
+      if (usersResult.response?.ok) {
+        setUsers(Array.isArray(usersResult.data?.users) ? usersResult.data.users : []);
+      }
+      if (listingsResult.response?.ok) {
+        setListings(Array.isArray(listingsResult.data?.listings) ? listingsResult.data.listings : []);
+      }
+      if (transactionsResult.response?.ok) {
+        setTransactions(
+          Array.isArray(transactionsResult.data?.transactions) ? transactionsResult.data.transactions : [],
+        );
+      }
+      if (messagesResult.response?.ok) {
+        setAllMessages(Array.isArray(messagesResult.data?.messages) ? messagesResult.data.messages : []);
+      }
+    } catch (error) {
+      console.error('Dashboard fetch error:', error);
+      toast.error('Failed to fetch dashboard data');
     }
-  }, [currentUser, accessToken]);
+  }, [accessToken, requestWithAuthRetry, handleSessionExpired]);
 
-  // Check if user is admin
-  if (!currentUser || currentUser.role !== 'admin') {
-    navigate('/');
-    return null;
-  }
+  useEffect(() => {
+    if (!isAdmin) return;
+    void fetchData();
+    const interval = setInterval(() => {
+      void fetchData();
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [isAdmin, fetchData]);
+
+  useEffect(() => {
+    if (!currentUser || !isAdmin) {
+      navigate('/');
+    }
+  }, [currentUser, isAdmin, navigate]);
 
   // Calculate stats
   const totalUsers = users.length;
@@ -123,19 +182,29 @@ export function Admin() {
       u.email.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
+  if (!currentUser || !isAdmin) {
+    return null;
+  }
+
   const handleApproveUser = async (userId: string) => {
     try {
-      const response = await fetch(`${API_URL}/admin/approve-user/${userId}`, {
+      const { response, data } = await requestWithAuthRetry(`/admin/approve-user/${userId}`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${accessToken}` },
       });
+      if (!response) {
+        toast.error(data.error || 'Unable to reach server');
+        return;
+      }
+      if (response.status === 401) {
+        handleSessionExpired();
+        return;
+      }
       if (response.ok) {
         toast.success('User approved');
         setUsers(prevUsers => prevUsers.map(u => 
           u.id === userId ? { ...u, isVerified: true, isApproved: true } : u
         ));
       } else {
-        const data = await response.json();
         toast.error(data.error || 'Failed to approve user');
       }
     } catch (error) {
@@ -145,18 +214,23 @@ export function Admin() {
 
   const handleSuspendUser = async (userId: string) => {
     try {
-      const response = await fetch(`${API_URL}/admin/users/${userId}/toggle-ban`, {
+      const { response, data } = await requestWithAuthRetry(`/admin/users/${userId}/toggle-ban`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${accessToken}` },
       });
+      if (!response) {
+        toast.error(data.error || 'Unable to reach server');
+        return;
+      }
+      if (response.status === 401) {
+        handleSessionExpired();
+        return;
+      }
       if (response.ok) {
-        const data = await response.json();
         toast.success('User ban status toggled');
         setUsers(prevUsers => prevUsers.map(u => 
           u.id === userId ? data.user : u
         ));
       } else {
-        const data = await response.json();
         toast.error(data.error || 'Failed to toggle ban status');
       }
     } catch (error) {
@@ -166,15 +240,22 @@ export function Admin() {
 
   const handleDeleteListing = async (itemId: string) => {
     try {
-      const response = await fetch(`${API_URL}/listings/${itemId}`, {
+      const { response, data } = await requestWithAuthRetry(`/listings/${itemId}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${accessToken}` },
       });
+      if (!response) {
+        toast.error(data.error || 'Unable to reach server');
+        return;
+      }
+      if (response.status === 401) {
+        handleSessionExpired();
+        return;
+      }
       if (response.ok) {
         toast.success('Listing removed');
-        // Re-fetch listings or update state
+        setListings((prev) => prev.filter((listing) => listing?.id !== itemId));
       } else {
-        toast.error('Failed to remove listing');
+        toast.error(data.error || 'Failed to remove listing');
       }
     } catch (error) {
       toast.error('An error occurred');
@@ -265,7 +346,9 @@ export function Admin() {
                 {formatCurrency(totalRevenue)}
               </div>
               <p className="text-xs text-muted-foreground">
-                Total transaction volume
+                {totalTransactions > 0
+                  ? `Transaction fees + subscriptions (${totalTransactions} transactions)`
+                  : 'No platform revenue recorded yet'}
               </p>
             </CardContent>
           </Card>

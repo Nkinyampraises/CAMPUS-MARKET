@@ -5,18 +5,19 @@ import { Button } from '@/app/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
 import { Plus } from 'lucide-react';
-import { categories as categoryCatalog } from '@/data/mockData';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
 
 type ListingStatus = 'available' | 'sold' | 'rented' | 'reserved' | 'inactive';
+type NamedOption = { id: string; name: string };
 
 export function SellerManageListings() {
   const navigate = useNavigate();
   const { currentUser, accessToken, refreshAuthToken, logout } = useAuth();
   const [loading, setLoading] = useState(true);
   const [listings, setListings] = useState<any[]>([]);
+  const [categoryCatalog, setCategoryCatalog] = useState<NamedOption[]>([]);
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState<'all' | ListingStatus>('all');
   const [typeFilter, setTypeFilter] = useState<'all' | 'sell' | 'rent'>('all');
@@ -86,12 +87,32 @@ export function SellerManageListings() {
   };
 
   useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await fetch(`${API_URL}/categories`);
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !Array.isArray(data.categories)) {
+          return;
+        }
+        const next = data.categories
+          .map((entry: any) => ({
+            id: String(entry?.id || '').trim(),
+            name: String(entry?.name || '').trim(),
+          }))
+          .filter((entry: NamedOption) => entry.id && entry.name);
+        setCategoryCatalog(next);
+      } catch {
+        // Keep UI functional even if catalog lookup fails.
+      }
+    };
+
     if (!currentUser) {
       navigate('/login');
       return;
     }
+    fetchCategories();
     fetchListings();
-  }, [currentUser, accessToken]);
+  }, [currentUser, accessToken, navigate]);
 
   const normalizeCategory = (value: unknown) => {
     const raw = String(value ?? '').trim();
@@ -184,7 +205,7 @@ export function SellerManageListings() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       <div className="mb-4 flex justify-end">
-        <Button className="bg-green-600 hover:bg-green-700" onClick={() => navigate('/add-listing')}>
+        <Button className="bg-[#1FAF9A] hover:bg-[#27b9a6]" onClick={() => navigate('/add-listing')}>
           <Plus className="h-4 w-4 mr-2" />
           Add Listing
         </Button>
@@ -295,3 +316,4 @@ export function SellerManageListings() {
     </div>
   );
 }
+

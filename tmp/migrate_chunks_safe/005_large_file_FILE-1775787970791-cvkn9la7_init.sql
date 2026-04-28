@@ -1,0 +1,2 @@
+-- chunk: large init
+INSERT INTO public.kv_store_50b25a4f (key, value) VALUES ('file:FILE-1775787970791-cvkn9la7', '{"id":"FILE-1775787970791-cvkn9la7","size":4717008,"ownerId":"signup-d765ff37-e668-4894-84cf-fe0b774cc360","category":"profile","dataBase64":"","uploadedAt":"2026-04-10T02:26:10.801Z","contentType":"image/png","originalName":"Product_Label_for_JOY_CLEAN_Liquid_Soap__1_.png"}'::jsonb) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;

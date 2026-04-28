@@ -24,10 +24,10 @@ import {
   Star,
   User,
 } from 'lucide-react';
-import { getUniversityName } from '@/data/mockData';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
+import { fetchPublicCatalog, type NamedCatalogOption, resolveNamedCatalogLabel } from '@/lib/catalog';
 
 const formatLabel = (value: string | undefined, fallback: string) => {
   if (!value) return fallback;
@@ -47,6 +47,7 @@ export function Profile() {
   const [uploadingProfilePicture, setUploadingProfilePicture] = useState(false);
   type ProfileUser = NonNullable<typeof currentUser>;
   const [profileUser, setProfileUser] = useState<ProfileUser | null>(currentUser ?? null);
+  const [universities, setUniversities] = useState<NamedCatalogOption[]>([]);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [formData, setFormData] = useState({
     name: currentUser?.name || '',
@@ -105,6 +106,24 @@ export function Profile() {
     }
   }, [isAuthenticated, currentUser, navigate]);
 
+  useEffect(() => {
+    let mounted = true;
+    const loadUniversities = async () => {
+      try {
+        const rows = await fetchPublicCatalog('universities');
+        if (!mounted) return;
+        setUniversities(rows);
+      } catch {
+        if (!mounted) return;
+        setUniversities([]);
+      }
+    };
+    loadUniversities();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   if (!isAuthenticated || !currentUser) {
     return null;
   }
@@ -139,7 +158,11 @@ export function Profile() {
     );
   }
 
-  const universityName = getUniversityName(viewedUser.university);
+  const universityName = resolveNamedCatalogLabel(
+    universities,
+    viewedUser.university,
+    viewedUser.university || 'University not specified',
+  );
 
   const handleSaveProfile = async () => {
     if (!isOwnProfile) return;
@@ -361,8 +384,8 @@ export function Profile() {
                         variant={isEditing ? 'outline' : 'default'}
                         className={
                           isEditing
-                            ? 'rounded-full border-[#bdd8cd] bg-white px-5 text-[#124a3b] hover:bg-[#f3faf7]'
-                            : 'rounded-full bg-[#0f6f58] px-5 text-white hover:bg-[#0d5f4b]'
+                          ? 'rounded-full border-[#bdd8cd] bg-white px-5 text-[#124a3b] hover:bg-[#f3faf7]'
+                          : 'rounded-full bg-[#1FAF9A] px-5 text-white hover:bg-[#27b9a6]'
                         }
                         onClick={() => {
                           if (isEditing) {
@@ -387,7 +410,7 @@ export function Profile() {
                       key={item.label}
                       className="rounded-2xl border border-[#d3e3dc] bg-[#f9fcfb] p-4 shadow-sm"
                     >
-                      <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-[#0f6f58] text-white">
+                      <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-[#1FAF9A] text-white">
                         <item.icon className="h-4 w-4" />
                       </div>
                       <p className="mt-3 text-xs font-semibold uppercase tracking-[0.15em] text-[#5f7a71]">
@@ -419,7 +442,7 @@ export function Profile() {
               </div>
             ))}
 
-            <div className="rounded-2xl border border-[#0f6f58] bg-[#0f6f58] p-5 text-white shadow-sm">
+            <div className="rounded-2xl border border-[#1FAF9A] bg-[#1FAF9A] p-5 text-white shadow-sm">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[#bde9db]">
@@ -559,7 +582,7 @@ export function Profile() {
                         <Button
                           onClick={handleSaveProfile}
                           disabled={uploadingProfilePicture}
-                          className="flex-1 rounded-full bg-[#0f6f58] text-white hover:bg-[#0d5f4b]"
+                          className="flex-1 rounded-full bg-[#1FAF9A] text-white hover:bg-[#27b9a6]"
                         >
                           Save changes
                         </Button>

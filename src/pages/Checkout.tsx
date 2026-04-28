@@ -17,9 +17,9 @@ import { Alert, AlertDescription } from '@/app/components/ui/alert';
 import { ArrowLeft, CalendarClock, CreditCard, Loader2, MapPin, ShieldCheck } from 'lucide-react';
 import { MeetupMap } from '@/components/MeetupMap';
 import { toast } from 'sonner';
-import { getCategoryById } from '@/data/mockData';
 
 import { API_URL } from '@/lib/api';
+import { fetchPublicCatalog, type NamedCatalogOption, resolveNamedCatalogLabel } from '@/lib/catalog';
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
 
 const fallbackPickupLocations = [
@@ -96,6 +96,7 @@ export function Checkout() {
   const [item, setItem] = useState<ListingItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [pickupOptions, setPickupOptions] = useState(fallbackPickupLocations);
+  const [categories, setCategories] = useState<NamedCatalogOption[]>([]);
   const [mapsReady, setMapsReady] = useState(false);
   const [mapsError, setMapsError] = useState('');
 
@@ -138,6 +139,26 @@ export function Checkout() {
       }
     };
     fetchPickupPoints();
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchCategories = async () => {
+      try {
+        const rows = await fetchPublicCatalog('categories');
+        if (!mounted) return;
+        setCategories(rows);
+      } catch {
+        if (!mounted) return;
+        setCategories([]);
+      }
+    };
+
+    fetchCategories();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -337,7 +358,7 @@ export function Checkout() {
   const platformFee = Math.max(500, Math.round(subtotal * 0.007));
   const insuranceFee = 500;
   const checkoutTotal = subtotal + platformFee + insuranceFee;
-  const categoryLabel = getCategoryById(String(item.category || ''))?.name || 'Marketplace Item';
+  const categoryLabel = resolveNamedCatalogLabel(categories, item.category, 'Marketplace Item');
   const conditionLabel = String(item.condition || 'Good')
     .replace(/-/g, ' ')
     .replace(/\b\w/g, (value) => value.toUpperCase());
@@ -576,7 +597,7 @@ export function Checkout() {
 
                 <Button
                   onClick={handleReviewPayment}
-                  className="h-12 w-full rounded-xl bg-[#0c6a5a] text-base font-semibold hover:bg-[#0a594c]"
+                  className="h-12 w-full rounded-xl bg-[#1FAF9A] text-base font-semibold text-white hover:bg-[#27b9a6]"
                 >
                   Review Payment
                 </Button>

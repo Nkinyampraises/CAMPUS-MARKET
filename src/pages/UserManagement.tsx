@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Tag, Table, Button, message, Popconfirm, Avatar, Space } from 'antd';
 import { Search, ChevronDown, Filter } from 'lucide-react';
-import { getUniversityName } from '@/data/mockData';
 
 import { API_URL } from '@/lib/api';
+import { fetchPublicCatalog, type NamedCatalogOption, resolveNamedCatalogLabel } from '@/lib/catalog';
 
 interface User {
   id: string;
@@ -24,6 +24,7 @@ export function UserManagement() {
   const { currentUser, accessToken } = useAuth();
   const navigate = useNavigate();
   const [users, setUsers] = useState<User[]>([]);
+  const [universities, setUniversities] = useState<NamedCatalogOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchInput, setSearchInput] = useState('');
   const [universityInput, setUniversityInput] = useState('all');
@@ -53,6 +54,15 @@ export function UserManagement() {
     }
   };
 
+  const fetchUniversities = async () => {
+    try {
+      const rows = await fetchPublicCatalog('universities');
+      setUniversities(rows);
+    } catch {
+      setUniversities([]);
+    }
+  };
+
   useEffect(() => {
     if (!currentUser) return;
     if (!isAdmin) {
@@ -60,6 +70,7 @@ export function UserManagement() {
       return;
     }
     if (accessToken) {
+      fetchUniversities();
       fetchUsers();
     }
   }, [currentUser, accessToken, isAdmin, navigate]);
@@ -119,12 +130,15 @@ export function UserManagement() {
     const map = new Map<string, string>();
     for (const user of users) {
       if (!user.university) continue;
-      map.set(user.university, getUniversityName(user.university));
+      map.set(
+        user.university,
+        resolveNamedCatalogLabel(universities, user.university, user.university),
+      );
     }
     return Array.from(map.entries())
       .map(([value, label]) => ({ value, label }))
       .sort((a, b) => a.label.localeCompare(b.label));
-  }, [users]);
+  }, [universities, users]);
 
   const filteredUsers = useMemo(() => {
     const q = appliedSearch.trim().toLowerCase();
@@ -173,7 +187,9 @@ export function UserManagement() {
       title: 'University',
       dataIndex: 'university',
       key: 'university',
-      render: (university: string) => <span className="text-sm">{getUniversityName(university)}</span>,
+      render: (university: string) => (
+        <span className="text-sm">{resolveNamedCatalogLabel(universities, university, university || '-')}</span>
+      ),
     },
     {
       title: 'Type',
@@ -281,7 +297,7 @@ export function UserManagement() {
           <button
             type="button"
             onClick={applyFilters}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[#013f3a] bg-[#00524a] px-4 text-sm font-semibold text-white transition hover:bg-[#00413b]"
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[#013f3a] bg-[#1FAF9A] px-4 text-sm font-semibold text-white transition hover:bg-[#27b9a6]"
           >
             <Filter className="h-3.5 w-3.5" />
             Apply Filters

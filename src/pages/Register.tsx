@@ -143,7 +143,7 @@ export function Register() {
       <div className="mx-auto grid w-full max-w-[1400px] gap-6 px-4 lg:grid-cols-[0.95fr_1.05fr]">
         <aside className="relative hidden overflow-hidden rounded-3xl lg:flex lg:min-h-[860px] lg:flex-col lg:justify-between">
           <img src={registerHeroImage} alt="Student preparing to join campus marketplace" className="absolute inset-0 h-full w-full object-cover" />
-          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(7,89,66,0.78)_0%,rgba(6,80,59,0.84)_38%,rgba(4,58,43,0.9)_100%)]" />
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(31,175,154,0.55)_0%,rgba(26,150,135,0.6)_40%,rgba(21,120,110,0.7)_100%)]" />
 
           <div className="relative z-10 p-10 text-white xl:p-12">
             <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20">
@@ -350,7 +350,11 @@ export function Register() {
                 </div>
               </div>
 
-              <Button type="submit" className="h-11 w-full bg-[#0f6f58] text-white hover:bg-[#0d5f4b]" disabled={loading}>
+              <Button
+                type="submit"
+                className="h-14 w-full rounded-xl bg-[#1FAF9A] text-[1.05rem] font-semibold text-white shadow-[0_20px_28px_-20px_rgba(31,175,154,0.6)] hover:bg-[#27b9a6]"
+                disabled={loading}
+              >
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -375,4 +379,3 @@ export function Register() {
     </div>
   );
 }
-

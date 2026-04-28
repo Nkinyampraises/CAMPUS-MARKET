@@ -1,0 +1,122 @@
+[
+  {
+    "prompt": "I have 120000 XAF to furnish a small room in Buea. What should I buy first?",
+    "completion": "Start with essentials first: bed or mattress, study table, chair, and lighting. I will prioritize available listings in Buea and keep a small reserve for delivery or transport costs."
+  },
+  {
+    "prompt": "Give me a kitchen starter list for one student under 60000 XAF.",
+    "completion": "I will prioritize a pot set, frying pan, knife set, cutting board, kettle, storage containers, and dish rack, then match only available listings within your budget."
+  },
+  {
+    "prompt": "I am near University of Buea. Show me affordable study furniture.",
+    "completion": "I will focus on available desks, chairs, lamps, and compact shelves close to the University of Buea, sorted by budget value and seller reliability."
+  },
+  {
+    "prompt": "Can you recommend a full room setup for 180000 XAF in Yaounde?",
+    "completion": "Yes. I will build a balanced setup with sleeping, study, and storage essentials, then recommend only real available listings in Yaounde that fit your 180000 XAF cap."
+  },
+  {
+    "prompt": "I need durable cooking tools, not decoration items.",
+    "completion": "Understood. I will prioritize practical kitchen listings such as cookware, utensils, and storage, and exclude decorative items unless you ask for them."
+  },
+  {
+    "prompt": "My style is minimalist. Keep it neutral colors.",
+    "completion": "I will target minimalist listings with neutral tones, simple lines, and practical layout suggestions while staying within your budget and location."
+  },
+  {
+    "prompt": "I only want rent options for appliances this semester.",
+    "completion": "I will filter recommendations to rental listings only and focus on semester-friendly appliance options with clear rental terms."
+  },
+  {
+    "prompt": "Can you mix furniture and kitchen items in one plan?",
+    "completion": "Yes. I will create a combined shopping plan with priority order, estimated totals, and only available items from both furniture and kitchen categories."
+  },
+  {
+    "prompt": "Please avoid expensive options. My max is 70000 XAF.",
+    "completion": "I will keep all recommendations under 70000 XAF total when possible, propose lower-cost alternatives, and clearly show trade-offs."
+  },
+  {
+    "prompt": "I already have a bed. What should I buy next?",
+    "completion": "Great. I will prioritize study and daily-living essentials next, such as desk, chair, lighting, and storage, based on your budget and location."
+  },
+  {
+    "prompt": "Find options near my university to reduce transport cost.",
+    "completion": "I will favor listings near your university and nearby neighborhoods first to lower transport costs and speed up pickup."
+  },
+  {
+    "prompt": "I want quality sellers with good ratings only.",
+    "completion": "I will prioritize available listings from sellers with stronger ratings and engagement signals, while still respecting your budget."
+  },
+  {
+    "prompt": "Help me buy for two roommates, not one person.",
+    "completion": "I will scale your plan for shared living by prioritizing larger cookware, extra seating, and storage, with budget-aware item combinations."
+  },
+  {
+    "prompt": "I need a cheap but comfortable room for exam period.",
+    "completion": "I will focus on comfort-and-focus essentials such as bedding quality, study lighting, and ergonomic seating while keeping costs low."
+  },
+  {
+    "prompt": "Can you suggest alternatives if my top pick is unavailable?",
+    "completion": "Yes. I will always provide backup options from available listings so you can still complete your setup if a top pick changes."
+  },
+  {
+    "prompt": "I only have 40000 XAF today, but I can buy more next month.",
+    "completion": "I will split your plan into Phase 1 and Phase 2, starting with critical items this month and postponing non-essentials to next month."
+  },
+  {
+    "prompt": "I need recommendations in Douala and nearby areas.",
+    "completion": "I will prioritize available listings located in Douala and nearby pickup zones, then rank by price, relevance, and seller quality."
+  },
+  {
+    "prompt": "Give me a setup for a very small room.",
+    "completion": "I will recommend compact, multi-purpose items that fit small spaces, and avoid bulky listings unless you request them."
+  },
+  {
+    "prompt": "I care most about value for money, not brand.",
+    "completion": "I will rank by practical value, durability signals, and fit-to-budget instead of brand preference."
+  },
+  {
+    "prompt": "I need fast pickup options this week.",
+    "completion": "I will prioritize nearby available listings and concise choices to help you complete purchases quickly this week."
+  },
+  {
+    "prompt": "Can you make a room decor plan with budget breakdown?",
+    "completion": "Yes. I will provide a simple decor plan plus budget breakdown by item group and only include listings currently available."
+  },
+  {
+    "prompt": "Suggest a kitchen plan with must-have and optional items.",
+    "completion": "I will split recommendations into must-have and optional kitchen items, then map both groups to available listings under your budget."
+  },
+  {
+    "prompt": "I want to spend less than 100000 XAF for all essentials.",
+    "completion": "I will build a strict essentials-first plan under 100000 XAF and propose substitutions if any selected listing exceeds your limit."
+  },
+  {
+    "prompt": "I am not sure what I need. Ask me what matters first.",
+    "completion": "Sure. I will ask short follow-up questions about budget, location, room size, and priorities before suggesting listings."
+  },
+  {
+    "prompt": "Do not invent products. Use only what is available.",
+    "completion": "Understood. I will recommend only items that exist in the current listings and clearly state when no strong match is available."
+  },
+  {
+    "prompt": "Can you help with both buying and renting decisions?",
+    "completion": "Yes. I will compare buy versus rent options based on your timeframe, budget, and available listings so you can choose the better fit."
+  },
+  {
+    "prompt": "I need beginner-friendly kitchen recommendations for someone who never cooked before.",
+    "completion": "I will prioritize beginner-friendly essentials and simple toolkits, then recommend available listings that are practical and budget-safe."
+  },
+  {
+    "prompt": "Build a setup with a study focus and very little decoration.",
+    "completion": "I will optimize for study productivity first: desk, chair, lamp, and organization, while keeping decoration minimal."
+  },
+  {
+    "prompt": "I prefer second-hand if quality is still good.",
+    "completion": "I will prioritize affordable second-hand listings with better condition and trusted seller signals, and avoid poor-value options."
+  },
+  {
+    "prompt": "Please keep your response clear and actionable.",
+    "completion": "I will provide concise, practical recommendations with next steps, budget impact, and short follow-up questions."
+  }
+]

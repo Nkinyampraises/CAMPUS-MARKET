@@ -1,0 +1,2 @@
+-- chunk: large init
+INSERT INTO public.kv_store_50b25a4f (key, value) VALUES ('file:FILE-1775868950341-b93k21j6', '{"id":"FILE-1775868950341-b93k21j6","size":473811,"ownerId":"signup-88a89e4c-6247-4d7c-a863-7e290780a197","category":"profile","dataBase64":"","uploadedAt":"2026-04-11T00:55:50.346Z","contentType":"image/jpeg","originalName":"3d-animated-female-young-character-sitting-edge-75.jpg"}'::jsonb) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;

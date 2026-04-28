@@ -231,7 +231,7 @@ export function AdminNotifications() {
             </div>
           </div>
           <Button
-            className="w-full bg-green-600 hover:bg-green-700 sm:w-auto"
+            className="w-full bg-[#1FAF9A] hover:bg-[#27b9a6] sm:w-auto"
             onClick={handleSend}
             disabled={submitting}
           >
@@ -352,3 +352,4 @@ export function AdminNotifications() {
     </div>
   );
 }
+

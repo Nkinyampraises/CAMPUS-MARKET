@@ -139,7 +139,7 @@ export function ResetPassword() {
               />
             </div>
 
-            <Button type="submit" className="w-full bg-green-600 hover:bg-green-700" disabled={loading}>
+            <Button type="submit" className="w-full bg-[#1FAF9A] hover:bg-[#27b9a6]" disabled={loading}>
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -163,3 +163,4 @@ export function ResetPassword() {
     </div>
   );
 }
+

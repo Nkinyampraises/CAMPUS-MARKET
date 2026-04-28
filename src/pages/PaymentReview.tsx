@@ -254,7 +254,7 @@ export function PaymentReview() {
                       <p className="text-xs text-[#6f8b82]">{senderLabel}</p>
                     </div>
 
-                    <div className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-[#0c6a5a]">
+                    <div className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-[#1FAF9A]">
                       <ArrowRight className="h-4 w-4 text-white" />
                     </div>
 
@@ -347,11 +347,11 @@ export function PaymentReview() {
                 </p>
               </div>
 
-              <Button
-                className="h-12 w-full rounded-xl bg-[#0c6a5a] text-lg font-semibold text-white hover:bg-[#0a584b]"
-                onClick={handleConfirm}
-                disabled={submitting}
-              >
+                <Button
+                  className="h-12 w-full rounded-xl bg-[#1FAF9A] text-lg font-semibold text-white hover:bg-[#27b9a6]"
+                  onClick={handleConfirm}
+                  disabled={submitting}
+                >
                 {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                 {confirmButtonText}
               </Button>

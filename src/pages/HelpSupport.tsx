@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/app/components/ui/button';
@@ -32,8 +32,13 @@ export function HelpSupport() {
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  useEffect(() => {
+    if (!currentUser) {
+      navigate('/login');
+    }
+  }, [currentUser, navigate]);
+
   if (!currentUser) {
-    navigate('/login');
     return null;
   }
 
@@ -113,7 +118,7 @@ export function HelpSupport() {
               placeholder="Describe your issue clearly..."
             />
           </div>
-          <Button className="bg-green-600 hover:bg-green-700" disabled={submitting} onClick={submitSupport}>
+          <Button className="bg-[#1FAF9A] hover:bg-[#27b9a6]" disabled={submitting} onClick={submitSupport}>
             {submitting ? 'Sending...' : 'Send to Admin Support'}
           </Button>
         </CardContent>
@@ -121,3 +126,4 @@ export function HelpSupport() {
     </div>
   );
 }
+

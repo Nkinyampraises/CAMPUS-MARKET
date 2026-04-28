@@ -390,7 +390,7 @@ export function OrderDetails() {
                       <Button
                         onClick={handleSellerSubmitProof}
                         disabled={!proofUrl || saving || proofUploading}
-                        className="h-10 rounded-lg bg-[#0c6a5a] hover:bg-[#0a594c]"
+                        className="h-10 rounded-lg bg-[#1FAF9A] text-white hover:bg-[#27b9a6]"
                       >
                         {proofUploading || saving ? (
                           <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -437,7 +437,7 @@ export function OrderDetails() {
                       </div>
                       <div className="flex flex-wrap gap-2">
                         <Button
-                          className="h-10 rounded-lg bg-[#0c6a5a] hover:bg-[#0a594c]"
+                          className="h-10 rounded-lg bg-[#1FAF9A] text-white hover:bg-[#27b9a6]"
                           onClick={handleBuyerConfirm}
                           disabled={saving || !receivedConfirmed}
                         >

@@ -96,7 +96,7 @@ export function ConfirmEmail() {
           </Alert>
         </CardContent>
         <CardFooter className="flex flex-col gap-2">
-          <Button asChild className="w-full bg-green-600 hover:bg-green-700">
+          <Button asChild className="w-full bg-[#1FAF9A] hover:bg-[#27b9a6]">
             <Link to="/login">Go to login</Link>
           </Button>
         </CardFooter>
@@ -104,3 +104,4 @@ export function ConfirmEmail() {
     </div>
   );
 }
+

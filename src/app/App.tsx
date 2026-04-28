@@ -50,12 +50,14 @@ import { SellerNotifications } from '@/pages/SellerNotifications';
 import { SellerHelp } from '@/pages/SellerHelp';
 import { SellerReports } from '@/pages/SellerReports';
 import { SellerDisputes } from '@/pages/SellerDisputes';
+import { AiAssistant } from '@/pages/AiAssistant';
 import { Toaster } from '@/app/components/ui/sonner';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import { AdminSectionLayout } from '@/components/AdminSectionLayout';
 import { BuyerSectionLayout } from '@/components/BuyerSectionLayout';
 import { SellerSectionLayout } from '@/components/SellerSectionLayout';
+import { AiAssistantLauncher } from '@/components/AiAssistantLauncher';
 
 function AppLayout() {
   const location = useLocation();
@@ -73,6 +75,7 @@ function AppLayout() {
           <Route path="/confirm-email" element={<ConfirmEmail />} />
           <Route path="/register" element={<Register />} />
           <Route path="/marketplace" element={<Marketplace />} />
+          <Route path="/ai-assistant" element={<AiAssistant />} />
           <Route path="/item/:id" element={<ItemDetails />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/add-listing" element={<AddListing />} />
@@ -375,6 +378,7 @@ function AppLayout() {
           />
         </Routes>
       </main>
+      <AiAssistantLauncher />
       {!isLoginPage && <Footer />}
       <Toaster />
     </div>

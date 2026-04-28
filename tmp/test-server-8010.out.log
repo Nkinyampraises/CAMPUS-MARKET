@@ -1,0 +1,7 @@
+Server listening on port 8010
+<-- GET /make-server-50b25a4f/auth/me
+--> GET /make-server-50b25a4f/auth/me [33m401[0m 4ms
+<-- GET /make-server-50b25a4f/admin/users
+--> GET /make-server-50b25a4f/admin/users [33m401[0m 1ms
+<-- GET /make-server-50b25a4f/admin/platform-wallet
+--> GET /make-server-50b25a4f/admin/platform-wallet [33m401[0m 1ms

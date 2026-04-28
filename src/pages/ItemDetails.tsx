@@ -13,7 +13,6 @@ import {
   ShoppingCart,
   Heart,
   ChevronRight,
-  Shield,
 } from 'lucide-react';
 import {
   formatCurrency,
@@ -378,7 +377,7 @@ export function ItemDetails() {
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1.42fr)_minmax(360px,1fr)]">
           <div className="space-y-3">
             <Card className="overflow-hidden rounded-2xl border border-[#d7e6de] bg-white shadow-sm">
-              <div className="relative aspect-[16/10] bg-[#e9efec]">
+              <div className="relative h-[380px] sm:h-[460px] lg:h-[520px] bg-[#e9efec]">
                 {primaryImage ? (
                   <img src={primaryImage} alt={item.title} className="h-full w-full object-cover" />
                 ) : (
@@ -391,7 +390,7 @@ export function ItemDetails() {
             </Card>
 
             {visibleThumbnails.length > 0 && (
-              <div className="grid grid-cols-4 gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 {visibleThumbnails.map((image: string, index: number) => (
                   <button
                     key={`${item.id}-thumb-${index}`}
@@ -401,10 +400,10 @@ export function ItemDetails() {
                       index === selectedImageIndex
                         ? 'border-[#0c6a5a] ring-2 ring-[#0c6a5a]/20'
                         : 'border-[#d6e4dd]'
-                    }`}
+                    } h-20 w-20 sm:h-24 sm:w-24`}
                     aria-label={`View image ${index + 1}`}
                   >
-                    <div className="aspect-[4/3] bg-[#ebf2ef]">
+                    <div className="h-full w-full bg-[#ebf2ef]">
                       <img src={image} alt={`${item.title} ${index + 1}`} className="h-full w-full object-cover" />
                     </div>
                   </button>
@@ -413,7 +412,7 @@ export function ItemDetails() {
                   <button
                     type="button"
                     onClick={() => setSelectedImageIndex(4)}
-                    className="flex aspect-[4/3] items-center justify-center rounded-lg border border-[#d6e4dd] bg-[#f0f5f2] text-sm font-semibold text-[#4c6d63]"
+                    className="flex h-20 w-20 items-center justify-center rounded-lg border border-[#d6e4dd] bg-[#f0f5f2] text-sm font-semibold text-[#4c6d63] sm:h-24 sm:w-24"
                   >
                     +{remainingThumbnailCount}
                   </button>
@@ -541,20 +540,6 @@ export function ItemDetails() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-2xl border-[#e6d7ba] bg-[#fffaf1]">
-              <CardContent className="p-4">
-                <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-[#6c4f12]">
-                  <Shield className="h-4 w-4" />
-                  {t('item.safetyTips', 'Safety Tips')}
-                </h3>
-                <ul className="space-y-1.5 text-xs text-[#6a5a33]">
-                  <li>• {t('item.tip1', 'Meet in a public place on campus')}</li>
-                  <li>• {t('item.tip2', 'Check item condition before payment')}</li>
-                  <li>• {t('item.tip3', 'Use secure payment methods only')}</li>
-                  <li>• {t('item.tip4', 'Report suspicious activity')}</li>
-                </ul>
-              </CardContent>
-            </Card>
           </div>
         </div>
 

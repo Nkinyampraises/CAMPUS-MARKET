@@ -13,10 +13,10 @@ import {
   Phone,
   MapPin
 } from 'lucide-react';
-import { getUniversityById } from '@/data/mockData';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
+import { fetchPublicCatalog, type NamedCatalogOption, resolveNamedCatalogLabel } from '@/lib/catalog';
 
 interface PendingUser {
   id: string;
@@ -32,21 +32,27 @@ interface PendingUser {
 export function AdminApprovals() {
   const { currentUser, accessToken } = useAuth();
   const navigate = useNavigate();
+  const isAdmin = currentUser?.role === 'admin';
   const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
+  const [universities, setUniversities] = useState<NamedCatalogOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  // Check if user is admin
-  if (!currentUser || currentUser.role !== 'admin') {
-    navigate('/');
-    return null;
-  }
-
   useEffect(() => {
+    if (!isAdmin) {
+      navigate('/');
+      return;
+    }
     fetchPendingUsers();
-  }, []);
+    fetchUniversities();
+  }, [isAdmin, navigate, accessToken]);
 
   const fetchPendingUsers = async () => {
+    if (!accessToken) {
+      setLoading(false);
+      return;
+    }
+
     try {
       const response = await fetch(`${API_URL}/admin/pending-users`, {
         headers: {
@@ -65,6 +71,15 @@ export function AdminApprovals() {
       toast.error('An error occurred');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchUniversities = async () => {
+    try {
+      const rows = await fetchPublicCatalog('universities');
+      setUniversities(rows);
+    } catch {
+      setUniversities([]);
     }
   };
 
@@ -124,6 +139,10 @@ export function AdminApprovals() {
     }
   };
 
+  if (!isAdmin) {
+    return null;
+  }
+
   return (
     <div className="bg-background min-h-screen py-8">
       <div className="container mx-auto px-3 sm:px-4">
@@ -154,7 +173,7 @@ export function AdminApprovals() {
             ) : pendingUsers.length > 0 ? (
               <div className="space-y-4">
                 {pendingUsers.map((user) => {
-                  const university = getUniversityById(user.university);
+                  const universityLabel = resolveNamedCatalogLabel(universities, user.university, user.university || '-');
                   
                   return (
                     <div key={user.id} className="flex flex-col gap-3 rounded-lg border border-border bg-card p-3 sm:p-4 md:flex-row md:items-start md:gap-4">
@@ -193,7 +212,7 @@ export function AdminApprovals() {
                           </div>
                           <div className="flex items-center gap-2">
                             <MapPin className="h-4 w-4" />
-                            {university?.name}
+                            {universityLabel}
                           </div>
                           {user.studentId && (
                             <div className="flex items-center gap-2">
@@ -211,7 +230,7 @@ export function AdminApprovals() {
                       <div className="grid w-full grid-cols-2 gap-2 md:w-auto md:grid-cols-1">
                         <Button
                           size="sm"
-                          className="w-full bg-green-600 hover:bg-green-700"
+                          className="w-full bg-[#1FAF9A] hover:bg-[#27b9a6]"
                           onClick={() => handleApproveUser(user.id)}
                           disabled={actionLoading === user.id}
                         >
@@ -254,3 +273,4 @@ export function AdminApprovals() {
     </div>
   );
 }
+

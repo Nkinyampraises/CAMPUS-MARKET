@@ -1,0 +1,2 @@
+Listening on http://localhost:8010/
+warning: Detected export default { fetch }, did you mean to run "deno serve"?

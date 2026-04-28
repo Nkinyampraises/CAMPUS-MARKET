@@ -244,7 +244,7 @@ export function BuyerDashboard() {
                   <ShoppingBag className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-semibold mb-2">No orders yet</h3>
                   <p className="text-muted-foreground mb-4">Start shopping to create your first escrow-protected order.</p>
-                  <Button className="bg-green-600 hover:bg-green-700" onClick={() => navigate('/marketplace')}>
+                  <Button className="bg-[#1FAF9A] hover:bg-[#27b9a6]" onClick={() => navigate('/marketplace')}>
                     Browse Marketplace
                   </Button>
                 </CardContent>
@@ -277,7 +277,7 @@ export function BuyerDashboard() {
                   <Heart className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-semibold mb-2">No saved items</h3>
                   <p className="text-muted-foreground mb-4">Save items while browsing.</p>
-                  <Button className="bg-green-600 hover:bg-green-700" onClick={() => navigate('/marketplace')}>
+                  <Button className="bg-[#1FAF9A] hover:bg-[#27b9a6]" onClick={() => navigate('/marketplace')}>
                     Browse Marketplace
                   </Button>
                 </CardContent>
@@ -292,7 +292,7 @@ export function BuyerDashboard() {
                 <CardDescription>Chat with sellers about your orders.</CardDescription>
               </CardHeader>
               <CardContent>
-                <Button className="bg-green-600 hover:bg-green-700 w-full" onClick={() => navigate('/messages')}>
+                <Button className="bg-[#1FAF9A] hover:bg-[#27b9a6] w-full" onClick={() => navigate('/messages')}>
                   <MessageSquare className="mr-2 h-4 w-4" />
                   Open Messages
                 </Button>
@@ -304,3 +304,4 @@ export function BuyerDashboard() {
     </div>
   );
 }
+

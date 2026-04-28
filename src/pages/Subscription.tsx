@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/app/components/ui/button';
@@ -32,16 +32,22 @@ export function Subscription() {
   const [paymentMethod, setPaymentMethod] = useState<'mtn-momo' | 'orange-money'>('mtn-momo');
   const [phoneNumber, setPhoneNumber] = useState(currentUser?.phone || '');
 
-  if (!currentUser) {
-    navigate('/login');
-    return null;
-  }
-
   const planDetails = useMemo(() => userPlans[selectedPlan], [userPlans, selectedPlan]);
   const feeOverride =
     userType === 'buyer' && selectedPlan === 'monthly'
       ? 0
       : undefined;
+
+  useEffect(() => {
+    if (!currentUser) {
+      navigate('/login');
+    }
+  }, [currentUser, navigate]);
+
+  if (!currentUser) {
+    return null;
+  }
+
   const handleContinue = () => {
     const normalizedPhone = phoneNumber.replace(/[^\d]/g, '');
     if (!/^(\+?237)?6\d{8}$/.test(normalizedPhone)) {
@@ -151,7 +157,7 @@ export function Subscription() {
                 </CardContent>
               </Card>
 
-              <Button className="w-full bg-green-600 hover:bg-green-700" size="lg" onClick={handleContinue}>
+              <Button className="w-full bg-[#1FAF9A] hover:bg-[#27b9a6]" size="lg" onClick={handleContinue}>
                 <Check className="mr-2 h-4 w-4" />
                 <Smartphone className="mr-2 h-4 w-4" />
                 Continue to Payment Review
@@ -163,3 +169,4 @@ export function Subscription() {
     </div>
   );
 }
+

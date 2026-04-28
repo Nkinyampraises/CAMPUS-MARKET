@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/app/components/ui/button';
@@ -38,8 +38,13 @@ export function Settings() {
     [newPassword, confirmPassword],
   );
 
+  useEffect(() => {
+    if (!currentUser) {
+      navigate('/login');
+    }
+  }, [currentUser, navigate]);
+
   if (!currentUser) {
-    navigate('/login');
     return null;
   }
 
@@ -146,7 +151,7 @@ export function Settings() {
               placeholder="Confirm password"
             />
           </div>
-          <Button className="bg-green-600 hover:bg-green-700" onClick={handleChangePassword} disabled={changingPassword}>
+          <Button className="bg-[#1FAF9A] hover:bg-[#27b9a6]" onClick={handleChangePassword} disabled={changingPassword}>
             {changingPassword ? 'Updating...' : 'Update Password'}
           </Button>
         </CardContent>
@@ -242,7 +247,7 @@ export function Settings() {
               <option value="private">Private</option>
             </select>
           </div>
-          <Button className="bg-green-600 hover:bg-green-700" onClick={handleSavePreferences} disabled={savingPreferences}>
+          <Button className="bg-[#1FAF9A] hover:bg-[#27b9a6]" onClick={handleSavePreferences} disabled={savingPreferences}>
             {savingPreferences ? 'Saving...' : 'Save Preferences'}
           </Button>
         </CardContent>
@@ -250,3 +255,4 @@ export function Settings() {
     </div>
   );
 }
+

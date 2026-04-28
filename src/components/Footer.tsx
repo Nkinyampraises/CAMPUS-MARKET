@@ -6,7 +6,7 @@ export function Footer() {
   const { t } = useLanguage();
 
   return (
-    <footer className="relative border-t border-border/70 bg-[#013b36] py-10 text-muted-foreground backdrop-blur-xl">
+    <footer className="relative border-t border-border/70 bg-white py-10 text-muted-foreground">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_8%_0%,rgba(14,165,164,0.18),transparent_32%),radial-gradient(circle_at_85%_100%,rgba(56,189,248,0.12),transparent_36%)]" />
       <div className="container relative mx-auto px-4">
         <div className="rounded-3xl border border-border/70 bg-background/75 p-7 shadow-[0_30px_56px_-42px_rgba(8,32,48,0.65)] backdrop-blur">

@@ -8,8 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/app/components/ui/badge';
 import { Search, Filter, MapPin, Heart, X } from 'lucide-react';
 import { toast } from 'sonner';
-import { categories, getCategoryById, getLocationById, getUniversityName } from '@/data/mockData';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { normalizeImageUrl } from '@/lib/images';
+import { ResilientImage } from '@/components/ResilientImage';
 
 import { API_URL } from '@/lib/api';
 
@@ -44,6 +45,11 @@ type Listing = {
   };
 };
 
+type NamedOption = {
+  id: string;
+  name: string;
+};
+
 const toCount = (value: unknown) => {
   const numeric = Number(value);
   if (!Number.isFinite(numeric) || numeric < 0) {
@@ -74,8 +80,10 @@ export function Marketplace() {
   const [selectedUniversity, setSelectedUniversity] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('recent');
   const [listings, setListings] = useState<Listing[]>([]);
+  const [categoriesById, setCategoriesById] = useState<Record<string, string>>({});
+  const [categoriesList, setCategoriesList] = useState<NamedOption[]>([]);
   const [universitiesById, setUniversitiesById] = useState<Record<string, string>>({});
-  const [universitiesList, setUniversitiesList] = useState<{ id: string; name: string }[]>([]);
+  const [universitiesList, setUniversitiesList] = useState<NamedOption[]>([]);
   const [savedItems, setSavedItems] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -86,8 +94,9 @@ export function Marketplace() {
     const rawUniversity = String(searchParams.get('university') || '').trim();
     const rawSort = String(searchParams.get('sort') || '').toLowerCase();
 
-    const categoryById = categories.find((cat) => cat.id === rawCategory)?.id;
-    const categoryByName = categories.find((cat) => cat.name.toLowerCase() === rawCategory.toLowerCase())?.id;
+    const normalizedCategory = rawCategory.toLowerCase();
+    const categoryById = categoriesList.find((cat) => cat.id.toLowerCase() === normalizedCategory)?.id;
+    const categoryByName = categoriesList.find((cat) => cat.name.toLowerCase() === normalizedCategory)?.id;
 
     setSearchQuery(query);
     setSelectedType(MARKETPLACE_TYPES.has(rawType) ? rawType : 'all');
@@ -95,14 +104,15 @@ export function Marketplace() {
     setSelectedPriceRange(PRICE_RANGE_OPTIONS.some((range) => range.id === rawPrice) ? rawPrice : 'all');
     setSelectedUniversity(rawUniversity || 'all');
     setSortBy(MARKETPLACE_SORTS.has(rawSort) ? rawSort : 'recent');
-  }, [searchParams]);
+  }, [searchParams, categoriesList]);
 
   useEffect(() => {
     const fetchMarketplaceData = async () => {
       try {
-        const [listingsResult, universitiesResult] = await Promise.allSettled([
+        const [listingsResult, universitiesResult, categoriesResult] = await Promise.allSettled([
           fetch(`${API_URL}/listings`),
           fetch(`${API_URL}/universities`),
+          fetch(`${API_URL}/categories`),
         ]);
 
         if (listingsResult.status === 'fulfilled') {
@@ -126,7 +136,7 @@ export function Marketplace() {
           const data = await response.json().catch(() => ({}));
           if (response.ok && Array.isArray(data.universities)) {
             const resolved: Record<string, string> = {};
-            const list: { id: string; name: string }[] = [];
+            const list: NamedOption[] = [];
             data.universities.forEach((entry: any) => {
               const id = String(entry?.id || '').trim().toLowerCase();
               const name = String(entry?.name || '').trim();
@@ -140,6 +150,28 @@ export function Marketplace() {
             });
             setUniversitiesById(resolved);
             setUniversitiesList(list);
+          }
+        }
+
+        if (categoriesResult.status === 'fulfilled') {
+          const response = categoriesResult.value;
+          const data = await response.json().catch(() => ({}));
+          if (response.ok && Array.isArray(data.categories)) {
+            const resolved: Record<string, string> = {};
+            const list: NamedOption[] = [];
+            data.categories.forEach((entry: any) => {
+              const id = String(entry?.id || '').trim().toLowerCase();
+              const name = String(entry?.name || '').trim();
+              if (id && name) {
+                resolved[id] = name;
+                list.push({ id, name });
+              }
+              if (name) {
+                resolved[name.toLowerCase()] = name;
+              }
+            });
+            setCategoriesById(resolved);
+            setCategoriesList(list);
           }
         }
       } catch {
@@ -162,6 +194,24 @@ export function Marketplace() {
       .join(' ');
   }, [searchParams]);
 
+  const resolveCategoryLabel = (value?: string) => {
+    const raw = String(value || '').trim();
+    if (!raw) {
+      return t('marketplace.categoryNotSpecified', 'Category not specified');
+    }
+
+    const fromBackend = categoriesById[raw.toLowerCase()];
+    if (fromBackend) {
+      return fromBackend;
+    }
+
+    if (/^\d+$/.test(raw)) {
+      return t('marketplace.categoryNotSpecified', 'Category not specified');
+    }
+
+    return raw;
+  };
+
   const resolveUniversityLabel = (value?: string) => {
     const raw = String(value || '').trim();
     if (!raw) {
@@ -171,11 +221,6 @@ export function Marketplace() {
     const fromBackend = universitiesById[raw.toLowerCase()];
     if (fromBackend) {
       return fromBackend;
-    }
-
-    const fallback = getUniversityName(raw);
-    if (fallback && fallback !== raw) {
-      return fallback;
     }
 
     // Avoid showing numeric IDs directly on cards.
@@ -195,11 +240,6 @@ export function Marketplace() {
     const rawLocation = String(item.location || '').trim();
     if (!rawLocation) {
       return t('marketplace.locationNotSpecified', 'Location not specified');
-    }
-
-    const fallbackLocation = getLocationById(rawLocation);
-    if (fallbackLocation) {
-      return fallbackLocation.name;
     }
 
     if (/^\d+$/.test(rawLocation)) {
@@ -334,7 +374,7 @@ export function Marketplace() {
   };
 
   const filteredItems = useMemo(() => {
-    let filtered = listings.filter((item) => item.status === 'available');
+    let filtered = listings.filter((item) => String(item.status || 'available').toLowerCase() === 'available');
 
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -346,7 +386,18 @@ export function Marketplace() {
     }
 
     if (selectedCategory !== 'all') {
-      filtered = filtered.filter((item) => item.category === selectedCategory);
+      const selectedRaw = selectedCategory.toLowerCase();
+      const selectedLabel = resolveCategoryLabel(selectedCategory).toLowerCase();
+      filtered = filtered.filter((item) => {
+        const itemRaw = String(item.category || '').trim().toLowerCase();
+        const itemLabel = resolveCategoryLabel(item.category).toLowerCase();
+        return (
+          itemRaw === selectedRaw ||
+          itemLabel === selectedRaw ||
+          itemRaw === selectedLabel ||
+          itemLabel === selectedLabel
+        );
+      });
     }
 
     if (selectedType !== 'all') {
@@ -387,7 +438,7 @@ export function Marketplace() {
     }
 
     return filtered;
-  }, [searchQuery, selectedCategory, selectedType, selectedPriceRange, selectedUniversity, sortBy, listings]);
+  }, [searchQuery, selectedCategory, selectedType, selectedPriceRange, selectedUniversity, sortBy, listings, categoriesById, universitiesById, t]);
 
   const saleCount = useMemo(
     () => filteredItems.filter((item) => item.type === 'sell').length,
@@ -456,7 +507,7 @@ export function Marketplace() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{t('marketplace.allCategories', 'All Categories')}</SelectItem>
-                  {categories.map((cat) => (
+                  {categoriesList.map((cat) => (
                     <SelectItem key={cat.id} value={cat.id}>
                       {cat.name}
                     </SelectItem>
@@ -496,7 +547,7 @@ export function Marketplace() {
           <div className="mt-4 flex flex-wrap items-center gap-2">
             {selectedCategory !== 'all' && (
               <Badge className="rounded-full bg-[#e5f6f0] px-3 py-1 text-xs font-medium text-[#1e7b5a]">
-                {getCategoryById(selectedCategory)?.name || selectedCategory}
+                {resolveCategoryLabel(selectedCategory)}
                 <button
                   className="ml-2 rounded-full p-0.5 hover:bg-white/60"
                   onClick={() => setSelectedCategory('all')}
@@ -576,6 +627,7 @@ export function Marketplace() {
             {filteredItems.map((item) => {
               const seller = item.seller || null;
               const isSaved = savedItems.has(item.id);
+              const primaryImage = normalizeImageUrl(item.images?.[0]);
 
               return (
                 <Card
@@ -584,11 +636,16 @@ export function Marketplace() {
                   onClick={() => navigate(`/item/${item.id}`)}
                 >
                   <div className="relative aspect-[4/3] overflow-hidden bg-[#f0ebe8]">
-                    {item.images?.[0] ? (
-                      <img
-                        src={item.images[0]}
+                    {primaryImage ? (
+                      <ResilientImage
+                        src={primaryImage}
                         alt={item.title}
                         className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                        fallback={
+                          <div className="flex h-full items-center justify-center text-xs text-[#8a8a8a]">
+                            No image available
+                          </div>
+                        }
                       />
                     ) : (
                       <div className="flex h-full items-center justify-center text-xs text-[#8a8a8a]">

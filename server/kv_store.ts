@@ -30,9 +30,17 @@ let resolvingKvTable: Promise<string> | null = null;
 const parseBoolean = (value: string | undefined) =>
   /^(1|true|yes|on|required)$/i.test((value || "").trim());
 
+const sanitizeEnvValue = (value: string) =>
+  value
+    // Handles accidentally persisted escaped newlines (for example: "value\\r\\n")
+    .replace(/\\r\\n|\\n|\\r/g, "")
+    // Handles actual control characters
+    .replace(/[\r\n]+/g, "")
+    .trim();
+
 const firstNonEmptyEnv = (...keys: string[]) => {
   for (const key of keys) {
-    const value = (Deno.env.get(key) || "").trim();
+    const value = sanitizeEnvValue(Deno.env.get(key) || "");
     if (value) {
       return value;
     }

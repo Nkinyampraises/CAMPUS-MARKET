@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/app/components/ui/button';
@@ -10,15 +10,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RadioGroup, RadioGroupItem } from '@/app/components/ui/radio-group';
 import { Alert, AlertDescription } from '@/app/components/ui/alert';
 import { CheckCircle2, Circle, Loader2, Sparkles } from 'lucide-react';
-import { categories, locations } from '@/data/mockData';
 import { ImageUploader } from '@/components/ImageUploader';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
 
+type NamedOption = {
+  id: string;
+  name: string;
+};
+
 export function AddListing() {
   const navigate = useNavigate();
   const { currentUser, isAuthenticated, accessToken } = useAuth();
+  const isAdmin = currentUser?.role === 'admin';
   
   const [formData, setFormData] = useState({
     title: '',
@@ -33,25 +38,66 @@ export function AddListing() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [categories, setCategories] = useState<NamedOption[]>([]);
+  const [locations, setLocations] = useState<NamedOption[]>([]);
 
-  if (!isAuthenticated) {
-    navigate('/login');
-    return null;
-  }
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/login');
+    }
+  }, [isAuthenticated, navigate]);
 
-  if (currentUser?.role === 'admin') {
-    return (
-      <div className="min-h-screen bg-[#f5f7f6] px-4 py-12">
-        <div className="mx-auto max-w-xl rounded-2xl border border-[#d3e3dc] bg-white p-8 text-center shadow-sm">
-          <h1 className="text-2xl font-semibold text-[#0b1f1a]">Access Denied</h1>
-          <p className="mt-3 text-[#4f6b62]">Administrators cannot create listings.</p>
-          <Button className="mt-6 bg-[#0f6f58] text-white hover:bg-[#0d5f4b]" onClick={() => navigate('/admin')}>
-            Go to Admin Dashboard
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (!isAuthenticated || isAdmin) return;
+
+    let mounted = true;
+
+    const fetchOptions = async () => {
+      try {
+        const [categoriesResult, universitiesResult] = await Promise.allSettled([
+          fetch(`${API_URL}/categories`),
+          fetch(`${API_URL}/universities`),
+        ]);
+
+        if (categoriesResult.status === 'fulfilled') {
+          const response = categoriesResult.value;
+          const data = await response.json().catch(() => ({}));
+          if (response.ok && Array.isArray(data.categories) && mounted) {
+            const next = data.categories
+              .map((entry: any) => ({
+                id: String(entry?.id || '').trim(),
+                name: String(entry?.name || '').trim(),
+              }))
+              .filter((entry: NamedOption) => entry.id && entry.name);
+            setCategories(next);
+          }
+        }
+
+        if (universitiesResult.status === 'fulfilled') {
+          const response = universitiesResult.value;
+          const data = await response.json().catch(() => ({}));
+          if (response.ok && Array.isArray(data.universities) && mounted) {
+            const next = data.universities
+              .map((entry: any) => ({
+                id: String(entry?.id || '').trim(),
+                name: String(entry?.name || '').trim(),
+              }))
+              .filter((entry: NamedOption) => entry.id && entry.name);
+            setLocations(next);
+          }
+        }
+      } catch {
+        if (mounted) {
+          toast.error('Failed to load categories and locations');
+        }
+      }
+    };
+
+    fetchOptions();
+    return () => {
+      mounted = false;
+    };
+  }, [isAuthenticated, isAdmin]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,7 +134,7 @@ export function AddListing() {
           rentalPeriod: formData.type === 'rent' ? formData.rentalPeriod : undefined,
           location: formData.location,
           condition: formData.condition,
-          images: formData.images.length > 0 ? formData.images : ['https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800'],
+          images: formData.images,
         }),
       });
 
@@ -124,6 +170,32 @@ export function AddListing() {
   const completedCount = completionItems.filter((item) => item.complete).length;
   const completionPercent = Math.round((completedCount / completionItems.length) * 100);
   const parsedPreviewPrice = Number(formData.price.replace(/\s+/g, '').replace(',', '.'));
+  const categoryLabel = useMemo(
+    () => categories.find((entry) => entry.id === formData.category)?.name || formData.category || 'Not selected',
+    [categories, formData.category],
+  );
+  const locationLabel = useMemo(
+    () => locations.find((entry) => entry.id === formData.location)?.name || formData.location || 'Not selected',
+    [locations, formData.location],
+  );
+
+  if (!isAuthenticated) {
+    return null;
+  }
+
+  if (isAdmin) {
+    return (
+      <div className="min-h-screen bg-[#f5f7f6] px-4 py-12">
+        <div className="mx-auto max-w-xl rounded-2xl border border-[#d3e3dc] bg-white p-8 text-center shadow-sm">
+          <h1 className="text-2xl font-semibold text-[#0b1f1a]">Access Denied</h1>
+          <p className="mt-3 text-[#4f6b62]">Administrators cannot create listings.</p>
+          <Button className="mt-6 bg-[#1FAF9A] text-white hover:bg-[#27b9a6]" onClick={() => navigate('/admin')}>
+            Go to Admin Dashboard
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#f5f7f6] py-8">
@@ -324,7 +396,7 @@ export function AddListing() {
               >
                 Cancel
               </Button>
-              <Button type="submit" className="flex-1 bg-[#0f6f58] text-white hover:bg-[#0d5f4b]" disabled={loading}>
+              <Button type="submit" className="flex-1 bg-[#1FAF9A] text-white hover:bg-[#27b9a6]" disabled={loading}>
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -345,7 +417,7 @@ export function AddListing() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="h-2 rounded-full bg-[#e5efeb]">
-                  <div className="h-2 rounded-full bg-[#0f6f58]" style={{ width: `${completionPercent}%` }} />
+                  <div className="h-2 rounded-full bg-[#1FAF9A]" style={{ width: `${completionPercent}%` }} />
                 </div>
                 <div className="space-y-2">
                   {completionItems.map((item) => (
@@ -370,8 +442,8 @@ export function AddListing() {
               <CardContent className="space-y-2 text-sm text-[#4f6b62]">
                 <p><span className="font-medium text-[#0f2c24]">Title:</span> {formData.title || 'Not set'}</p>
                 <p><span className="font-medium text-[#0f2c24]">Type:</span> {formData.type === 'rent' ? 'For Rent' : 'For Sale'}</p>
-                <p><span className="font-medium text-[#0f2c24]">Category:</span> {formData.category || 'Not selected'}</p>
-                <p><span className="font-medium text-[#0f2c24]">Location:</span> {formData.location || 'Not selected'}</p>
+                <p><span className="font-medium text-[#0f2c24]">Category:</span> {categoryLabel}</p>
+                <p><span className="font-medium text-[#0f2c24]">Location:</span> {locationLabel}</p>
                 <p>
                   <span className="font-medium text-[#0f2c24]">Price:</span>{' '}
                   {Number.isFinite(parsedPreviewPrice) && parsedPreviewPrice > 0

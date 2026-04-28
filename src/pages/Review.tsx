@@ -285,7 +285,7 @@ export function Review() {
                 >
                   Cancel
                 </Button>
-                <Button type="submit" className="flex-1 bg-green-600 hover:bg-green-700" disabled={loading || rating === 0}>
+                <Button type="submit" className="flex-1 bg-[#1FAF9A] hover:bg-[#27b9a6]" disabled={loading || rating === 0}>
                   {loading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -303,3 +303,4 @@ export function Review() {
     </div>
   );
 }
+

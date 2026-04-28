@@ -847,6 +847,3 @@ export function Home() {
     </div>
   );
 }
-
-
-

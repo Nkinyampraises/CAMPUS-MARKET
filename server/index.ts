@@ -64,7 +64,7 @@ app.use(
   "/*",
   cors({
     origin: "*",
-    allowHeaders: ["Content-Type", "Authorization"],
+    allowHeaders: ["Content-Type", "Authorization", "x-ai-guest-id"],
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     exposeHeaders: ["Content-Length"],
     maxAge: 600,
@@ -87,11 +87,8 @@ function normalizeUserProfile(profile: any) {
     ? normalized.userType
     : (normalized.role === 'admin' ? 'seller' : 'buyer');
 
-  const profilePicture =
-    typeof normalized.profilePicture === 'string'
-      ? normalized.profilePicture
-      : (typeof normalized.avatar === 'string' ? normalized.avatar : '');
-
+  const rawPicture = typeof normalized.profilePicture === 'string' ? normalized.profilePicture : (typeof normalized.avatar === 'string' ? normalized.avatar : '');
+  const profilePicture = isLegacyUnavailableUrl(rawPicture) ? '' : rawPicture;
   normalized.profilePicture = profilePicture;
   normalized.avatar = profilePicture;
   normalized.isBanned = typeof normalized.isBanned === 'boolean' ? normalized.isBanned : false;
@@ -119,8 +116,35 @@ const requireTwoFactorByDefault = !/^(0|false|no|off)$/i.test(
   (Deno.env.get("AUTH_REQUIRE_TWO_FACTOR") || "true").trim(),
 );
 const MAX_UPLOAD_SIZE_BYTES = 5 * 1024 * 1024;
-const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp"]);
+const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp", "image/jfif", "image/pjpeg"]);
 const FILE_ROUTE_PREFIX = "/make-server-50b25a4f/files";
+const OPENAI_API_KEY = (Deno.env.get("OPENAI_API_KEY") || "").trim();
+const OPENAI_CHAT_MODEL = (Deno.env.get("OPENAI_CHAT_MODEL") || "gpt-4.1-mini").trim();
+const OPENAI_TRANSCRIBE_MODEL = (Deno.env.get("OPENAI_TRANSCRIBE_MODEL") || "gpt-4o-mini-transcribe").trim();
+const GEMINI_API_KEY = (Deno.env.get("GEMINI_API_KEY") || "").trim();
+const GEMINI_CHAT_MODEL = (Deno.env.get("GEMINI_CHAT_MODEL") || "gemini-2.0-flash").trim();
+const HUGGING_FACE_API_KEY = (
+  Deno.env.get("HUGGING_FACE_API_KEY") ||
+  Deno.env.get("HUGGINGFACE_API_KEY") ||
+  Deno.env.get("HF_TOKEN") ||
+  ""
+).trim();
+const HUGGING_FACE_MODEL = (
+  Deno.env.get("HUGGING_FACE_MODEL") ||
+  Deno.env.get("HUGGINGFACE_MODEL") ||
+  "Qwen/Qwen2.5-7B-Instruct"
+).trim();
+const AI_PROVIDER = (Deno.env.get("AI_PROVIDER") || "openai").trim().toLowerCase();
+const AI_CHAT_HISTORY_LIMIT = Math.max(20, readEnvNumber("AI_CHAT_HISTORY_LIMIT", 80));
+const AI_CHAT_CONVERSATION_LIMIT = Math.max(5, readEnvNumber("AI_CHAT_CONVERSATION_LIMIT", 30));
+const AI_MAX_PROMPT_LISTINGS = Math.max(10, readEnvNumber("AI_MAX_PROMPT_LISTINGS", 50));
+const AI_MAX_USER_IMAGES = 3;
+const AI_CHAT_DAILY_LIMIT = Math.max(1, readEnvNumber("AI_CHAT_DAILY_LIMIT", 6));
+const AI_CHAT_LIMIT_WINDOW_MS = Math.max(
+  60_000,
+  readEnvNumber("AI_CHAT_LIMIT_WINDOW_MS", 24 * 60 * 60 * 1000),
+);
+const AI_DAILY_LIMIT_TIMEZONE = (Deno.env.get("AI_DAILY_LIMIT_TIMEZONE") || "Africa/Lagos").trim() || "Africa/Lagos";
 
 const normalizeEmail = (value: any) => (typeof value === "string" ? value.trim().toLowerCase() : "");
 const sanitizeFileName = (value: any) => {
@@ -171,6 +195,12 @@ const authEmailConfirmationKey = (tokenHash: string) => `auth:email-confirm:${to
 const authTwoFactorSessionKey = (tokenHash: string) => `auth:two-factor:${tokenHash}`;
 const authUserTwoFactorSessionKey = (userId: string) => `auth:user:${userId}:two-factor`;
 const storedFileKey = (fileId: string) => `file:${fileId}`;
+const aiChatHistoryKey = (userId: string) => `user:${userId}:ai-chat-history`;
+const aiChatConversationsKey = (userId: string) => `user:${userId}:ai-chat-conversations`;
+const aiPreferenceKey = (userId: string) => `user:${userId}:ai-preferences`;
+const aiAnalyticsKey = (userId: string) => `user:${userId}:ai-analytics`;
+const aiDailyUsageKey = (subjectId: string) =>
+  `ai:daily-usage:${encodeURIComponent(subjectId)}`;
 
 const resolveRequestOrigin = (req: Request) => {
   const requestUrl = new URL(req.url);
@@ -737,163 +767,13 @@ const DEFAULT_ADMIN_CATEGORIES = [
   "Shelves & Storage",
 ];
 
-const DEFAULT_DEMO_SELLERS = [
-  {
-    id: "USR-DEMO-001",
-    name: "Amina Ngoma",
-    email: "amina.ngoma@student.ub.cm",
-    phone: "+237670123456",
-    university: "University of Buea",
-    studentId: "UB2024001",
-    rating: 4.8,
-    reviewCount: 12,
-    isVerified: true,
-    isApproved: true,
-    role: "student",
-    userType: "seller",
-    profilePicture: "",
-    avatar: "",
-    isBanned: false,
-    createdAt: "2026-01-10T09:00:00.000Z",
-  },
-  {
-    id: "USR-DEMO-002",
-    name: "Jean-Paul Fotso",
-    email: "jeanpaul.fotso@student.uy1.cm",
-    phone: "+237655234567",
-    university: "University of Yaounde I",
-    studentId: "UY1-2023-456",
-    rating: 4.6,
-    reviewCount: 8,
-    isVerified: true,
-    isApproved: true,
-    role: "student",
-    userType: "seller",
-    profilePicture: "",
-    avatar: "",
-    isBanned: false,
-    createdAt: "2026-01-12T09:00:00.000Z",
-  },
-  {
-    id: "USR-DEMO-003",
-    name: "Grace Mbah",
-    email: "grace.mbah@student.uds.cm",
-    phone: "+237678345678",
-    university: "University of Dschang",
-    studentId: "UDS-2022-991",
-    rating: 4.9,
-    reviewCount: 15,
-    isVerified: true,
-    isApproved: true,
-    role: "student",
-    userType: "seller",
-    profilePicture: "",
-    avatar: "",
-    isBanned: false,
-    createdAt: "2026-01-14T09:00:00.000Z",
-  },
-];
+// Keep catalog reads Postgres-first by default.
+// Set AUTO_SEED_CATALOG_DEFAULTS=true only when you explicitly want baseline seed data.
+const AUTO_SEED_CATALOG_DEFAULTS = /^(1|true|yes|on)$/i.test(
+  (Deno.env.get("AUTO_SEED_CATALOG_DEFAULTS") || "").trim(),
+);
 
-const DEFAULT_DEMO_LISTINGS = [
-  {
-    id: "LST-DEMO-001",
-    title: "Comfortable Single Bed with Mattress",
-    description:
-      "Good quality single bed frame with a fairly used mattress. Perfect for student accommodation. Used for 1 year only.",
-    category: "1",
-    price: 45000,
-    type: "sell",
-    images: ["https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=800"],
-    sellerId: "USR-DEMO-001",
-    location: "Molyko, Buea",
-    condition: "good",
-    status: "available",
-    views: 124,
-    likesCount: 3,
-    createdAt: "2026-01-15T10:00:00.000Z",
-  },
-  {
-    id: "LST-DEMO-002",
-    title: "Study Desk and Chair Set",
-    description: "Wooden study desk with a comfortable chair. Great for studying. Selling because I'm graduating.",
-    category: "5",
-    price: 35000,
-    type: "sell",
-    images: ["https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?w=800"],
-    sellerId: "USR-DEMO-002",
-    location: "Ngoa-Ekelle, Yaounde",
-    condition: "like-new",
-    status: "available",
-    views: 89,
-    likesCount: 2,
-    createdAt: "2026-01-20T14:30:00.000Z",
-  },
-  {
-    id: "LST-DEMO-003",
-    title: "Mini Fridge - 120L",
-    description: "Small fridge perfect for keeping drinks and snacks cold. Available for rent per month.",
-    category: "4",
-    price: 15000,
-    type: "rent",
-    rentalPeriod: "monthly",
-    images: ["https://images.unsplash.com/photo-1571175443880-49e1d25b2bc5?w=800"],
-    sellerId: "USR-DEMO-003",
-    location: "Dschang Campus",
-    condition: "good",
-    status: "available",
-    views: 156,
-    likesCount: 4,
-    createdAt: "2026-01-25T09:15:00.000Z",
-  },
-  {
-    id: "LST-DEMO-004",
-    title: "Complete Kitchen Utensil Set",
-    description: "Pots, pans, plates, cups, spoons, and more. Everything a student needs for cooking.",
-    category: "3",
-    price: 18000,
-    type: "sell",
-    images: ["https://images.unsplash.com/photo-1556911220-bff31c812dba?w=800"],
-    sellerId: "USR-DEMO-001",
-    location: "Molyko, Buea",
-    condition: "good",
-    status: "available",
-    views: 67,
-    likesCount: 1,
-    createdAt: "2026-01-28T11:00:00.000Z",
-  },
-  {
-    id: "LST-DEMO-005",
-    title: "Standing Fan",
-    description: "Powerful standing fan. Essential for hot weather in Cameroon. Works perfectly.",
-    category: "4",
-    price: 12000,
-    type: "sell",
-    images: ["https://images.unsplash.com/photo-1632207691143-643e2f17ac0e?w=800"],
-    sellerId: "USR-DEMO-002",
-    location: "Cite Verte, Yaounde",
-    condition: "good",
-    status: "available",
-    views: 92,
-    likesCount: 5,
-    createdAt: "2026-01-30T16:45:00.000Z",
-  },
-  {
-    id: "LST-DEMO-006",
-    title: "Plastic Wardrobe",
-    description: "Large plastic wardrobe with shelves. Good for storing clothes. Lightweight and easy to move.",
-    category: "6",
-    price: 25000,
-    type: "sell",
-    images: ["https://images.unsplash.com/photo-1595428774223-ef52624120d2?w=800"],
-    sellerId: "USR-DEMO-003",
-    location: "Dschang Centre",
-    condition: "like-new",
-    status: "available",
-    views: 78,
-    likesCount: 1,
-    createdAt: "2026-02-01T08:30:00.000Z",
-  },
-];
+// Static demo marketplace sellers/listings were removed intentionally.
 
 const SUBSCRIPTION_PLAN_PRICING = {
   buyer: {
@@ -1111,29 +991,24 @@ const normalizeCategoryEntry = (entry: any) => {
 
 async function ensureAdminUniversities() {
   const saved = await kv.get("admin:universities");
-  if (Array.isArray(saved) && saved.length > 0) {
+  if (Array.isArray(saved)) {
     const normalized = saved
       .map((entry: any) => normalizeUniversityEntry(entry))
       .filter((entry: any) => entry !== null);
     if (normalized.length > 0) {
-      const now = new Date().toISOString();
-      const existing = new Set(
-        normalized.map((entry: any) => String(entry?.name || "").trim().toLowerCase()).filter(Boolean),
-      );
-      for (const name of DEFAULT_ADMIN_UNIVERSITIES) {
-        const key = String(name || "").trim().toLowerCase();
-        if (!key || existing.has(key)) continue;
-        normalized.push({
-          id: createEntityId("UNI"),
-          name,
-          isActive: true,
-          createdAt: now,
-          updatedAt: now,
-        });
-      }
       await kv.set("admin:universities", normalized);
       return normalized;
     }
+
+    // Existing key is present but contains invalid/empty payload.
+    // Do not silently inject defaults unless explicitly requested.
+    if (!AUTO_SEED_CATALOG_DEFAULTS) {
+      return [];
+    }
+  }
+
+  if (!AUTO_SEED_CATALOG_DEFAULTS) {
+    return [];
   }
 
   const now = new Date().toISOString();
@@ -1150,7 +1025,7 @@ async function ensureAdminUniversities() {
 
 async function ensureAdminCategories() {
   const saved = await kv.get("admin:categories");
-  if (Array.isArray(saved) && saved.length > 0) {
+  if (Array.isArray(saved)) {
     const normalized = saved
       .map((entry: any) => normalizeCategoryEntry(entry))
       .filter((entry: any) => entry !== null);
@@ -1158,6 +1033,16 @@ async function ensureAdminCategories() {
       await kv.set("admin:categories", normalized);
       return normalized;
     }
+
+    // Existing key is present but contains invalid/empty payload.
+    // Do not silently inject defaults unless explicitly requested.
+    if (!AUTO_SEED_CATALOG_DEFAULTS) {
+      return [];
+    }
+  }
+
+  if (!AUTO_SEED_CATALOG_DEFAULTS) {
+    return [];
   }
 
   const now = new Date().toISOString();
@@ -1172,64 +1057,18 @@ async function ensureAdminCategories() {
   return seeded;
 }
 
-async function ensureDemoMarketplaceData() {
-  const existingListings = await kv.getByPrefix("listing:");
-  if (Array.isArray(existingListings) && existingListings.length > 0) {
-    return;
-  }
-
-  const now = new Date().toISOString();
-
-  for (const seller of DEFAULT_DEMO_SELLERS) {
-    const existingProfile = await kv.get(`user:${seller.id}`);
-    if (!existingProfile) {
-      await kv.set(`user:${seller.id}`, seller);
-    }
-
-    const existingWallet = await kv.get(`wallet:${seller.id}`);
-    if (!existingWallet) {
-      await kv.set(`wallet:${seller.id}`, {
-        userId: seller.id,
-        availableBalance: 0,
-        pendingBalance: 0,
-        updatedAt: now,
-      });
-    }
-  }
-
-  for (const listing of DEFAULT_DEMO_LISTINGS) {
-    await kv.set(`listing:${listing.id}`, listing);
-  }
-
-  for (const seller of DEFAULT_DEMO_SELLERS) {
-    const sellerListingIds = DEFAULT_DEMO_LISTINGS
-      .filter((entry) => entry.sellerId === seller.id)
-      .map((entry) => entry.id);
-    const existing = await kv.get(`user:${seller.id}:listings`);
-    const merged = Array.isArray(existing) ? [...existing] : [];
-    for (const listingId of sellerListingIds) {
-      if (!merged.includes(listingId)) {
-        merged.push(listingId);
-      }
-    }
-    await kv.set(`user:${seller.id}:listings`, merged);
-  }
-
-  console.log(`Seeded ${DEFAULT_DEMO_LISTINGS.length} demo listings into database.`);
-}
-
-const parseBooleanFlag = (value: string | undefined, fallback = false) => {
-  const normalized = (value || "").trim();
-  if (!normalized) {
-    return fallback;
-  }
-  return /^(1|true|yes|on)$/i.test(normalized);
-};
-
-const shouldSeedDemoMarketplaceData = parseBooleanFlag(
-  Deno.env.get("ENABLE_DEMO_MARKETPLACE_SEED"),
-  !isProduction(),
-);
+const LEGACY_MOCK_LISTING_IDS = new Set(["1", "2", "3", "4", "5", "6", "7", "8"]);
+const LEGACY_MOCK_SELLER_IDS = new Set(["1", "2", "3", "admin1"]);
+const LEGACY_MOCK_TITLES = new Set([
+  "comfortable single bed with mattress",
+  "study desk and chair set",
+  "mini fridge - 120l",
+  "complete kitchen utensil set",
+  "standing fan",
+  "plastic wardrobe",
+  "dining table with 4 chairs",
+  "reading lamp",
+]);
 
 const isDemoMarketplaceListing = (listing: any) => {
   if (!listing || typeof listing !== "object") {
@@ -1238,31 +1077,59 @@ const isDemoMarketplaceListing = (listing: any) => {
 
   const id = typeof listing.id === "string" ? listing.id : "";
   const sellerId = typeof listing.sellerId === "string" ? listing.sellerId : "";
+  const title = typeof listing.title === "string" ? listing.title.trim().toLowerCase() : "";
 
-  return id.startsWith("LST-DEMO-") || sellerId.startsWith("USR-DEMO-");
+  const isLegacyMockListing =
+    LEGACY_MOCK_LISTING_IDS.has(id) ||
+    (LEGACY_MOCK_SELLER_IDS.has(sellerId) && LEGACY_MOCK_TITLES.has(title));
+
+  return id.startsWith("LST-DEMO-") || sellerId.startsWith("USR-DEMO-") || isLegacyMockListing;
 };
 
 async function purgeDemoMarketplaceData() {
-  for (const listing of DEFAULT_DEMO_LISTINGS) {
-    await kv.del(`listing:${listing.id}`);
+  const sellerIds = new Set<string>();
+
+  const allListings = await kv.getByPrefix("listing:");
+  for (const listing of allListings || []) {
+    if (!isDemoMarketplaceListing(listing)) {
+      continue;
+    }
+
+    const listingId = typeof listing?.id === "string" ? listing.id.trim() : "";
+    const sellerId = typeof listing?.sellerId === "string" ? listing.sellerId.trim() : "";
+
+    if (listingId) {
+      await kv.del(`listing:${listingId}`);
+    }
+    if (sellerId && (sellerId.startsWith("USR-DEMO-") || LEGACY_MOCK_SELLER_IDS.has(sellerId))) {
+      sellerIds.add(sellerId);
+    }
   }
 
-  for (const seller of DEFAULT_DEMO_SELLERS) {
-    await kv.del(`user:${seller.id}:listings`);
-    await kv.del(`wallet:${seller.id}`);
-    await kv.del(`user:${seller.id}`);
+  const allUsers = await kv.getByPrefix("user:");
+  for (const user of allUsers || []) {
+    const userId = typeof user?.id === "string" ? user.id.trim() : "";
+    if (userId && (userId.startsWith("USR-DEMO-") || LEGACY_MOCK_SELLER_IDS.has(userId))) {
+      sellerIds.add(userId);
+    }
+  }
+
+  for (const sellerId of sellerIds) {
+    await kv.del(`user:${sellerId}:listings`);
+    await kv.del(`wallet:${sellerId}`);
+    await kv.del(`user:${sellerId}`);
+
+    const authRecord = await kv.get(authUserKey(sellerId));
+    if (authRecord?.email) {
+      await kv.del(authEmailKey(normalizeEmail(authRecord.email)));
+    }
+    await kv.del(authUserKey(sellerId));
   }
 }
 
-if (shouldSeedDemoMarketplaceData) {
-  ensureDemoMarketplaceData().catch((error) => {
-    console.error("Failed to seed demo marketplace data:", error);
-  });
-} else {
-  purgeDemoMarketplaceData().catch((error) => {
-    console.error("Failed to purge demo marketplace data:", error);
-  });
-}
+purgeDemoMarketplaceData().catch((error) => {
+  console.error("Failed to purge demo marketplace data:", error);
+});
 
 const toDayKey = (value: any) => {
   if (!value) return "";
@@ -2044,6 +1911,39 @@ async function buildPayoutSummaries() {
   return { payouts, settings };
 }
 
+async function getPlatformRevenueWithdrawals() {
+  const allWithdrawals = (await kv.getByPrefix("withdrawal:")) || [];
+  return (allWithdrawals || [])
+    .filter((withdrawal: any) => {
+      if (!withdrawal || typeof withdrawal !== "object") return false;
+      if (withdrawal.userId === ADMIN_WALLET_USER_ID) return true;
+      return withdrawal.source === "admin-platform-withdrawal";
+    })
+    .sort((a: any, b: any) => String(b?.createdAt || "").localeCompare(String(a?.createdAt || "")));
+}
+
+async function getPlatformRevenueWalletSummary() {
+  const wallet = await getWallet(ADMIN_WALLET_USER_ID);
+  const withdrawals = await getPlatformRevenueWithdrawals();
+  const totalWithdrawn = roundMoney(
+    withdrawals.reduce((sum: number, withdrawal: any) => {
+      const status = String(withdrawal?.status || "").toLowerCase();
+      if (status === WITHDRAWAL_STATUS.COMPLETED || status === WITHDRAWAL_STATUS.PROCESSING) {
+        return sum + toSafeNumber(withdrawal?.amount, 0);
+      }
+      return sum;
+    }, 0),
+  );
+
+  return {
+    wallet,
+    withdrawableBalance: roundMoney(wallet.availableBalance),
+    pendingBalance: roundMoney(wallet.pendingBalance),
+    totalWithdrawn,
+    withdrawals: withdrawals.slice(0, 30),
+  };
+}
+
 // Helper function to verify auth token
 async function verifyAuth(authHeader: string | null | undefined) {
   if (!authHeader?.startsWith('Bearer ')) {
@@ -2089,15 +1989,103 @@ async function getUserProfile(userId: string) {
   return normalizedProfile;
 }
 
+const LEGACY_UNAVAILABLE_IMAGE_HOSTS = new Set([
+  "gidhrctnjfxzccaplkjj.supabase.co",
+]);
+
+const isLegacyUnavailableUrl = (url: string) => {
+  if (!url) return false;
+  try {
+    return LEGACY_UNAVAILABLE_IMAGE_HOSTS.has(new URL(url).hostname.toLowerCase());
+  } catch {
+    return false;
+  }
+};
+
+const DEFAULT_LISTING_FALLBACK_IMAGE =
+  "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800";
+
+const LISTING_CATEGORY_FALLBACK_IMAGES: Record<string, string[]> = {
+  "1": [
+    "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=800",
+    "https://images.unsplash.com/photo-1616594039964-3cb65d0f1f3c?w=800",
+  ],
+  "2": [
+    "https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?w=800",
+    "https://images.unsplash.com/photo-1582582429416-3f57c8a8f6af?w=800",
+  ],
+  "3": [
+    "https://images.unsplash.com/photo-1543353071-873f17a7a088?w=800",
+    "https://images.unsplash.com/photo-1504754524776-8f4f37790ca0?w=800",
+  ],
+  "4": [
+    "https://images.unsplash.com/photo-1518444065439-e933c06ce9cd?w=800",
+    "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=800",
+  ],
+  "5": [
+    "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=800",
+    "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=800",
+  ],
+  "6": [
+    "https://images.unsplash.com/photo-1513694203232-719a280e022f?w=800",
+    "https://images.unsplash.com/photo-1595428774223-ef52624120d2?w=800",
+  ],
+};
+
+const pickFallbackListingImage = (listing: any) => {
+  const categoryId = String(listing?.category || "").trim();
+  const candidates = LISTING_CATEGORY_FALLBACK_IMAGES[categoryId] || [DEFAULT_LISTING_FALLBACK_IMAGE];
+  const seed = String(listing?.id || listing?.title || categoryId || "listing");
+
+  let hash = 0;
+  for (let index = 0; index < seed.length; index += 1) {
+    hash = (hash << 5) - hash + seed.charCodeAt(index);
+    hash |= 0;
+  }
+
+  const itemIndex = Math.abs(hash) % candidates.length;
+  return candidates[itemIndex] || DEFAULT_LISTING_FALLBACK_IMAGE;
+};
+
+const normalizeListingImages = (value: unknown) => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const normalized: string[] = [];
+  for (const entry of value) {
+    const imageUrl = typeof entry === "string" ? entry.trim() : "";
+    if (!imageUrl) {
+      continue;
+    }
+
+    try {
+      const host = new URL(imageUrl).hostname.toLowerCase();
+      if (LEGACY_UNAVAILABLE_IMAGE_HOSTS.has(host)) {
+        continue;
+      }
+    } catch {
+      // Keep relative/local URLs as-is.
+    }
+
+    normalized.push(imageUrl);
+  }
+
+  return normalized;
+};
+
 async function enrichListing(listing: any, sellerCache?: Map<string, any | null>) {
   if (!listing || typeof listing !== 'object' || Array.isArray(listing)) {
     return listing;
   }
 
+  const availableImages = normalizeListingImages(listing.images);
+
   const normalizedListing = {
     ...listing,
     views: Math.max(0, toSafeNumber(listing.views, 0)),
     likesCount: Math.max(0, toSafeNumber(listing.likesCount, 0)),
+    images: availableImages.length > 0 ? availableImages : [pickFallbackListingImage(listing)],
   };
 
   if (!normalizedListing.sellerId || typeof normalizedListing.sellerId !== 'string') {
@@ -2131,6 +2119,1132 @@ async function enrichListing(listing: any, sellerCache?: Map<string, any | null>
       university: seller.university,
       profilePicture: seller.profilePicture || '',
     },
+  };
+}
+
+const normalizeAiText = (value: unknown, maxLength = 4000) => {
+  const text = typeof value === "string" ? value.trim() : "";
+  if (!text) {
+    return "";
+  }
+  return text.slice(0, maxLength);
+};
+
+const isNonEmptyString = (value: unknown): value is string =>
+  typeof value === "string" && value.trim().length > 0;
+
+type AiDailyUsageSnapshot = {
+  subjectId: string;
+  dayKey: string;
+  used: number;
+  remaining: number;
+  limit: number;
+  storageKey: string;
+  timeZone: string;
+  windowStartedAt: string;
+  windowEndsAt: string;
+  windowMs: number;
+};
+
+const toAiUsageCount = (value: any) => {
+  const candidate = typeof value === "number" ? value : toSafeNumber(value?.count, 0);
+  if (!Number.isFinite(candidate)) {
+    return 0;
+  }
+  return Math.max(0, Math.trunc(candidate));
+};
+
+const parseIsoDateMs = (value: unknown) => {
+  if (typeof value !== "string" || !value.trim()) {
+    return Number.NaN;
+  }
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : Number.NaN;
+};
+
+const firstFiniteNumber = (...values: number[]) => {
+  for (const value of values) {
+    if (Number.isFinite(value)) {
+      return value;
+    }
+  }
+  return Number.NaN;
+};
+
+const getDatePartsForTimeZone = (date: Date, timeZone: string) => {
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(date);
+
+    const year = parts.find((part) => part.type === "year")?.value;
+    const month = parts.find((part) => part.type === "month")?.value;
+    const day = parts.find((part) => part.type === "day")?.value;
+    if (year && month && day) {
+      return { year, month, day };
+    }
+  } catch {
+    // Fallback to UTC if timezone configuration is invalid.
+  }
+
+  const [year, month, day] = date.toISOString().slice(0, 10).split("-");
+  return { year, month, day };
+};
+
+const getAiDailyUsageDayKey = (date = new Date()) => {
+  const { year, month, day } = getDatePartsForTimeZone(date, AI_DAILY_LIMIT_TIMEZONE);
+  return `${year}-${month}-${day}`;
+};
+
+const getClientIpFromRequest = (req: Request) => {
+  const directHeaders = ["cf-connecting-ip", "x-real-ip"];
+  for (const headerName of directHeaders) {
+    const headerValue = normalizeAiText(req.headers.get(headerName), 120);
+    if (headerValue) {
+      return headerValue;
+    }
+  }
+
+  const forwardedFor = normalizeAiText(req.headers.get("x-forwarded-for"), 300);
+  if (forwardedFor) {
+    const firstAddress = forwardedFor
+      .split(",")
+      .map((value) => value.trim())
+      .find(Boolean);
+    if (firstAddress) {
+      return firstAddress;
+    }
+  }
+
+  const forwarded = normalizeAiText(req.headers.get("forwarded"), 500);
+  if (forwarded) {
+    const match = forwarded.match(/for="?([^;,\s"]+)/i);
+    if (match?.[1]) {
+      return match[1];
+    }
+  }
+
+  return "";
+};
+
+const getGuestAiIdFromRequest = (req: Request) => {
+  const raw = normalizeAiText(req.headers.get("x-ai-guest-id"), 120);
+  if (!raw) {
+    return "";
+  }
+  return /^[A-Za-z0-9._:-]{8,120}$/.test(raw) ? raw : "";
+};
+
+const toPublicAiUsageSnapshot = (snapshot: AiDailyUsageSnapshot) => ({
+  dayKey: snapshot.dayKey,
+  limit: snapshot.limit,
+  used: snapshot.used,
+  remaining: snapshot.remaining,
+  timeZone: snapshot.timeZone,
+  windowStartedAt: snapshot.windowStartedAt,
+  windowEndsAt: snapshot.windowEndsAt,
+  windowMs: snapshot.windowMs,
+});
+
+async function resolveAiUsageSubjectId(req: Request, userId?: string) {
+  const normalizedUserId = normalizeAiText(userId, 120);
+  if (normalizedUserId) {
+    return `user:${normalizedUserId}`;
+  }
+
+  const guestId = getGuestAiIdFromRequest(req);
+  if (guestId) {
+    return `guest:${guestId}`;
+  }
+
+  const clientIp = getClientIpFromRequest(req);
+  const userAgent = normalizeAiText(req.headers.get("user-agent"), 240);
+  const fingerprint = `${clientIp || "unknown-ip"}|${userAgent || "unknown-user-agent"}`;
+  const fingerprintHash = await sha256Hex(fingerprint);
+  return `anon:${fingerprintHash.slice(0, 32)}`;
+}
+
+async function getAiDailyUsageSnapshot(req: Request, userId?: string) {
+  const subjectId = await resolveAiUsageSubjectId(req, userId);
+  const storageKey = aiDailyUsageKey(subjectId);
+  const usageRecord = await kv.get(storageKey);
+  const nowMs = Date.now();
+  const storedStartedAtMs = firstFiniteNumber(
+    parseIsoDateMs(usageRecord?.windowStartedAt),
+    parseIsoDateMs(usageRecord?.startedAt),
+    parseIsoDateMs(usageRecord?.updatedAt),
+  );
+  const isExpired = !Number.isFinite(storedStartedAtMs) || (nowMs - storedStartedAtMs) >= AI_CHAT_LIMIT_WINDOW_MS;
+  const windowStartedAtMs = isExpired ? nowMs : storedStartedAtMs;
+  const windowEndsAtMs = windowStartedAtMs + AI_CHAT_LIMIT_WINDOW_MS;
+  const used = isExpired ? 0 : toAiUsageCount(usageRecord);
+  const dayKey = getAiDailyUsageDayKey(new Date(windowStartedAtMs));
+
+  return {
+    subjectId,
+    dayKey,
+    used,
+    remaining: Math.max(0, AI_CHAT_DAILY_LIMIT - used),
+    limit: AI_CHAT_DAILY_LIMIT,
+    storageKey,
+    timeZone: AI_DAILY_LIMIT_TIMEZONE,
+    windowStartedAt: new Date(windowStartedAtMs).toISOString(),
+    windowEndsAt: new Date(windowEndsAtMs).toISOString(),
+    windowMs: AI_CHAT_LIMIT_WINDOW_MS,
+  } satisfies AiDailyUsageSnapshot;
+}
+
+async function incrementAiDailyUsage(snapshot: AiDailyUsageSnapshot) {
+  const updatedUsage = {
+    ...snapshot,
+    used: snapshot.used + 1,
+  };
+
+  const nextSnapshot = {
+    ...updatedUsage,
+    remaining: Math.max(0, updatedUsage.limit - updatedUsage.used),
+  };
+
+  await kv.set(snapshot.storageKey, {
+    subjectId: snapshot.subjectId,
+    dayKey: snapshot.dayKey,
+    count: nextSnapshot.used,
+    windowStartedAt: snapshot.windowStartedAt,
+    windowEndsAt: snapshot.windowEndsAt,
+    windowMs: snapshot.windowMs,
+    updatedAt: new Date().toISOString(),
+  });
+
+  return nextSnapshot;
+}
+
+const normalizeAiLocation = (value: any) => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const city = normalizeAiText(value.city, 120);
+  const university = normalizeAiText(value.university, 120);
+  const country = normalizeAiText(value.country, 120);
+  const latitude = toSafeNumber(value.latitude, NaN);
+  const longitude = toSafeNumber(value.longitude, NaN);
+
+  return {
+    city: city || "",
+    university: university || "",
+    country: country || "",
+    latitude: Number.isFinite(latitude) ? latitude : null,
+    longitude: Number.isFinite(longitude) ? longitude : null,
+  };
+};
+
+const normalizeAiHistoryEntries = (value: any, limit = AI_CHAT_HISTORY_LIMIT) => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((entry: any) => {
+      const role = entry?.role === "assistant" ? "assistant" : "user";
+      const content = normalizeAiText(entry?.content, 4000);
+      if (!content) {
+        return null;
+      }
+      const createdAt = typeof entry?.createdAt === "string" && entry.createdAt
+        ? entry.createdAt
+        : new Date().toISOString();
+      return {
+        id: typeof entry?.id === "string" && entry.id ? entry.id : createEntityId("AIMSG"),
+        role,
+        content,
+        createdAt,
+      };
+    })
+    .filter(Boolean)
+    .slice(-Math.max(10, limit));
+};
+
+const normalizeAiConversationId = (value: unknown) =>
+  normalizeAiText(value, 120).replace(/[^A-Za-z0-9._:-]/g, "");
+
+const buildAiConversationTitleFromMessages = (messages: any[]) => {
+  const firstUserMessage = messages.find((entry: any) =>
+    entry?.role === "user" && isNonEmptyString(entry?.content)
+  );
+  const fallbackMessage = messages.find((entry: any) => isNonEmptyString(entry?.content));
+  const source = normalizeAiText(firstUserMessage?.content || fallbackMessage?.content || "", 120);
+  if (!source) {
+    return "New chat";
+  }
+  return source.length > 60 ? `${source.slice(0, 57)}...` : source;
+};
+
+const normalizeAiConversationTitle = (value: unknown, messages: any[]) => {
+  const explicitTitle = normalizeAiText(value, 120);
+  if (explicitTitle) {
+    return explicitTitle;
+  }
+  return buildAiConversationTitleFromMessages(messages);
+};
+
+const normalizeAiConversationEntries = (value: any, limit = AI_CHAT_CONVERSATION_LIMIT) => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const normalized = value
+    .map((entry: any) => {
+      const messages = normalizeAiHistoryEntries(entry?.messages);
+      const createdAt = isNonEmptyString(entry?.createdAt)
+        ? entry.createdAt
+        : (messages[0]?.createdAt || new Date().toISOString());
+      const updatedAt = isNonEmptyString(entry?.updatedAt)
+        ? entry.updatedAt
+        : (messages[messages.length - 1]?.createdAt || createdAt);
+
+      return {
+        id: normalizeAiConversationId(entry?.id) || createEntityId("AITHR"),
+        title: normalizeAiConversationTitle(entry?.title, messages),
+        createdAt,
+        updatedAt,
+        messages,
+      };
+    })
+    .filter(Boolean);
+
+  const deduped = new Map<string, any>();
+  for (const entry of normalized) {
+    const current = deduped.get(entry.id);
+    if (!current) {
+      deduped.set(entry.id, entry);
+      continue;
+    }
+    const nextUpdatedAt = Date.parse(entry.updatedAt);
+    const currentUpdatedAt = Date.parse(current.updatedAt);
+    if (Number.isFinite(nextUpdatedAt) && (!Number.isFinite(currentUpdatedAt) || nextUpdatedAt >= currentUpdatedAt)) {
+      deduped.set(entry.id, entry);
+    }
+  }
+
+  return Array.from(deduped.values())
+    .sort((left, right) => {
+      const leftTime = Date.parse(left.updatedAt);
+      const rightTime = Date.parse(right.updatedAt);
+      const safeLeft = Number.isFinite(leftTime) ? leftTime : 0;
+      const safeRight = Number.isFinite(rightTime) ? rightTime : 0;
+      return safeRight - safeLeft;
+    })
+    .slice(0, Math.max(1, limit));
+};
+
+const buildLegacyAiConversation = (history: any) => {
+  const messages = normalizeAiHistoryEntries(history);
+  if (messages.length === 0) {
+    return null;
+  }
+
+  const createdAt = messages[0]?.createdAt || new Date().toISOString();
+  const updatedAt = messages[messages.length - 1]?.createdAt || createdAt;
+  return {
+    id: createEntityId("AITHR"),
+    title: normalizeAiConversationTitle("", messages),
+    createdAt,
+    updatedAt,
+    messages,
+  };
+};
+
+const normalizeAiConversationsForUser = (storedConversations: any, legacyHistory: any) => {
+  const normalizedConversations = normalizeAiConversationEntries(storedConversations);
+  if (normalizedConversations.length > 0) {
+    return normalizedConversations;
+  }
+
+  const legacyConversation = buildLegacyAiConversation(legacyHistory);
+  return legacyConversation ? [legacyConversation] : [];
+};
+
+const upsertAiConversation = (conversations: any[], nextConversation: any) => {
+  const normalizedConversation = normalizeAiConversationEntries([nextConversation])[0];
+  if (!normalizedConversation) {
+    return normalizeAiConversationEntries(conversations);
+  }
+
+  const filtered = normalizeAiConversationEntries(conversations).filter(
+    (entry: any) => entry.id !== normalizedConversation.id,
+  );
+
+  return normalizeAiConversationEntries([normalizedConversation, ...filtered]);
+};
+
+const extractDataUrlImages = (value: any) => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item: any) => normalizeAiText(item, 2_000_000))
+    .filter((item: string) => item.startsWith("data:image/"))
+    .slice(0, AI_MAX_USER_IMAGES);
+};
+
+const extractSearchTokens = (text: string) =>
+  Array.from(
+    new Set(
+      text
+        .toLowerCase()
+        .split(/[^a-z0-9]+/g)
+        .map((token) => token.trim())
+        .filter((token) => token.length >= 3),
+    ),
+  );
+
+const parseBudgetFromText = (text: string) => {
+  const matches = Array.from(String(text || "").matchAll(/(\d[\d\s,._]{1,12})/g));
+  const parsed = matches
+    .map((match) => Number.parseInt(match[1].replace(/[^\d]/g, ""), 10))
+    .filter((value) => Number.isFinite(value) && value > 0)
+    .map((value) => Math.trunc(value));
+
+  if (!parsed.length) {
+    return null;
+  }
+
+  const max = Math.max(...parsed);
+  const min = Math.min(...parsed);
+  return {
+    min,
+    max,
+  };
+};
+
+const KNOWN_STYLE_KEYWORDS = [
+  "minimalist",
+  "modern",
+  "cozy",
+  "scandinavian",
+  "bohemian",
+  "boho",
+  "industrial",
+  "classic",
+  "luxury",
+  "rustic",
+  "simple",
+];
+
+const detectStyleFromText = (text: string) => {
+  const normalized = String(text || "").toLowerCase();
+  for (const keyword of KNOWN_STYLE_KEYWORDS) {
+    if (normalized.includes(keyword)) {
+      return keyword;
+    }
+  }
+  return "";
+};
+
+const detectPrimaryIntent = (text: string) => {
+  const normalized = String(text || "").toLowerCase();
+  if (/(room|decorate|decor|arrange|style|bedroom|living room)/.test(normalized)) {
+    return "room_setup";
+  }
+  if (/(kitchen|cookware|pots|utensils|fridge|stove|kettle)/.test(normalized)) {
+    return "kitchen_setup";
+  }
+  if (/(cheaper|affordable|budget|lower price|less expensive)/.test(normalized)) {
+    return "cheaper_alternatives";
+  }
+  if (/(similar|like this|related)/.test(normalized)) {
+    return "similar_items";
+  }
+  return "product_recommendation";
+};
+
+const mergeAiPreferences = (previous: any, updates: any) => {
+  const next = {
+    budgetMin: Math.max(0, toSafeNumber(previous?.budgetMin, 0)),
+    budgetMax: Math.max(0, toSafeNumber(previous?.budgetMax, 0)),
+    preferredStyle: normalizeAiText(previous?.preferredStyle, 80),
+    preferredCity: normalizeAiText(previous?.preferredCity, 80),
+    preferredUniversity: normalizeAiText(previous?.preferredUniversity, 120),
+    lastIntent: normalizeAiText(previous?.lastIntent, 80),
+    updatedAt: typeof previous?.updatedAt === "string" && previous.updatedAt ? previous.updatedAt : new Date().toISOString(),
+  };
+
+  if (updates?.budgetMin !== undefined) {
+    next.budgetMin = Math.max(0, toSafeNumber(updates.budgetMin, next.budgetMin));
+  }
+  if (updates?.budgetMax !== undefined) {
+    next.budgetMax = Math.max(0, toSafeNumber(updates.budgetMax, next.budgetMax));
+  }
+  if (isNonEmptyString(updates?.preferredStyle)) {
+    next.preferredStyle = normalizeAiText(updates.preferredStyle, 80);
+  }
+  if (isNonEmptyString(updates?.preferredCity)) {
+    next.preferredCity = normalizeAiText(updates.preferredCity, 80);
+  }
+  if (isNonEmptyString(updates?.preferredUniversity)) {
+    next.preferredUniversity = normalizeAiText(updates.preferredUniversity, 120);
+  }
+  if (isNonEmptyString(updates?.lastIntent)) {
+    next.lastIntent = normalizeAiText(updates.lastIntent, 80);
+  }
+
+  next.updatedAt = new Date().toISOString();
+  return next;
+};
+
+const normalizeAiAnalyticsEvents = (value: any) => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value
+    .map((entry: any) => {
+      const eventType = normalizeAiText(entry?.eventType, 80);
+      const itemId = normalizeAiText(entry?.itemId, 120);
+      if (!eventType || !itemId) {
+        return null;
+      }
+      return {
+        id: isNonEmptyString(entry?.id) ? entry.id : createEntityId("AIEVT"),
+        eventType,
+        itemId,
+        createdAt: isNonEmptyString(entry?.createdAt) ? entry.createdAt : new Date().toISOString(),
+        metadata: entry?.metadata && typeof entry.metadata === "object" ? entry.metadata : {},
+      };
+    })
+    .filter(Boolean)
+    .slice(-500);
+};
+
+const listingTextValue = (listing: any) =>
+  [
+    String(listing?.title || ""),
+    String(listing?.description || ""),
+    String(listing?.category || ""),
+    String(listing?.location || ""),
+    String(listing?.seller?.university || ""),
+  ].join(" ").toLowerCase();
+
+const scoreListingForQuery = (
+  listing: any,
+  tokens: string[],
+  location: { city?: string; university?: string } | null,
+  budget: { min: number; max: number } | null,
+) => {
+  const text = listingTextValue(listing);
+  let score = 0;
+
+  if (!listing || listing.status !== "available") {
+    return Number.NEGATIVE_INFINITY;
+  }
+
+  for (const token of tokens) {
+    if (text.includes(token)) {
+      score += 5;
+    }
+  }
+
+  const price = Math.max(0, toSafeNumber(listing?.price, 0));
+  if (budget?.max && price > 0) {
+    if (price <= budget.max) {
+      score += 8;
+    } else {
+      const overBy = Math.max(0, price - budget.max);
+      score -= Math.min(12, overBy / Math.max(1, budget.max) * 20);
+    }
+    if (budget.min && price >= budget.min) {
+      score += 3;
+    }
+  }
+
+  const locationSignals = [
+    normalizeAiText(location?.city || "", 80).toLowerCase(),
+    normalizeAiText(location?.university || "", 80).toLowerCase(),
+  ].filter(Boolean);
+
+  for (const signal of locationSignals) {
+    if (text.includes(signal)) {
+      score += 6;
+    }
+  }
+
+  score += Math.min(4, toSafeNumber(listing?.likesCount, 0) / 8);
+  score += Math.min(3, toSafeNumber(listing?.views, 0) / 40);
+  score += Math.min(4, toSafeNumber(listing?.seller?.rating, 0));
+
+  if (listing?.type === "rent") {
+    score += 1;
+  }
+
+  return score;
+};
+
+async function getAvailableListingsForAi() {
+  let listings = await kv.getByPrefix("listing:");
+  if (Array.isArray(listings)) {
+    listings = listings.filter((listing: any) => !isDemoMarketplaceListing(listing));
+  }
+
+  const sellerCache = new Map<string, any | null>();
+  const enriched: any[] = [];
+
+  for (const listing of listings || []) {
+    if (!listing || typeof listing !== "object" || Array.isArray(listing)) {
+      continue;
+    }
+
+    const normalized = await enrichListing(listing, sellerCache);
+    if (normalized?.status === "available") {
+      enriched.push(normalized);
+    }
+  }
+
+  return enriched;
+}
+
+const parseJsonFromModelText = (text: string) => {
+  const direct = normalizeAiText(text, 120_000);
+  if (!direct) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(direct);
+  } catch {
+    // Fallback for model responses wrapped in markdown fences.
+  }
+
+  const match = direct.match(/\{[\s\S]*\}/);
+  if (!match) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(match[0]);
+  } catch {
+    return null;
+  }
+};
+
+const buildFallbackAssistantMessage = (recommendedCount: number) => {
+  if (recommendedCount > 0) {
+    return "I found some solid options for you. Share your budget, location, and style so I can narrow this down better.";
+  }
+  return "I could not find a strong match yet. Tell me your budget, location, and exact item needs so I can refine recommendations.";
+};
+
+const buildDefaultRecommendationReason = (listing: any) => {
+  const parts: string[] = [];
+  if (listing?.price) {
+    parts.push(`priced at ${toSafeNumber(listing.price, 0).toLocaleString()} XAF`);
+  }
+  if (listing?.seller?.university) {
+    parts.push(`near ${listing.seller.university}`);
+  } else if (listing?.location) {
+    parts.push(`located around ${listing.location}`);
+  }
+  if (listing?.seller?.rating) {
+    parts.push(`seller rating ${toSafeNumber(listing.seller.rating, 0).toFixed(1)}`);
+  }
+  if (!parts.length) {
+    return "Matches your request and is currently available.";
+  }
+  return `Matches your request and is ${parts.join(", ")}.`;
+};
+
+type AiProviderName = "openai" | "gemini" | "huggingface" | "auto";
+
+type AiChatRequestArgs = {
+  systemPrompt: string;
+  listingsContext: any[];
+  history: any[];
+  userMessage: string;
+  imageDataUrls: string[];
+  location: any;
+};
+
+const normalizeAiProvider = (value: unknown): AiProviderName => {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (normalized === "gemini") return "gemini";
+  if (normalized === "huggingface" || normalized === "hugging_face" || normalized === "hf") return "huggingface";
+  if (normalized === "auto") return "auto";
+  return "openai";
+};
+
+const getModelNameForProvider = (provider: Exclude<AiProviderName, "auto">) => {
+  if (provider === "gemini") {
+    return GEMINI_CHAT_MODEL;
+  }
+  if (provider === "huggingface") {
+    return HUGGING_FACE_MODEL;
+  }
+  return OPENAI_CHAT_MODEL;
+};
+
+const getPreferredAiProviderOrder = (): Array<Exclude<AiProviderName, "auto">> => {
+  const configured = normalizeAiProvider(AI_PROVIDER);
+  if (configured !== "auto") {
+    return [configured];
+  }
+
+  const order: Array<Exclude<AiProviderName, "auto">> = [];
+  if (HUGGING_FACE_API_KEY) {
+    order.push("huggingface");
+  }
+  if (GEMINI_API_KEY) {
+    order.push("gemini");
+  }
+  if (OPENAI_API_KEY) {
+    order.push("openai");
+  }
+
+  if (!order.length) {
+    return ["openai", "gemini", "huggingface"];
+  }
+
+  return order;
+};
+
+const buildTextOnlyChatPrompt = (args: AiChatRequestArgs) =>
+  [
+    args.systemPrompt,
+    `Available listings JSON: ${JSON.stringify(args.listingsContext)}`,
+    `Conversation history: ${JSON.stringify(args.history.slice(-10))}`,
+    `User location context: ${JSON.stringify(args.location || {})}`,
+    `User message: ${args.userMessage}`,
+    args.imageDataUrls.length
+      ? `Attached images: ${args.imageDataUrls.length} image(s). If image details are unavailable, ask a follow-up question.`
+      : "",
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+
+const parseDataUrlImage = (value: string) => {
+  const match = String(value || "").match(/^data:(image\/[A-Za-z0-9.+-]+);base64,([A-Za-z0-9+/=\r\n]+)$/);
+  if (!match) {
+    return null;
+  }
+  return {
+    mimeType: match[1],
+    data: match[2].replace(/\s+/g, ""),
+  };
+};
+
+async function requestOpenAiChatResponse(args: AiChatRequestArgs) {
+  if (!OPENAI_API_KEY) {
+    return {
+      ok: false,
+      provider: "openai",
+      model: OPENAI_CHAT_MODEL,
+      message: "Missing OPENAI_API_KEY",
+    };
+  }
+
+  const messages: any[] = [
+    {
+      role: "system",
+      content: args.systemPrompt,
+    },
+    {
+      role: "system",
+      content: `Available listings JSON: ${JSON.stringify(args.listingsContext)}`,
+    },
+    ...args.history.slice(-10).map((entry: any) => ({
+      role: entry.role === "assistant" ? "assistant" : "user",
+      content: normalizeAiText(entry.content, 3000),
+    })),
+  ];
+
+  const userContent: any[] = [
+    {
+      type: "text",
+      text: [
+        `User location context: ${JSON.stringify(args.location || {})}`,
+        `User message: ${args.userMessage}`,
+      ].join("\n"),
+    },
+  ];
+
+  for (const imageUrl of args.imageDataUrls) {
+    userContent.push({
+      type: "image_url",
+      image_url: { url: imageUrl },
+    });
+  }
+
+  messages.push({
+    role: "user",
+    content: userContent,
+  });
+
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${OPENAI_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: OPENAI_CHAT_MODEL,
+      temperature: 0.35,
+      messages,
+    }),
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    return {
+      ok: false,
+      provider: "openai",
+      model: OPENAI_CHAT_MODEL,
+      message: payload?.error?.message || "OpenAI request failed",
+    };
+  }
+
+  const content = normalizeAiText(payload?.choices?.[0]?.message?.content, 120_000);
+  if (!content) {
+    return {
+      ok: false,
+      provider: "openai",
+      model: OPENAI_CHAT_MODEL,
+      message: "Empty response from OpenAI",
+    };
+  }
+
+  return {
+    ok: true,
+    provider: "openai",
+    model: OPENAI_CHAT_MODEL,
+    content,
+  };
+}
+
+async function requestGeminiChatResponse(args: AiChatRequestArgs) {
+  if (!GEMINI_API_KEY) {
+    return {
+      ok: false,
+      provider: "gemini",
+      model: GEMINI_CHAT_MODEL,
+      message: "Missing GEMINI_API_KEY",
+    };
+  }
+
+  const historyMessages = args.history.slice(-10).map((entry: any) => ({
+    role: entry?.role === "assistant" ? "model" : "user",
+    parts: [{ text: normalizeAiText(entry?.content, 3000) }],
+  }));
+
+  const userParts: any[] = [
+    {
+      text: [
+        `User location context: ${JSON.stringify(args.location || {})}`,
+        `User message: ${args.userMessage}`,
+      ].join("\n"),
+    },
+  ];
+
+  for (const imageUrl of args.imageDataUrls) {
+    const parsed = parseDataUrlImage(imageUrl);
+    if (!parsed) {
+      continue;
+    }
+    userParts.push({
+      inline_data: {
+        mime_type: parsed.mimeType,
+        data: parsed.data,
+      },
+    });
+  }
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(GEMINI_CHAT_MODEL)}:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        system_instruction: {
+          parts: [{ text: args.systemPrompt }],
+        },
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: `Available listings JSON: ${JSON.stringify(args.listingsContext)}` }],
+          },
+          ...historyMessages,
+          {
+            role: "user",
+            parts: userParts,
+          },
+        ],
+        generationConfig: {
+          temperature: 0.35,
+        },
+      }),
+    },
+  );
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    return {
+      ok: false,
+      provider: "gemini",
+      model: GEMINI_CHAT_MODEL,
+      message: payload?.error?.message || "Gemini request failed",
+    };
+  }
+
+  const textContent = Array.isArray(payload?.candidates?.[0]?.content?.parts)
+    ? payload.candidates[0].content.parts
+      .map((part: any) => normalizeAiText(part?.text, 60000))
+      .filter(Boolean)
+      .join("\n")
+    : "";
+
+  const content = normalizeAiText(textContent, 120_000);
+  if (!content) {
+    return {
+      ok: false,
+      provider: "gemini",
+      model: GEMINI_CHAT_MODEL,
+      message: "Empty response from Gemini",
+    };
+  }
+
+  return {
+    ok: true,
+    provider: "gemini",
+    model: GEMINI_CHAT_MODEL,
+    content,
+  };
+}
+
+async function requestHuggingFaceChatResponse(args: AiChatRequestArgs) {
+  if (!HUGGING_FACE_API_KEY) {
+    return {
+      ok: false,
+      provider: "huggingface",
+      model: HUGGING_FACE_MODEL,
+      message: "Missing HUGGING_FACE_API_KEY/HF_TOKEN",
+    };
+  }
+
+  const messages: any[] = [
+    {
+      role: "system",
+      content: args.systemPrompt,
+    },
+    {
+      role: "system",
+      content: `Available listings JSON: ${JSON.stringify(args.listingsContext)}`,
+    },
+    ...args.history.slice(-10).map((entry: any) => ({
+      role: entry.role === "assistant" ? "assistant" : "user",
+      content: normalizeAiText(entry.content, 3000),
+    })),
+    {
+      role: "user",
+      content: [
+        `User location context: ${JSON.stringify(args.location || {})}`,
+        `User message: ${args.userMessage}`,
+        args.imageDataUrls.length
+          ? `Attached images: ${args.imageDataUrls.length} image(s). If image detail is missing, ask a short follow-up question.`
+          : "",
+      ]
+        .filter(Boolean)
+        .join("\n"),
+    },
+  ];
+
+  const requestInferenceApiFallback = async (routerErrorMessage: string) => {
+    const inferencePrompt = buildTextOnlyChatPrompt(args);
+    const inferenceResponse = await fetch(
+      `https://api-inference.huggingface.co/models/${encodeURIComponent(HUGGING_FACE_MODEL)}`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${HUGGING_FACE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          inputs: inferencePrompt,
+          parameters: {
+            temperature: 0.35,
+            max_new_tokens: 900,
+            do_sample: true,
+            return_full_text: false,
+          },
+          options: {
+            wait_for_model: true,
+          },
+        }),
+      },
+    );
+
+    const inferencePayload = await inferenceResponse.json().catch(() => ({}));
+    if (!inferenceResponse.ok) {
+      return {
+        ok: false,
+        provider: "huggingface",
+        model: HUGGING_FACE_MODEL,
+        message:
+          `Hugging Face router failed (${routerErrorMessage}). ` +
+          (
+            inferencePayload?.error?.message ||
+            inferencePayload?.error ||
+            `Inference API request failed (${inferenceResponse.status})`
+          ),
+      };
+    }
+
+    let generatedText = "";
+    if (Array.isArray(inferencePayload)) {
+      generatedText = normalizeAiText(inferencePayload?.[0]?.generated_text, 120_000);
+    } else {
+      generatedText = normalizeAiText(inferencePayload?.generated_text, 120_000);
+    }
+
+    if (!generatedText) {
+      return {
+        ok: false,
+        provider: "huggingface",
+        model: HUGGING_FACE_MODEL,
+        message: "Empty response from Hugging Face Inference API",
+      };
+    }
+
+    return {
+      ok: true,
+      provider: "huggingface",
+      model: HUGGING_FACE_MODEL,
+      content: generatedText,
+    };
+  };
+
+  const response = await fetch("https://router.huggingface.co/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${HUGGING_FACE_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: HUGGING_FACE_MODEL,
+      messages,
+      temperature: 0.35,
+      max_tokens: 900,
+    }),
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const errorMessage = String(payload?.error?.message || payload?.error || "").trim();
+    const errorCode = String(payload?.error?.code || "").trim().toLowerCase();
+    const modelNotSupported =
+      errorCode === "model_not_supported" ||
+      errorMessage.toLowerCase().includes("not supported by any provider");
+
+    if (modelNotSupported) {
+      return await requestInferenceApiFallback(errorMessage || `router status ${response.status}`);
+    }
+
+    return {
+      ok: false,
+      provider: "huggingface",
+      model: HUGGING_FACE_MODEL,
+      message: errorMessage || `Hugging Face request failed (${response.status})`,
+    };
+  }
+
+  let generatedText = normalizeAiText(payload?.choices?.[0]?.message?.content, 120_000);
+
+  if (!generatedText && Array.isArray(payload?.choices?.[0]?.message?.content)) {
+    generatedText = normalizeAiText(
+      payload.choices[0].message.content
+        .map((part: any) => normalizeAiText(part?.text, 60000))
+        .filter(Boolean)
+        .join("\n"),
+      120_000,
+    );
+  }
+
+  if (!generatedText) {
+    return {
+      ok: false,
+      provider: "huggingface",
+      model: HUGGING_FACE_MODEL,
+      message: "Empty response from Hugging Face",
+    };
+  }
+
+  return {
+    ok: true,
+    provider: "huggingface",
+    model: HUGGING_FACE_MODEL,
+    content: generatedText,
+  };
+}
+
+async function requestAiChatResponse(args: AiChatRequestArgs) {
+  const providers = getPreferredAiProviderOrder();
+  const failures: string[] = [];
+
+  for (const provider of providers) {
+    const result =
+      provider === "gemini"
+        ? await requestGeminiChatResponse(args)
+        : provider === "huggingface"
+          ? await requestHuggingFaceChatResponse(args)
+          : await requestOpenAiChatResponse(args);
+
+    if (result?.ok) {
+      return result;
+    }
+
+    const reason = normalizeAiText(result?.message || "request failed", 300);
+    failures.push(`${provider}: ${reason || "request failed"}`);
+  }
+
+  return {
+    ok: false,
+    provider: "fallback",
+    model: getModelNameForProvider(getPreferredAiProviderOrder()[0] || "openai"),
+    message:
+      failures.join(" | ") ||
+      "No AI provider is configured. Set AI_PROVIDER and corresponding API key env vars.",
+  };
+}
+
+async function requestOpenAiTranscription(file: File) {
+  if (!OPENAI_API_KEY) {
+    return { ok: false, error: "Missing OPENAI_API_KEY" };
+  }
+
+  const formData = new FormData();
+  formData.append("file", file, sanitizeFileName(file.name || "voice.webm"));
+  formData.append("model", OPENAI_TRANSCRIBE_MODEL);
+
+  const response = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${OPENAI_API_KEY}`,
+    },
+    body: formData,
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    return {
+      ok: false,
+      error: payload?.error?.message || "Transcription failed",
+    };
+  }
+
+  return {
+    ok: true,
+    text: normalizeAiText(payload?.text, 4000),
   };
 }
 
@@ -2889,11 +4003,7 @@ app.post("/make-server-50b25a4f/listings", async (c) => {
 app.get("/make-server-50b25a4f/listings", async (c) => {
   try {
     let listings = await kv.getByPrefix('listing:');
-    if (shouldSeedDemoMarketplaceData && (!Array.isArray(listings) || listings.length === 0)) {
-      await ensureDemoMarketplaceData();
-      listings = await kv.getByPrefix('listing:');
-    }
-    if (!shouldSeedDemoMarketplaceData && Array.isArray(listings)) {
+    if (Array.isArray(listings)) {
       listings = listings.filter((listing: any) => !isDemoMarketplaceListing(listing));
     }
     const sellerCache = new Map<string, any | null>();
@@ -2951,7 +4061,7 @@ app.get("/make-server-50b25a4f/listings/:id", async (c) => {
     const id = c.req.param('id');
     const listing = await kv.get(`listing:${id}`);
     
-    if (!listing || (!shouldSeedDemoMarketplaceData && isDemoMarketplaceListing(listing))) {
+    if (!listing || isDemoMarketplaceListing(listing)) {
       return c.json({ error: 'Listing not found' }, 404);
     }
 
@@ -6175,6 +7285,116 @@ app.get("/make-server-50b25a4f/admin/payouts", async (c) => {
   }
 });
 
+// Get platform revenue wallet summary (admin only)
+app.get("/make-server-50b25a4f/admin/platform-wallet", async (c) => {
+  const user = await verifyAuth(c.req.header("Authorization"));
+
+  if (!user) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
+  const profile = await getUserProfile(user.id);
+  if (!profile || profile.role !== "admin") {
+    return c.json({ error: "Forbidden - Admin only" }, 403);
+  }
+
+  try {
+    const summary = await getPlatformRevenueWalletSummary();
+    const defaultPhoneNumber = normalizePhone(profile.phone || "");
+    return c.json({
+      ...summary,
+      defaultPhoneNumber,
+    });
+  } catch (error) {
+    console.error("Get platform revenue wallet error:", error);
+    return c.json({ error: "Failed to load platform revenue wallet" }, 500);
+  }
+});
+
+// Withdraw platform revenue to mobile money (admin only)
+app.post("/make-server-50b25a4f/admin/platform-wallet/withdraw", async (c) => {
+  const user = await verifyAuth(c.req.header("Authorization"));
+
+  if (!user) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
+  const profile = await getUserProfile(user.id);
+  if (!profile || profile.role !== "admin") {
+    return c.json({ error: "Forbidden - Admin only" }, 403);
+  }
+
+  try {
+    const body = await c.req.json().catch(() => ({}));
+    const amount = roundXafAmount(body?.amount);
+    const provider = body?.provider === "orange-money" ? "orange-money" : "mtn-momo";
+    const phoneNumber = normalizePhone(body?.phoneNumber || profile.phone || "");
+
+    if (!amount || amount <= 0) {
+      return c.json({ error: "Withdrawal amount must be greater than zero" }, 400);
+    }
+    if (!isValidCameroonPhone(phoneNumber)) {
+      return c.json({ error: "A valid Cameroon phone number is required" }, 400);
+    }
+
+    const platformWallet = await getWallet(ADMIN_WALLET_USER_ID);
+    if (platformWallet.availableBalance < amount) {
+      return c.json({ error: "Insufficient platform revenue balance" }, 400);
+    }
+
+    const now = new Date().toISOString();
+    const withdrawalId = createEntityId("WD");
+    const payoutReference = `ADMIN-REV-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+    const payoutResult = await processOutboundMobileMoneyPayout({
+      amount,
+      phoneNumber,
+      provider,
+      reference: payoutReference,
+      description: `Platform revenue withdrawal by admin ${user.id}`,
+    });
+    const payoutStatus = String(payoutResult.status || "").toLowerCase();
+    const completedStatuses = new Set(["successful", "success", "completed"]);
+    const withdrawalStatus = completedStatuses.has(payoutStatus)
+      ? WITHDRAWAL_STATUS.COMPLETED
+      : WITHDRAWAL_STATUS.PROCESSING;
+
+    await adjustWallet(ADMIN_WALLET_USER_ID, { availableDelta: -amount });
+
+    const withdrawal = {
+      id: withdrawalId,
+      userId: ADMIN_WALLET_USER_ID,
+      amount,
+      provider,
+      phoneNumber,
+      status: withdrawalStatus,
+      reference: payoutResult.reference || payoutReference,
+      providerStatus: payoutResult.status,
+      providerName: payoutResult.provider,
+      providerPayload: payoutResult.raw,
+      note:
+        withdrawalStatus === WITHDRAWAL_STATUS.COMPLETED
+          ? "Platform revenue withdrawn to mobile money"
+          : "Platform revenue payout accepted and processing with provider",
+      createdAt: now,
+      updatedAt: now,
+      processedBy: user.id,
+      source: "admin-platform-withdrawal",
+    };
+
+    await kv.set(`withdrawal:${withdrawalId}`, withdrawal);
+    const platformWithdrawals = (await kv.get(`user:${ADMIN_WALLET_USER_ID}:withdrawals`)) || [];
+    platformWithdrawals.push(withdrawalId);
+    await kv.set(`user:${ADMIN_WALLET_USER_ID}:withdrawals`, platformWithdrawals);
+
+    const summary = await getPlatformRevenueWalletSummary();
+    return c.json({ success: true, withdrawal, ...summary });
+  } catch (error) {
+    console.error("Platform revenue withdrawal error:", error);
+    const message = error instanceof Error ? error.message : "Failed to process platform revenue withdrawal";
+    return c.json({ error: message }, 500);
+  }
+});
+
 // Mark payout as paid (admin only)
 app.post("/make-server-50b25a4f/admin/payouts/:sellerId/pay", async (c) => {
   const user = await verifyAuth(c.req.header("Authorization"));
@@ -6426,6 +7646,489 @@ app.delete("/make-server-50b25a4f/admin/users/:id", async (c) => {
   } catch (error) {
     console.error('Delete user error:', error);
     return c.json({ error: 'Failed to delete user' }, 500);
+  }
+});
+
+// ============ AI ASSISTANT ROUTES ============
+
+app.get("/make-server-50b25a4f/ai-chat/history", async (c) => {
+  const user = await verifyAuth(c.req.header("Authorization"));
+  try {
+    const usageSnapshot = await getAiDailyUsageSnapshot(c.req.raw, user?.id);
+    const requestedConversationId = normalizeAiConversationId(c.req.query("conversationId"));
+    if (!user) {
+      return c.json({
+        messages: [],
+        conversations: [],
+        activeConversationId: "",
+        usage: toPublicAiUsageSnapshot(usageSnapshot),
+      });
+    }
+
+    const storedConversations = await kv.get(aiChatConversationsKey(user.id));
+    const legacyHistory = await kv.get(aiChatHistoryKey(user.id));
+    const conversations = normalizeAiConversationsForUser(storedConversations, legacyHistory);
+
+    if (conversations.length > 0 && (!Array.isArray(storedConversations) || storedConversations.length === 0)) {
+      await kv.set(aiChatConversationsKey(user.id), conversations);
+    }
+
+    const activeConversation = requestedConversationId
+      ? (conversations.find((entry: any) => entry.id === requestedConversationId) || conversations[0])
+      : conversations[0];
+
+    return c.json({
+      messages: activeConversation?.messages || [],
+      conversations,
+      activeConversationId: activeConversation?.id || "",
+      usage: toPublicAiUsageSnapshot(usageSnapshot),
+    });
+  } catch (error) {
+    console.error("Get AI chat history error:", error);
+    return c.json({ error: "Failed to load AI chat history" }, 500);
+  }
+});
+
+app.get("/make-server-50b25a4f/ai-chat/preferences", async (c) => {
+  const user = await verifyAuth(c.req.header("Authorization"));
+  if (!user) {
+    return c.json({ preferences: mergeAiPreferences({}, {}) });
+  }
+
+  try {
+    const preferences = mergeAiPreferences(await kv.get(aiPreferenceKey(user.id)), {});
+    return c.json({ preferences });
+  } catch (error) {
+    console.error("Get AI preferences error:", error);
+    return c.json({ error: "Failed to load AI preferences" }, 500);
+  }
+});
+
+app.delete("/make-server-50b25a4f/ai-chat/history", async (c) => {
+  const user = await verifyAuth(c.req.header("Authorization"));
+  if (!user) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
+  try {
+    const requestedConversationId = normalizeAiConversationId(c.req.query("conversationId"));
+    if (requestedConversationId) {
+      const storedConversations = await kv.get(aiChatConversationsKey(user.id));
+      const legacyHistory = await kv.get(aiChatHistoryKey(user.id));
+      const conversations = normalizeAiConversationsForUser(storedConversations, legacyHistory);
+      const remainingConversations = conversations.filter((entry: any) => entry.id !== requestedConversationId);
+
+      if (remainingConversations.length > 0) {
+        await kv.set(aiChatConversationsKey(user.id), remainingConversations);
+        await kv.set(aiChatHistoryKey(user.id), remainingConversations[0].messages);
+      } else {
+        await kv.del(aiChatConversationsKey(user.id));
+        await kv.del(aiChatHistoryKey(user.id));
+      }
+
+      return c.json({
+        success: true,
+        conversations: remainingConversations,
+        activeConversationId: remainingConversations[0]?.id || "",
+      });
+    }
+
+    await kv.del(aiChatConversationsKey(user.id));
+    await kv.del(aiChatHistoryKey(user.id));
+    return c.json({ success: true, conversations: [], activeConversationId: "" });
+  } catch (error) {
+    console.error("Clear AI chat history error:", error);
+    return c.json({ error: "Failed to clear AI chat history" }, 500);
+  }
+});
+
+app.post("/make-server-50b25a4f/ai-chat/transcribe", async (c) => {
+  try {
+    const formData = await c.req.formData();
+    const audio = formData.get("audio") || formData.get("file");
+
+    if (!(audio instanceof File)) {
+      return c.json({ error: "Audio file is required" }, 400);
+    }
+
+    const transcription = await requestOpenAiTranscription(audio);
+    if (!transcription.ok) {
+      return c.json({ error: transcription.error || "Failed to transcribe audio" }, 502);
+    }
+
+    return c.json({ text: transcription.text || "" });
+  } catch (error) {
+    console.error("AI transcription error:", error);
+    return c.json({ error: "Failed to transcribe audio" }, 500);
+  }
+});
+
+app.post("/make-server-50b25a4f/ai-chat/analytics", async (c) => {
+  const user = await verifyAuth(c.req.header("Authorization"));
+  if (!user) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
+  try {
+    const body = await c.req.json().catch(() => ({}));
+    const eventType = normalizeAiText(body?.eventType, 80);
+    const itemId = normalizeAiText(body?.itemId, 120);
+    if (!eventType || !itemId) {
+      return c.json({ error: "eventType and itemId are required" }, 400);
+    }
+
+    const previous = normalizeAiAnalyticsEvents(await kv.get(aiAnalyticsKey(user.id)));
+    const next = normalizeAiAnalyticsEvents([
+      ...previous,
+      {
+        id: createEntityId("AIEVT"),
+        eventType,
+        itemId,
+        metadata: body?.metadata && typeof body.metadata === "object" ? body.metadata : {},
+        createdAt: new Date().toISOString(),
+      },
+    ]);
+
+    await kv.set(aiAnalyticsKey(user.id), next);
+    return c.json({ success: true });
+  } catch (error) {
+    console.error("AI analytics error:", error);
+    return c.json({ error: "Failed to record AI analytics event" }, 500);
+  }
+});
+
+app.post("/make-server-50b25a4f/ai-chat", async (c) => {
+  const user = await verifyAuth(c.req.header("Authorization"));
+  let usageSnapshot: AiDailyUsageSnapshot | null = null;
+
+  try {
+    const body = await c.req.json().catch(() => ({}));
+    const message = normalizeAiText(body?.message, 3000);
+    if (!message) {
+      return c.json({ error: "Message is required" }, 400);
+    }
+
+    usageSnapshot = await getAiDailyUsageSnapshot(c.req.raw, user?.id);
+    if (usageSnapshot.remaining <= 0) {
+      return c.json(
+        {
+          error:
+            `You have reached your ${usageSnapshot.limit}-question limit for the last 24 hours. ` +
+            "Please come back tomorrow to continue.",
+          usage: toPublicAiUsageSnapshot(usageSnapshot),
+        },
+        429,
+      );
+    }
+    usageSnapshot = await incrementAiDailyUsage(usageSnapshot);
+
+    const images = extractDataUrlImages(body?.images);
+    const location = normalizeAiLocation(body?.location);
+    const clientHistory = normalizeAiHistoryEntries(body?.clientHistory);
+    const requestedConversationId = normalizeAiConversationId(body?.conversationId);
+    const requestedConversationTitle = normalizeAiText(body?.conversationTitle, 120);
+    const inferredIntent = detectPrimaryIntent(message);
+
+    const savedPreferences = user
+      ? mergeAiPreferences(await kv.get(aiPreferenceKey(user.id)), {})
+      : mergeAiPreferences({}, {});
+
+    const effectiveLocation = {
+      ...(location || {}),
+      city: normalizeAiText(location?.city || savedPreferences.preferredCity || "", 120),
+      university: normalizeAiText(location?.university || savedPreferences.preferredUniversity || "", 120),
+      country: normalizeAiText(location?.country || "Cameroon", 120),
+    };
+
+    const storedConversations = user
+      ? normalizeAiConversationsForUser(
+        await kv.get(aiChatConversationsKey(user.id)),
+        await kv.get(aiChatHistoryKey(user.id)),
+      )
+      : [];
+
+    const selectedConversation = user
+      ? (
+        requestedConversationId
+          ? (
+            storedConversations.find((entry: any) => entry.id === requestedConversationId) ||
+            {
+              id: requestedConversationId,
+              title: requestedConversationTitle || "New chat",
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              messages: [],
+            }
+          )
+          : (
+            storedConversations[0] ||
+            {
+              id: createEntityId("AITHR"),
+              title: requestedConversationTitle || "New chat",
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              messages: [],
+            }
+          )
+      )
+      : null;
+
+    const activeHistory = (
+      user
+        ? normalizeAiHistoryEntries(selectedConversation?.messages)
+        : clientHistory
+    ).slice(-20);
+
+    const listings = await getAvailableListingsForAi();
+    const preferenceSearchTerms = [
+      savedPreferences.preferredStyle,
+      savedPreferences.preferredCity,
+      savedPreferences.preferredUniversity,
+      inferredIntent,
+    ]
+      .filter(Boolean)
+      .join(" ");
+    const searchTokens = extractSearchTokens(
+      [message, preferenceSearchTerms, activeHistory.map((entry: any) => entry.content).join(" ")].join(" "),
+    );
+    const budgetFromMessage = parseBudgetFromText(message);
+    const budget = budgetFromMessage || (
+      savedPreferences.budgetMax > 0
+        ? {
+          min: savedPreferences.budgetMin,
+          max: savedPreferences.budgetMax,
+        }
+        : null
+    );
+
+    const rankedListings = listings
+      .map((listing: any) => ({
+        listing,
+        score: scoreListingForQuery(listing, searchTokens, effectiveLocation, budget),
+      }))
+      .filter((entry: any) => Number.isFinite(entry.score))
+      .sort((a: any, b: any) => b.score - a.score);
+
+    const topRankedListings = rankedListings
+      .slice(0, AI_MAX_PROMPT_LISTINGS)
+      .map((entry: any) => entry.listing);
+
+    const listingsContext = topRankedListings.map((listing: any) => ({
+      id: String(listing.id || ""),
+      title: String(listing.title || ""),
+      description: String(listing.description || ""),
+      price: Math.max(0, toSafeNumber(listing.price, 0)),
+      category: String(listing.category || ""),
+      type: listing.type === "rent" ? "rent" : "sell",
+      location: String(listing.location || ""),
+      sellerUniversity: String(listing?.seller?.university || ""),
+      sellerRating: Math.max(0, toSafeNumber(listing?.seller?.rating, 0)),
+      likesCount: Math.max(0, toSafeNumber(listing.likesCount, 0)),
+      views: Math.max(0, toSafeNumber(listing.views, 0)),
+      status: String(listing.status || ""),
+    }));
+
+    const systemPrompt = [
+      "You are Kori, an AI marketplace assistant for student users in Cameroon.",
+      "Support product recommendations, room setup/decor guidance, and kitchen shopping plans.",
+      "Only recommend items from the provided listings JSON. Never invent items, prices, or sellers.",
+      "If user intent is unclear, ask concise follow-up questions.",
+      "Return strictly valid JSON with this shape:",
+      "{",
+      '  "intent": string,',
+      '  "assistant_message": string,',
+      '  "recommended_item_ids": string[],',
+      '  "recommendation_reasons": { "<listing_id>": "<reason>" },',
+      '  "style_plan": object|null,',
+      '  "kitchen_list": object|null,',
+      '  "budget_breakdown": object|null,',
+      '  "next_questions": string[]',
+      "}",
+      "Keep assistant_message actionable and friendly.",
+    ].join("\n");
+
+    const modelResponse = await requestAiChatResponse({
+      systemPrompt,
+      listingsContext,
+      history: activeHistory,
+      userMessage: message,
+      imageDataUrls: images,
+      location: {
+        ...effectiveLocation,
+        preferences: savedPreferences,
+      },
+    });
+
+    const parsedModel = modelResponse.ok
+      ? parseJsonFromModelText(modelResponse.content || "")
+      : null;
+
+    const fallbackPlainReply =
+      modelResponse.ok && !parsedModel
+        ? normalizeAiText(modelResponse.content || "", 5000)
+        : "";
+
+    const requestedIds = Array.isArray(parsedModel?.recommended_item_ids)
+      ? parsedModel.recommended_item_ids
+        .map((value: unknown) => normalizeAiText(value, 100))
+        .filter(Boolean)
+      : [];
+
+    const reasonsMap =
+      parsedModel?.recommendation_reasons && typeof parsedModel.recommendation_reasons === "object"
+        ? parsedModel.recommendation_reasons
+        : {};
+
+    const selectedListings: any[] = [];
+    for (const id of requestedIds) {
+      const match = topRankedListings.find((listing: any) => String(listing.id) === id);
+      if (match && !selectedListings.find((entry: any) => entry.id === match.id)) {
+        selectedListings.push(match);
+      }
+      if (selectedListings.length >= 6) {
+        break;
+      }
+    }
+
+    if (selectedListings.length < 6) {
+      for (const listing of topRankedListings) {
+        if (!selectedListings.find((entry: any) => entry.id === listing.id)) {
+          selectedListings.push(listing);
+        }
+        if (selectedListings.length >= 6) {
+          break;
+        }
+      }
+    }
+
+    const recommendedItems = selectedListings.map((listing: any) => ({
+      id: String(listing.id || ""),
+      title: String(listing.title || ""),
+      description: String(listing.description || ""),
+      price: Math.max(0, toSafeNumber(listing.price, 0)),
+      category: String(listing.category || ""),
+      type: listing.type === "rent" ? "rent" : "sell",
+      image: Array.isArray(listing.images) ? (listing.images[0] || "") : "",
+      location: String(listing.location || listing?.seller?.university || ""),
+      seller: {
+        id: String(listing?.seller?.id || ""),
+        name: String(listing?.seller?.name || "Unknown seller"),
+        university: String(listing?.seller?.university || ""),
+        rating: Math.max(0, toSafeNumber(listing?.seller?.rating, 0)),
+      },
+      reason: normalizeAiText(reasonsMap?.[listing.id], 300) || buildDefaultRecommendationReason(listing),
+    }));
+
+    const assistantMessage = normalizeAiText(
+      parsedModel?.assistant_message,
+      6000,
+    ) || fallbackPlainReply || buildFallbackAssistantMessage(recommendedItems.length);
+
+    const nextQuestions = Array.isArray(parsedModel?.next_questions)
+      ? parsedModel.next_questions
+        .map((value: unknown) => normalizeAiText(value, 250))
+        .filter(Boolean)
+        .slice(0, 4)
+      : [];
+
+    const intent = normalizeAiText(parsedModel?.intent, 80) || inferredIntent || "product_recommendation";
+    const stylePlan =
+      parsedModel?.style_plan && typeof parsedModel.style_plan === "object" ? parsedModel.style_plan : null;
+    const kitchenList =
+      parsedModel?.kitchen_list && typeof parsedModel.kitchen_list === "object" ? parsedModel.kitchen_list : null;
+    const budgetBreakdown =
+      parsedModel?.budget_breakdown && typeof parsedModel.budget_breakdown === "object"
+        ? parsedModel.budget_breakdown
+        : null;
+
+    const styleFromModel = normalizeAiText((stylePlan as any)?.style, 80);
+    const styleFromMessage = detectStyleFromText(message);
+    const nextPreferences = mergeAiPreferences(savedPreferences, {
+      budgetMin: budgetFromMessage?.min,
+      budgetMax: budgetFromMessage?.max,
+      preferredStyle: styleFromModel || styleFromMessage || savedPreferences.preferredStyle,
+      preferredCity: effectiveLocation.city || savedPreferences.preferredCity,
+      preferredUniversity: effectiveLocation.university || savedPreferences.preferredUniversity,
+      lastIntent: intent,
+    });
+
+    const now = new Date().toISOString();
+    const updatedHistory = normalizeAiHistoryEntries([
+      ...activeHistory,
+      {
+        id: createEntityId("AIMSG"),
+        role: "user",
+        content: message,
+        createdAt: now,
+      },
+      {
+        id: createEntityId("AIMSG"),
+        role: "assistant",
+        content: assistantMessage,
+        createdAt: now,
+      },
+    ]);
+
+    const activeConversationId = user
+      ? (
+        selectedConversation?.id ||
+        requestedConversationId ||
+        createEntityId("AITHR")
+      )
+      : "";
+
+    const updatedConversation = user
+      ? {
+        id: activeConversationId,
+        title: normalizeAiConversationTitle(requestedConversationTitle, updatedHistory),
+        createdAt: selectedConversation?.createdAt || now,
+        updatedAt: now,
+        messages: updatedHistory,
+      }
+      : null;
+
+    const conversations = user && updatedConversation
+      ? upsertAiConversation(storedConversations, updatedConversation)
+      : [];
+
+    if (user) {
+      await kv.set(aiChatConversationsKey(user.id), conversations);
+      await kv.set(aiChatHistoryKey(user.id), updatedHistory);
+      await kv.set(aiPreferenceKey(user.id), nextPreferences);
+    }
+
+    return c.json({
+      success: true,
+      intent,
+      assistantMessage,
+      recommendedItems,
+      stylePlan,
+      kitchenList,
+      budgetBreakdown,
+      nextQuestions,
+      messages: updatedHistory,
+      conversationId: activeConversationId,
+      activeConversationId,
+      conversations,
+      preferences: nextPreferences,
+      usage: usageSnapshot ? toPublicAiUsageSnapshot(usageSnapshot) : null,
+      metadata: {
+        model:
+          normalizeAiText(modelResponse?.model, 160) ||
+          getModelNameForProvider(getPreferredAiProviderOrder()[0] || "openai"),
+        source: modelResponse.ok ? (normalizeAiText(modelResponse?.provider, 60) || "openai") : "fallback",
+        warning: modelResponse.ok ? "" : modelResponse.message || "",
+      },
+    });
+  } catch (error) {
+    console.error("AI chat error:", error);
+    return c.json(
+      {
+        error: "Failed to process AI chat request",
+        usage: usageSnapshot ? toPublicAiUsageSnapshot(usageSnapshot) : null,
+      },
+      500,
+    );
   }
 });
 

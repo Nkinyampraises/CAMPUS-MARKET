@@ -616,10 +616,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     refreshCurrentUser: refreshUser,
   };
 
-  if (loading) {
-    return null; // Or a loading spinner
-  }
-
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

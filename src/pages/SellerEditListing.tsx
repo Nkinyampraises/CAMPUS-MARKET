@@ -8,7 +8,6 @@ import { Textarea } from '@/app/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
 import { ArrowLeft, Loader2, Trash2 } from 'lucide-react';
-import { categories, locations } from '@/data/mockData';
 import { ImageUploader } from '@/components/ImageUploader';
 import { toast } from 'sonner';
 
@@ -18,6 +17,7 @@ type ListingType = 'sell' | 'rent';
 type RentalPeriod = 'daily' | 'weekly' | 'monthly';
 type ListingStatus = 'available' | 'sold' | 'rented' | 'reserved' | 'inactive';
 type Condition = 'new' | 'like-new' | 'good' | 'fair';
+type NamedOption = { id: string; name: string };
 
 export function SellerEditListing() {
   const { id } = useParams<{ id: string }>();
@@ -38,6 +38,8 @@ export function SellerEditListing() {
     status: 'available' as ListingStatus,
     images: [] as string[],
   });
+  const [categories, setCategories] = useState<NamedOption[]>([]);
+  const [locations, setLocations] = useState<NamedOption[]>([]);
 
   const requestWithAuthRetry = async (path: string, init?: RequestInit) => {
     if (!accessToken) {
@@ -75,6 +77,51 @@ export function SellerEditListing() {
   };
 
   useEffect(() => {
+    let mounted = true;
+
+    const fetchOptions = async () => {
+      try {
+        const [categoriesResult, universitiesResult] = await Promise.allSettled([
+          fetch(`${API_URL}/categories`),
+          fetch(`${API_URL}/universities`),
+        ]);
+
+        if (categoriesResult.status === 'fulfilled') {
+          const response = categoriesResult.value;
+          const data = await response.json().catch(() => ({}));
+          if (response.ok && Array.isArray(data.categories) && mounted) {
+            const next = data.categories
+              .map((entry: any) => ({
+                id: String(entry?.id || '').trim(),
+                name: String(entry?.name || '').trim(),
+              }))
+              .filter((entry: NamedOption) => entry.id && entry.name);
+            setCategories(next);
+          }
+        }
+
+        if (universitiesResult.status === 'fulfilled') {
+          const response = universitiesResult.value;
+          const data = await response.json().catch(() => ({}));
+          if (response.ok && Array.isArray(data.universities) && mounted) {
+            const next = data.universities
+              .map((entry: any) => ({
+                id: String(entry?.id || '').trim(),
+                name: String(entry?.name || '').trim(),
+              }))
+              .filter((entry: NamedOption) => entry.id && entry.name);
+            setLocations(next);
+          }
+        }
+      } catch {
+        if (mounted) {
+          toast.error('Failed to load categories and locations');
+        }
+      }
+    };
+
+    fetchOptions();
+
     const fetchListing = async () => {
       if (!id || !currentUser || !accessToken) {
         setLoading(false);
@@ -131,7 +178,10 @@ export function SellerEditListing() {
       return;
     }
     fetchListing();
-  }, [id, currentUser, accessToken]);
+    return () => {
+      mounted = false;
+    };
+  }, [id, currentUser, accessToken, navigate]);
 
   const priceLabel = useMemo(() => {
     if (formData.type === 'rent') {
@@ -252,6 +302,9 @@ export function SellerEditListing() {
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent>
+                      {formData.category && !categories.some((category) => category.id === formData.category) ? (
+                        <SelectItem value={formData.category}>{formData.category}</SelectItem>
+                      ) : null}
                       {categories.map((category) => (
                         <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
                       ))}
@@ -343,6 +396,9 @@ export function SellerEditListing() {
                     <SelectValue placeholder="Select location" />
                   </SelectTrigger>
                   <SelectContent>
+                    {formData.location && !locations.some((location) => location.id === formData.location) ? (
+                      <SelectItem value={formData.location}>{formData.location}</SelectItem>
+                    ) : null}
                     {locations.map((location) => (
                       <SelectItem key={location.id} value={location.id}>{location.name}</SelectItem>
                     ))}
@@ -377,7 +433,7 @@ export function SellerEditListing() {
                 <Button type="button" variant="outline" className="flex-1" onClick={() => navigate('/seller/manage-listings')} disabled={saving}>
                   Cancel
                 </Button>
-                <Button type="submit" className="flex-1 bg-green-600 hover:bg-green-700" disabled={saving}>
+                <Button type="submit" className="flex-1 bg-[#1FAF9A] hover:bg-[#27b9a6]" disabled={saving}>
                   {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
                   {saving ? 'Saving...' : 'Update Listing'}
                 </Button>
@@ -389,4 +445,5 @@ export function SellerEditListing() {
     </div>
   );
 }
+
 

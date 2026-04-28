@@ -72,9 +72,11 @@ export function Header() {
       : currentUser?.userType === 'buyer'
         ? '/buyer/profile'
         : '/seller/profile';
+  const activeHeaderClass = 'bg-[#1FAF9A] text-white hover:bg-[#27b9a6]';
+  const inactiveHeaderClass = 'text-[#def0f5] hover:bg-[#0b3f3f] hover:text-white';
 
   return (
-    <header className="sticky top-0 z-40 border-b border-[#0b5d71] bg-[#062f40]/95 text-white backdrop-blur-xl supports-[backdrop-filter]:bg-[#062f40]/85">
+    <header className="sticky top-0 z-40 border-b border-[#0b3f3f] bg-[#0F4C4C] text-white">
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[2px] bg-gradient-to-r from-transparent via-[#12bfd5] to-transparent" />
       <div className="container mx-auto px-3 py-1.5 sm:px-4 sm:py-3">
         <div className="flex items-center justify-between gap-2 lg:gap-4">
@@ -96,8 +98,8 @@ export function Header() {
               className={cn(
                 'h-8 w-8 rounded-full p-0 sm:h-9 sm:w-auto sm:px-4',
                 isActive('/')
-                  ? 'bg-[#2ad8cc] text-[#053848] hover:bg-[#40e2d7]'
-                  : 'text-[#def0f5] hover:bg-[#0f4d62] hover:text-white',
+                  ? activeHeaderClass
+                  : inactiveHeaderClass,
               )}
             >
               <Home className="h-4 w-4 sm:mr-2" />
@@ -111,8 +113,8 @@ export function Header() {
               className={cn(
                 'h-8 w-8 rounded-full p-0 sm:h-9 sm:w-auto sm:px-4',
                 isActive('/marketplace')
-                  ? 'bg-[#2ad8cc] text-[#053848] hover:bg-[#40e2d7]'
-                  : 'text-[#def0f5] hover:bg-[#0f4d62] hover:text-white',
+                  ? activeHeaderClass
+                  : inactiveHeaderClass,
               )}
             >
               <ShoppingBag className="h-4 w-4 sm:mr-2" />
@@ -128,8 +130,8 @@ export function Header() {
                   className={cn(
                     'h-8 w-8 rounded-full p-0 sm:h-9 sm:w-auto sm:px-4',
                     isDashboardArea
-                      ? 'bg-[#2ad8cc] text-[#053848] hover:bg-[#40e2d7]'
-                      : 'text-[#def0f5] hover:bg-[#0f4d62] hover:text-white',
+                      ? activeHeaderClass
+                      : inactiveHeaderClass,
                   )}
                 >
                   <LayoutDashboard className="h-4 w-4 sm:mr-2" />
@@ -141,7 +143,10 @@ export function Header() {
                     variant="ghost"
                     size="sm"
                     onClick={() => navigate('/add-listing')}
-                    className="hidden text-[#def0f5] hover:bg-[#0f4d62] hover:text-white md:flex"
+                    className={cn(
+                      'hidden md:flex',
+                      isActive('/add-listing') ? activeHeaderClass : 'text-[#def0f5] hover:bg-[#0f4d62] hover:text-white',
+                    )}
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     {t('nav.listItem', 'List Item')}
@@ -153,7 +158,10 @@ export function Header() {
                     variant="ghost"
                     size="sm"
                     onClick={() => navigate('/favorites')}
-                    className="hidden text-[#def0f5] hover:bg-[#0f4d62] hover:text-white md:flex"
+                    className={cn(
+                      'hidden md:flex',
+                      isActive('/favorites') ? activeHeaderClass : 'text-[#def0f5] hover:bg-[#0f4d62] hover:text-white',
+                    )}
                   >
                     <Heart className="h-4 w-4 mr-2" />
                     {t('nav.favorites', 'Favorites')}
@@ -164,7 +172,12 @@ export function Header() {
                   variant="ghost"
                   size="sm"
                   onClick={() => navigate('/messages')}
-                  className="relative h-8 w-8 rounded-full p-0 text-[#def0f5] hover:bg-[#0f4d62] hover:text-white sm:h-9 sm:w-9"
+                  className={cn(
+                    'relative h-8 w-8 rounded-full p-0 sm:h-9 sm:w-9',
+                    isActive('/messages')
+                      ? activeHeaderClass
+                      : 'text-[#def0f5] hover:bg-[#0f4d62] hover:text-white',
+                  )}
                 >
                   <MessageSquare className="h-4 w-4" />
                 </Button>
@@ -173,7 +186,10 @@ export function Header() {
                   <button
                     type="button"
                     onClick={() => navigate(profilePath)}
-                    className="flex items-center gap-1.5 rounded-full border border-[#3f7286] px-1.5 py-1 text-white transition-colors hover:bg-[#0f4d62] hover:text-white"
+                    className={cn(
+                      'flex items-center gap-1.5 rounded-full border border-[#3f7286] px-1.5 py-1 text-white transition-colors',
+                      isActive(profilePath) ? activeHeaderClass : 'hover:bg-[#0b3f3f] hover:text-white',
+                    )}
                     title={t('nav.profile', 'My Profile')}
                   >
                     <Avatar className="h-6 w-6 sm:h-7 sm:w-7">
@@ -189,7 +205,16 @@ export function Header() {
                 ) : (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="h-8 rounded-full border border-[#3f7286] px-1.5 text-[#def0f5] hover:bg-[#0f4d62] hover:text-white sm:h-9 sm:px-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className={cn(
+                          'h-8 rounded-full border border-[#3f7286] px-1.5 sm:h-9 sm:px-2',
+                          isActive(profilePath)
+                            ? activeHeaderClass
+                            : 'text-[#def0f5] hover:bg-[#0f4d62] hover:text-white',
+                        )}
+                      >
                         <Avatar className="h-6 w-6 sm:h-7 sm:w-7">
                           {currentUser?.profilePicture ? (
                             <AvatarImage src={currentUser.profilePicture} alt={currentUser.name} />
@@ -300,7 +325,7 @@ export function Header() {
                   variant="ghost"
                   size="sm"
                   onClick={handleLogout}
-                  className="hidden text-[#def0f5] hover:bg-[#0f4d62] hover:text-white md:flex"
+                  className="hidden text-[#def0f5] hover:bg-[#0b3f3f] hover:text-white md:flex"
                 >
                   <LogOut className="h-4 w-4 mr-2" />
                   {t('nav.logout', 'Logout')}
@@ -311,14 +336,20 @@ export function Header() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="px-2 text-[#def0f5] hover:bg-[#0f4d62] hover:text-white sm:px-3"
+                  className={cn(
+                    'px-2 sm:px-3',
+                    isActive('/login') ? activeHeaderClass : 'text-[#def0f5] hover:bg-[#0b3f3f] hover:text-white',
+                  )}
                   onClick={() => navigate('/login')}
                 >
                   {t('auth.login', 'Login')}
                 </Button>
                 <Button
                   size="sm"
-                  className="rounded-full bg-[#2ad8cc] px-2 text-[#053848] hover:bg-[#40e2d7] sm:px-4"
+                  className={cn(
+                    'rounded-full px-2 sm:px-4',
+                    isActive('/register') ? activeHeaderClass : 'bg-[#1FAF9A] text-white hover:bg-[#27b9a6]',
+                  )}
                   onClick={() => navigate('/register')}
                 >
                   {t('auth.signup', 'Sign Up')}
@@ -331,7 +362,7 @@ export function Header() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-8 w-8 rounded-full p-0 text-[#def0f5] hover:bg-[#0f4d62] hover:text-white max-[420px]:hidden sm:h-9 sm:w-auto sm:gap-1.5 sm:px-2"
+                  className="h-8 w-8 rounded-full p-0 text-[#def0f5] hover:bg-[#0b3f3f] hover:text-white max-[420px]:hidden sm:h-9 sm:w-auto sm:gap-1.5 sm:px-2"
                   title={t('language.select', 'Select language')}
                 >
                   <Languages className="h-4 w-4" />
