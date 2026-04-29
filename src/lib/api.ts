@@ -105,3 +105,34 @@ const joinApiPath = (base: string) => {
 
 export const API_BASE = resolveNativeBase() || resolveLocalhostBase() || resolveConfiguredBase() || resolveSameOriginBase();
 export const API_URL = joinApiPath(API_BASE);
+
+const FILE_PATH_PREFIX = `/${API_ROUTE_SEGMENT}/files/`;
+
+export const resolveClientAssetUrl = (value?: string | null) => {
+  const raw = typeof value === "string" ? value.trim() : "";
+  if (!raw) return "";
+  if (raw.startsWith("data:") || raw.startsWith("blob:")) return raw;
+
+  if (raw.startsWith(FILE_PATH_PREFIX)) {
+    const origin = resolveSameOriginBase();
+    return origin ? `${origin}${raw}` : raw;
+  }
+
+  try {
+    const parsed = new URL(raw);
+    if (typeof window === "undefined") {
+      return parsed.toString();
+    }
+
+    const currentHost = normalizeHost(window.location.hostname);
+    const isCurrentHostRemote = Boolean(currentHost) && !isLocalHost(currentHost);
+    if (isCurrentHostRemote && isLocalHost(parsed.hostname) && parsed.pathname.startsWith(FILE_PATH_PREFIX)) {
+      const origin = resolveSameOriginBase() || window.location.origin;
+      return `${origin}${parsed.pathname}${parsed.search}${parsed.hash}`;
+    }
+
+    return parsed.toString();
+  } catch {
+    return raw;
+  }
+};

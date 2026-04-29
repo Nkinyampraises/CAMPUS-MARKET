@@ -39,7 +39,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { API_URL } from '@/lib/api';
+import { API_URL, resolveClientAssetUrl } from '@/lib/api';
 const ENABLE_MESSAGES_WEBSOCKET = String(import.meta.env.VITE_ENABLE_MESSAGES_WS || '').toLowerCase() === 'true';
 const parseConfiguredIceServers = (): RTCIceServer[] => {
   const raw = String(import.meta.env.VITE_WEBRTC_ICE_SERVERS || '').trim();
@@ -161,6 +161,20 @@ const getUserInitial = (user?: Partial<Conversation['otherUser']> | null, fallba
   const displayName = getUserDisplayName(user, '').trim();
   if (!displayName) return fallback;
   return displayName.charAt(0).toUpperCase();
+};
+
+const normalizeConversationUser = (user: any) => {
+  if (!user || typeof user !== 'object') return user;
+  const rawAvatar =
+    typeof user?.avatar === 'string'
+      ? user.avatar
+      : (typeof user?.profilePicture === 'string' ? user.profilePicture : '');
+  const normalizedAvatar = resolveClientAssetUrl(rawAvatar);
+  return {
+    ...user,
+    avatar: normalizedAvatar,
+    profilePicture: normalizedAvatar,
+  };
 };
 
 type CallMode = 'audio' | 'video';
@@ -1515,7 +1529,10 @@ export function Messages() {
 
         // Populate user cache from response if available (for admin)
         if (data.users && Array.isArray(data.users)) {
-            data.users.forEach((u: any) => userCache.current.set(u.id, u));
+            data.users.forEach((u: any) => {
+              const normalizedUser = normalizeConversationUser(u);
+              userCache.current.set(normalizedUser.id, normalizedUser);
+            });
         }
 
         // 1. Identify missing users and items
@@ -1544,7 +1561,7 @@ export function Messages() {
               const res = await fetchWithAuth(`${API_URL}/users/${id}`);
               if (res.ok) {
                 const data = await res.json();
-                userCache.current.set(id, data.user);
+                userCache.current.set(id, normalizeConversationUser(data.user));
               } else {
                  userCache.current.set(id, { id, name: 'Unknown User', email: '' });
               }
@@ -1734,13 +1751,14 @@ export function Messages() {
 
       const userData = userResponse.ok ? await userResponse.json() : null;
       const itemData = itemResponse.ok ? await itemResponse.json() : null;
+      const normalizedUser = userData?.user ? normalizeConversationUser(userData.user) : null;
 
       // Update cache
-      if (userData?.user) userCache.current.set(userId, userData.user);
+      if (normalizedUser) userCache.current.set(userId, normalizedUser);
       if (itemData?.listing) itemCache.current.set(itemId, itemData.listing);
 
       const newConvo: Conversation = {
-        otherUser: userData?.user || { 
+        otherUser: normalizedUser || { 
           id: userId, 
           name: 'Unknown User', 
           email: '',

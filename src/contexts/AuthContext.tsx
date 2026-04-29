@@ -70,14 +70,15 @@ interface RegisterData {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-import { API_URL } from '@/lib/api';
+import { API_URL, resolveClientAssetUrl } from '@/lib/api';
 
 const normalizeUser = (user: any): User => {
   const userType = user?.userType === 'seller' ? 'seller' : 'buyer';
-  const profilePicture =
+  const profilePicture = resolveClientAssetUrl(
     typeof user?.profilePicture === 'string'
       ? user.profilePicture
-      : (typeof user?.avatar === 'string' ? user.avatar : '');
+      : (typeof user?.avatar === 'string' ? user.avatar : ''),
+  );
 
   return {
     ...user,
@@ -94,6 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [refreshToken, setRefreshToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const refreshInFlightRef = useRef<Promise<string | null> | null>(null);
+  const refreshBlockedRef = useRef(false);
   const pendingRememberDeviceRef = useRef(false);
   const sessionModeRef = useRef<'local' | 'session'>('local');
 
@@ -147,6 +149,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setCurrentUser(normalizedUser);
     setAccessToken(nextAccessToken);
     setRefreshToken(nextRefreshToken);
+    refreshBlockedRef.current = false;
     persistSession(normalizedUser, nextAccessToken, nextRefreshToken, storageMode);
 
     return true;
@@ -185,6 +188,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const storedSession = readStoredSession('local') || readStoredSession('session');
     if (storedSession) {
       sessionModeRef.current = storedSession.mode;
+      refreshBlockedRef.current = false;
       setCurrentUser(storedSession.user);
       setAccessToken(storedSession.token);
       setRefreshToken(storedSession.refreshToken);
@@ -256,6 +260,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const refreshAuthToken = async (tokenOverride?: string | null): Promise<string | null> => {
+    if (refreshBlockedRef.current) {
+      return null;
+    }
     if (refreshInFlightRef.current) {
       return await refreshInFlightRef.current;
     }
@@ -299,6 +306,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (!response.ok) {
           if (response.status === 401) {
+            refreshBlockedRef.current = true;
+            setCurrentUser(null);
+            setAccessToken(null);
+            setRefreshToken(null);
+            clearStoredSession();
             logout();
           }
           return null;
@@ -350,6 +362,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     pendingRememberDeviceRef.current = options?.rememberDevice === true;
     // Ensure stale sessions don't bleed into the next login.
     clearStoredSession();
+    refreshBlockedRef.current = false;
     setCurrentUser(null);
     setAccessToken(null);
     setRefreshToken(null);
@@ -536,6 +549,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
+    refreshBlockedRef.current = true;
     setCurrentUser(null);
     setAccessToken(null);
     setRefreshToken(null);
