@@ -1188,6 +1188,14 @@ export function Messages() {
       try {
         return await navigator.mediaDevices.getUserMedia(fallbackConstraints);
       } catch {
+        if (mode === 'video') {
+          // Last fallback: keep audio call alive even when camera access fails.
+          try {
+            return await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+          } catch {
+            // continue to throw original error below
+          }
+        }
         throw primaryError;
       }
     }
@@ -1347,7 +1355,34 @@ export function Messages() {
           activeCallRef.current = next;
           return next;
         });
-        scheduleConnectionWatchdog(signal.callId, active.peerId, active.mode, active.itemId);
+        const peerConnection = ensurePeerConnection(
+          signal.callId,
+          active.peerId,
+          active.mode,
+          active.itemId,
+        );
+
+        void (async () => {
+          try {
+            const offer = await peerConnection.createOffer();
+            await peerConnection.setLocalDescription(offer);
+            const offerSent = await sendCallSignalMessage(
+              active.peerId,
+              {
+                ...buildSignalBase('offer', signal.callId, active.mode),
+                sdp: serializeSessionDescription(offer),
+              },
+              active.itemId,
+            );
+            if (!offerSent.success) {
+              throw new Error(offerSent.error || 'Failed to send call offer');
+            }
+            scheduleConnectionWatchdog(signal.callId, active.peerId, active.mode, active.itemId);
+          } catch (error) {
+            console.error('Offer on accept error:', error);
+            toast.error('Unable to connect this call. Please try again.');
+          }
+        })();
       }
       return;
     }
@@ -1375,6 +1410,7 @@ export function Messages() {
     currentUser,
     incomingCall?.callId,
     markMessageAsReadSilently,
+    ensurePeerConnection,
     scheduleConnectionWatchdog,
     sendCallSignalMessage,
     stopOutgoingRingtone,
@@ -2518,20 +2554,6 @@ export function Messages() {
         throw new Error(inviteSent.error || 'Failed to send call invite');
       }
 
-      const offer = await peerConnection.createOffer();
-      await peerConnection.setLocalDescription(offer);
-      const offerSent = await sendCallSignalMessage(
-        peerId,
-        {
-          ...buildSignalBase('offer', callId, mode),
-          sdp: serializeSessionDescription(offer),
-        },
-        itemId,
-      );
-      if (!offerSent.success) {
-        throw new Error(offerSent.error || 'Failed to send call offer');
-      }
-
       setActiveCall((prev) => {
         if (!prev) return prev;
         const next = { ...prev, status: 'ringing' as const };
@@ -2601,17 +2623,6 @@ export function Messages() {
 
     setPlacingCall(true);
     try {
-      const acceptSignalResult = await sendCallSignalMessage(
-        acceptedCall.senderId,
-        {
-          ...buildSignalBase('accept', acceptedCall.callId, acceptedCall.mode),
-        },
-        acceptedCall.itemId,
-      );
-      if (!acceptSignalResult.success) {
-        throw new Error(acceptSignalResult.error || 'Failed to send call acceptance');
-      }
-
       let stream: MediaStream;
       try {
         stream = await getCallMediaStream(acceptedCall.mode, 'user');
@@ -2662,6 +2673,17 @@ export function Messages() {
         acceptedCall.senderId,
         acceptedCall.itemId,
       );
+
+      const acceptSignalResult = await sendCallSignalMessage(
+        acceptedCall.senderId,
+        {
+          ...buildSignalBase('accept', acceptedCall.callId, acceptedCall.mode),
+        },
+        acceptedCall.itemId,
+      );
+      if (!acceptSignalResult.success) {
+        throw new Error(acceptSignalResult.error || 'Failed to send call acceptance');
+      }
 
       setIncomingCall(null);
       void fetchMessages();
