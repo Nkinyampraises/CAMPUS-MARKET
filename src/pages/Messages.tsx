@@ -397,6 +397,7 @@ export function Messages() {
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const remoteStreamRef = useRef<MediaStream | null>(null);
+  const remoteTrackStreamRef = useRef<MediaStream | null>(null);
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -830,6 +831,7 @@ export function Messages() {
 
     localStreamRef.current = null;
     remoteStreamRef.current = null;
+    remoteTrackStreamRef.current = null;
     activeCallRef.current = null;
     setLocalCallStream(null);
     setRemoteCallStream(null);
@@ -1114,7 +1116,18 @@ export function Messages() {
       if (stream) {
         setRemoteCallStream(stream);
         markCallConnected();
+        return;
       }
+
+      // Some browsers may emit track events without event.streams; build a stream manually.
+      const current = remoteTrackStreamRef.current || new MediaStream();
+      const alreadyPresent = current.getTracks().some((track) => track.id === event.track.id);
+      if (!alreadyPresent) {
+        current.addTrack(event.track);
+      }
+      remoteTrackStreamRef.current = current;
+      setRemoteCallStream(new MediaStream(current.getTracks()));
+      markCallConnected();
     };
 
     peerConnection.onconnectionstatechange = () => {
@@ -1481,7 +1494,16 @@ export function Messages() {
         );
 
         if (!hasCompletedInitialSyncRef.current) {
-          messages.forEach((message) => knownMessageIdsRef.current.add(message.id));
+          messages.forEach((message) => {
+            knownMessageIdsRef.current.add(message.id);
+            const callSignal = parseCallSignal(message.content);
+            if (!callSignal) return;
+            const createdAtMs = Date.parse(callSignal.createdAt || message.timestamp || '');
+            const isRecent = Number.isFinite(createdAtMs) && Date.now() - createdAtMs < 120_000;
+            if (isRecent) {
+              notifyIncomingMessage(message);
+            }
+          });
           hasCompletedInitialSyncRef.current = true;
         } else {
           const newMessages = messages.filter((message) => !knownMessageIdsRef.current.has(message.id));
