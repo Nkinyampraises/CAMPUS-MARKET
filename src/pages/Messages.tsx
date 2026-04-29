@@ -192,7 +192,7 @@ interface CallLogPayload {
 const CALL_SIGNAL_PREFIX = '__CALL_SIGNAL__::';
 const LEGACY_CALL_INVITE_PREFIX = '__CALL_INVITE__::';
 const CALL_LOG_PREFIX = '__CALL_LOG__::';
-const CALL_NO_ANSWER_TIMEOUT_MS = 45000;
+const CALL_CONNECTION_WATCHDOG_INTERVAL_MS = 12000;
 
 const buildCallSignalContent = (payload: CallSignalPayload) =>
   `${CALL_SIGNAL_PREFIX}${JSON.stringify(payload)}`;
@@ -456,9 +456,15 @@ export function Messages() {
     remoteStreamRef.current = remoteCallStream;
     if (remoteVideoRef.current) {
       remoteVideoRef.current.srcObject = remoteCallStream;
+      if (remoteCallStream) {
+        void remoteVideoRef.current.play().catch(() => {});
+      }
     }
     if (remoteAudioRef.current) {
       remoteAudioRef.current.srcObject = remoteCallStream;
+      if (remoteCallStream) {
+        void remoteAudioRef.current.play().catch(() => {});
+      }
     }
   }, [remoteCallStream]);
 
@@ -824,6 +830,7 @@ export function Messages() {
 
     localStreamRef.current = null;
     remoteStreamRef.current = null;
+    activeCallRef.current = null;
     setLocalCallStream(null);
     setRemoteCallStream(null);
     setActiveCall(null);
@@ -925,55 +932,45 @@ export function Messages() {
         ? connectionRecoveryRef.current.attempts
         : 0;
 
-      if (peerConnection && peerConnection.signalingState !== 'closed' && attempts < 2) {
-        connectionRecoveryRef.current = {
-          callId,
-          attempts: attempts + 1,
-        };
-
-        void (async () => {
-          try {
-            const restartOffer = await peerConnection.createOffer({ iceRestart: true });
-            await peerConnection.setLocalDescription(restartOffer);
-            const sent = await sendCallSignalMessage(
-              peerId,
-              {
-                ...buildSignalBase('offer', callId, mode),
-                sdp: serializeSessionDescription(restartOffer),
-              },
-              itemId,
-            );
-            if (!sent.success) {
-              throw new Error(sent.error || 'Failed to send connection recovery signal');
-            }
-            scheduleConnectionWatchdog(callId, peerId, mode, itemId);
-          } catch (error) {
-            console.error('Call recovery offer error:', error);
-            await sendCallSignalMessage(
-              peerId,
-              {
-                ...buildSignalBase('end', callId, mode),
-              },
-              itemId,
-            );
-            clearCallResources(callId);
-            toast.error('Unable to connect this call. Please try again.');
-          }
-        })();
+      if (!peerConnection || peerConnection.signalingState === 'closed') {
+        scheduleConnectionWatchdog(callId, peerId, mode, itemId);
         return;
       }
 
-      void sendCallSignalMessage(
-        peerId,
-        {
-          ...buildSignalBase('end', callId, mode),
-        },
-        itemId,
-      );
-      clearCallResources(callId);
-      toast.error('Unable to connect this call. Please try again.');
-    }, 12000);
-  }, [buildSignalBase, clearCallResources, clearConnectionWatchdog, sendCallSignalMessage]);
+      if (attempts >= 3) {
+        // Keep the call alive so users can continue trying without forced hang-up.
+        scheduleConnectionWatchdog(callId, peerId, mode, itemId);
+        return;
+      }
+
+      connectionRecoveryRef.current = {
+        callId,
+        attempts: attempts + 1,
+      };
+
+      void (async () => {
+        try {
+          const restartOffer = await peerConnection.createOffer({ iceRestart: true });
+          await peerConnection.setLocalDescription(restartOffer);
+          const sent = await sendCallSignalMessage(
+            peerId,
+            {
+              ...buildSignalBase('offer', callId, mode),
+              sdp: serializeSessionDescription(restartOffer),
+            },
+            itemId,
+          );
+          if (!sent.success) {
+            throw new Error(sent.error || 'Failed to send connection recovery signal');
+          }
+        } catch (error) {
+          console.error('Call recovery offer error:', error);
+        } finally {
+          scheduleConnectionWatchdog(callId, peerId, mode, itemId);
+        }
+      })();
+    }, CALL_CONNECTION_WATCHDOG_INTERVAL_MS);
+  }, [buildSignalBase, clearConnectionWatchdog, sendCallSignalMessage]);
 
   const sendCallLogMessage = useCallback(async (
     receiverId: string,
@@ -1036,6 +1033,22 @@ export function Messages() {
     }
   }, [accessToken, refreshAuthToken]);
 
+  const buildSignalBaseRef = useRef(buildSignalBase);
+  const sendCallSignalMessageRef = useRef(sendCallSignalMessage);
+  const clearCallResourcesRef = useRef(clearCallResources);
+
+  useEffect(() => {
+    buildSignalBaseRef.current = buildSignalBase;
+  }, [buildSignalBase]);
+
+  useEffect(() => {
+    sendCallSignalMessageRef.current = sendCallSignalMessage;
+  }, [sendCallSignalMessage]);
+
+  useEffect(() => {
+    clearCallResourcesRef.current = clearCallResources;
+  }, [clearCallResources]);
+
   const flushQueuedIceCandidates = useCallback(async (callId: string, peerConnection: RTCPeerConnection) => {
     const pending = queuedIceRef.current.get(callId) || [];
     if (!pending.length) return;
@@ -1056,10 +1069,11 @@ export function Messages() {
     stopOutgoingRingtone();
     setActiveCall((prev) => {
       if (!prev) return prev;
-      if (prev.connectedAt) {
-        return { ...prev, status: 'connected' };
-      }
-      return { ...prev, status: 'connected', connectedAt: Date.now() };
+      const next = prev.connectedAt
+        ? { ...prev, status: 'connected' as const }
+        : { ...prev, status: 'connected' as const, connectedAt: Date.now() };
+      activeCallRef.current = next;
+      return next;
     });
   }, [clearCallTimeout, clearConnectionWatchdog, stopOutgoingRingtone]);
 
@@ -1213,7 +1227,12 @@ export function Messages() {
         },
         itemId,
       );
-      setActiveCall((prev) => (prev ? { ...prev, status: 'connecting' } : prev));
+      setActiveCall((prev) => {
+        if (!prev) return prev;
+        const next = { ...prev, status: 'connecting' as const };
+        activeCallRef.current = next;
+        return next;
+      });
       scheduleConnectionWatchdog(signal.callId, senderId, active.mode, itemId);
       return;
     }
@@ -1223,7 +1242,12 @@ export function Messages() {
       await flushQueuedIceCandidates(signal.callId, peerConnection);
       clearCallTimeout();
       stopOutgoingRingtone();
-      setActiveCall((prev) => (prev ? { ...prev, status: 'connecting' } : prev));
+      setActiveCall((prev) => {
+        if (!prev) return prev;
+        const next = { ...prev, status: 'connecting' as const };
+        activeCallRef.current = next;
+        return next;
+      });
       scheduleConnectionWatchdog(signal.callId, senderId, active.mode, itemId);
       return;
     }
@@ -1243,6 +1267,30 @@ export function Messages() {
       }
     }
   }, [buildSignalBase, clearCallTimeout, flushQueuedIceCandidates, sendCallSignalMessage, stopOutgoingRingtone]);
+
+  const flushQueuedSignalsForCall = useCallback(async (
+    callId: string,
+    senderId: string,
+    itemId?: string,
+  ) => {
+    const queuedSignals = (queuedSignalsRef.current.get(callId) || [])
+      .slice()
+      .sort((left, right) => Date.parse(left.createdAt || '') - Date.parse(right.createdAt || ''));
+    if (!queuedSignals.length) return;
+
+    queuedSignalsRef.current.delete(callId);
+    for (const signal of queuedSignals) {
+      await applySignalingPayload(signal, senderId, itemId);
+    }
+  }, [applySignalingPayload]);
+
+  useEffect(() => {
+    const active = activeCallRef.current;
+    if (!active) return;
+    void flushQueuedSignalsForCall(active.callId, active.peerId, active.itemId).catch((error) => {
+      console.error('Flush queued call signals error:', error);
+    });
+  }, [activeCall?.callId, activeCall?.peerId, activeCall?.itemId, flushQueuedSignalsForCall]);
 
   const handleCallSignalMessage = useCallback((message: Message, signal: CallSignalPayload) => {
     if (!currentUser || message.senderId === currentUser.id) return;
@@ -1293,7 +1341,12 @@ export function Messages() {
       if (active?.callId === signal.callId) {
         clearCallTimeout();
         stopOutgoingRingtone();
-        setActiveCall((prev) => (prev ? { ...prev, status: 'connecting' } : prev));
+        setActiveCall((prev) => {
+          if (!prev) return prev;
+          const next = { ...prev, status: 'connecting' as const };
+          activeCallRef.current = next;
+          return next;
+        });
         scheduleConnectionWatchdog(signal.callId, active.peerId, active.mode, active.itemId);
       }
       return;
@@ -1769,15 +1822,15 @@ export function Messages() {
     return () => {
       const active = activeCallRef.current;
       if (active) {
-        void sendCallSignalMessage(
+        void sendCallSignalMessageRef.current(
           active.peerId,
           {
-            ...buildSignalBase('end', active.callId, active.mode),
+            ...buildSignalBaseRef.current('end', active.callId, active.mode),
           },
           active.itemId,
         );
       }
-      clearCallResources(active?.callId);
+      clearCallResourcesRef.current(active?.callId);
       if (outgoingRingContextRef.current) {
         void outgoingRingContextRef.current.close().catch(() => {});
       }
@@ -1785,7 +1838,7 @@ export function Messages() {
         void incomingRingContextRef.current.close().catch(() => {});
       }
     };
-  }, [buildSignalBase, clearCallResources, sendCallSignalMessage]);
+  }, []);
 
   const handleNewMessage = (message: Message) => {
     if (knownMessageIdsRef.current.has(message.id)) return;
@@ -2415,36 +2468,6 @@ export function Messages() {
     }
   };
 
-  const scheduleNoAnswerTimeout = useCallback((
-    callId: string,
-    peerId: string,
-    mode: CallMode,
-    itemId?: string,
-  ) => {
-    clearCallTimeout();
-    callTimeoutRef.current = window.setTimeout(() => {
-      const active = activeCallRef.current;
-      if (!active || active.callId !== callId || active.status === 'connected' || active.connectedAt) {
-        return;
-      }
-
-      void sendCallSignalMessage(
-        peerId,
-        {
-          ...buildSignalBase('end', callId, mode),
-        },
-        itemId,
-      );
-      void sendCallLogMessage(
-        peerId,
-        buildCallLogBase(callId, mode, 'no_answer'),
-        itemId,
-      );
-      clearCallResources(callId);
-      toast.info('No answer');
-    }, CALL_NO_ANSWER_TIMEOUT_MS);
-  }, [buildCallLogBase, buildSignalBase, clearCallResources, clearCallTimeout, sendCallLogMessage, sendCallSignalMessage]);
-
   const startCall = async (mode: CallMode) => {
     if (!selectedConversation || !currentUser) return;
     if (activeCallRef.current) {
@@ -2465,7 +2488,7 @@ export function Messages() {
       const peerConnection = ensurePeerConnection(callId, peerId, mode, itemId);
       stream.getTracks().forEach((track) => peerConnection.addTrack(track, stream));
 
-      setActiveCall({
+      const nextActiveCall = {
         callId,
         peerId,
         peerName,
@@ -2479,7 +2502,9 @@ export function Messages() {
         isMuted: false,
         videoEnabled: mode === 'video',
         connectedAt: null,
-      });
+      };
+      activeCallRef.current = nextActiveCall;
+      setActiveCall(nextActiveCall);
 
       const inviteSent = await sendCallSignalMessage(
         peerId,
@@ -2507,9 +2532,13 @@ export function Messages() {
         throw new Error(offerSent.error || 'Failed to send call offer');
       }
 
-      setActiveCall((prev) => (prev ? { ...prev, status: 'ringing' } : prev));
+      setActiveCall((prev) => {
+        if (!prev) return prev;
+        const next = { ...prev, status: 'ringing' as const };
+        activeCallRef.current = next;
+        return next;
+      });
       startOutgoingRingtone();
-      scheduleNoAnswerTimeout(callId, peerId, mode, itemId);
       void fetchMessages();
       toast.success(`${mode === 'video' ? 'Video' : 'Audio'} calling...`);
     } catch (error) {
@@ -2604,7 +2633,7 @@ export function Messages() {
       const hasMicrophoneTrack = stream.getAudioTracks().length > 0;
       const hasVideoTrack = stream.getVideoTracks().length > 0;
 
-      setActiveCall({
+      const nextActiveCall = {
         callId: acceptedCall.callId,
         peerId: acceptedCall.senderId,
         peerName: acceptedCall.senderName || 'Participant',
@@ -2618,7 +2647,9 @@ export function Messages() {
         isMuted: !hasMicrophoneTrack,
         videoEnabled: acceptedCall.mode === 'video' ? hasVideoTrack : false,
         connectedAt: null,
-      });
+      };
+      activeCallRef.current = nextActiveCall;
+      setActiveCall(nextActiveCall);
       scheduleConnectionWatchdog(
         acceptedCall.callId,
         acceptedCall.senderId,
@@ -2626,13 +2657,11 @@ export function Messages() {
         acceptedCall.itemId,
       );
 
-      const queuedSignals = (queuedSignalsRef.current.get(acceptedCall.callId) || [])
-        .slice()
-        .sort((left, right) => Date.parse(left.createdAt || '') - Date.parse(right.createdAt || ''));
-      queuedSignalsRef.current.delete(acceptedCall.callId);
-      for (const signal of queuedSignals) {
-        await applySignalingPayload(signal, acceptedCall.senderId, acceptedCall.itemId);
-      }
+      await flushQueuedSignalsForCall(
+        acceptedCall.callId,
+        acceptedCall.senderId,
+        acceptedCall.itemId,
+      );
 
       setIncomingCall(null);
       void fetchMessages();
