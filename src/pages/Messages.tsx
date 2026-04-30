@@ -558,40 +558,40 @@ export function Messages() {
     return await refreshAuthToken();
   }, [accessToken, refreshAuthToken]);
 
-  const fetchWithAuth = useCallback(async (url: string, init: RequestInit = {}) => {
-    const withTokenHeaders = (token: string, sourceHeaders?: HeadersInit) => {
-      const headers = new Headers(sourceHeaders || {});
-      headers.set('Authorization', `Bearer ${token}`);
-      return headers;
-    };
+   const fetchWithAuth = useCallback(async (url: string, init: RequestInit = {}) => {
+     const withTokenHeaders = (token: string, sourceHeaders?: HeadersInit) => {
+       const headers = new Headers(sourceHeaders || {});
+       headers.set('Authorization', `Bearer ${token}`);
+       return headers;
+     };
 
-    const token = await resolveAccessToken();
-    if (!token) {
-      authSessionFailedRef.current = true;
-      logout();
-      throw new Error('Session expired. Please log in again.');
-    }
+     const token = await resolveAccessToken();
+     if (!token) {
+       // No token available, but don't force logout - let caller handle gracefully
+       authSessionFailedRef.current = true;
+       return new Response(null, { status: 401, statusText: 'No token' });
+     }
 
-    let response = await fetch(url, {
-      ...init,
-      headers: withTokenHeaders(token, init.headers),
-    });
+     let response = await fetch(url, {
+       ...init,
+       headers: withTokenHeaders(token, init.headers),
+     });
 
     if (response.status === 401) {
+      // Try to refresh the token and retry
       const refreshed = await refreshAuthToken();
       if (!refreshed) {
-        authSessionFailedRef.current = true;
-        logout();
-        throw new Error('Session expired. Please log in again.');
+        // Token refresh failed, but the original token might still work for some endpoints
+        // Return the 401 response and let the caller decide how to handle it
+        return response;
       }
       response = await fetch(url, {
         ...init,
         headers: withTokenHeaders(refreshed, init.headers),
       });
       if (response.status === 401) {
-        authSessionFailedRef.current = true;
-        logout();
-        throw new Error('Session expired. Please log in again.');
+        // Still getting 401 after refresh - return response for caller to handle
+        return response;
       }
     }
 
@@ -1639,7 +1639,7 @@ export function Messages() {
     } catch (error) {
       console.error('Fetch messages error:', error);
       setFetchError('Unable to load messages. Please refresh or sign in again.');
-      throw error;
+      // Don't re-throw - let polling continue
     } finally {
       setLoading(false);
     }
@@ -1654,15 +1654,13 @@ export function Messages() {
       } catch (error) {
         const message = error instanceof Error ? error.message : '';
         const isSessionError = message.toLowerCase().includes('session expired');
-        if (isSessionError) {
-          setLoading(false);
-          navigate('/login');
-          return;
-        }
+        const isAuthError = message.toLowerCase().includes('unauthorized');
+        // Don't auto-navigate to login on auth errors - let user continue with current session
+        // The auth context will handle refresh in background
         if (i === retries - 1) {
-          const message = 'Failed to load messages. Please refresh.';
+          const message = 'Unable to load latest messages. Your session may need refreshing.';
           setFetchError(message);
-          toast.error(message);
+          toast.warning(message);
         }
         await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
       }
@@ -1735,12 +1733,10 @@ export function Messages() {
   useEffect(() => {
     if (!isAuthenticated) {
       setLoading(false);
-      navigate('/login');
       return;
     }
     if (authSessionFailedRef.current) {
       setLoading(false);
-      navigate('/login');
       return;
     }
     fetchMessagesWithRetry();

@@ -222,7 +222,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else if (response.status === 401) {
         const nextToken = await refreshAuthToken(fallbackRefreshToken || null);
         if (!nextToken) {
-          logout();
+          // Access token might still be valid, let the caller decide
+          console.warn('Unable to refresh auth token, keeping existing session');
           return;
         }
 
@@ -241,9 +242,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
           setCurrentUser(normalizedUser);
           persistUserOnly(normalizedUser, storageMode);
-        } else {
-          logout();
         }
+        // If retryResponse not ok, keep existing user data - access token may still work
       } else {
         // Preserve local session on non-auth errors (e.g., API misconfig or temporary outage).
         console.warn('Auth refresh failed with status:', response.status);
@@ -315,11 +315,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!response.ok) {
           if (response.status === 401) {
             refreshBlockedRef.current = true;
-            setCurrentUser(null);
-            setAccessToken(null);
+            // Only clear tokens and logout if we already have no valid session
+            // Don't force logout here - let the caller handle fallback
             setRefreshToken(null);
-            clearStoredSession();
-            logout();
+            activeStorage.removeItem('refreshToken');
+            inactiveStorage.removeItem('refreshToken');
           }
           return null;
         }
@@ -356,7 +356,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     refreshInFlightRef.current = runRefresh();
     const refreshed = await refreshInFlightRef.current;
-    if (!refreshed) {
+    if (!refreshed && accessToken) {
+      // Only log out if we couldn't refresh and there's no access token to fall back on
+      // But first try using whatever access token we have one more time
+      try {
+        const verifyResponse = await fetch(`${API_URL}/auth/me`, {
+          headers: { 'Authorization': `Bearer ${accessToken}` },
+        });
+        if (verifyResponse.ok) {
+          // Access token is still valid, just don't refresh
+          return accessToken;
+        }
+      } catch (e) {
+        // ignore
+      }
       logout();
     }
     return refreshed;
