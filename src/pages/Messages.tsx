@@ -514,82 +514,6 @@ export function Messages() {
     });
   }, [conversations, searchQuery, conversationFilter]);
 
-  // WebSocket connection for real-time updates
-  useEffect(() => {
-    if (!ENABLE_MESSAGES_WEBSOCKET) return;
-
-    let reconnectTimer: number | null = null;
-    let isMounted = true;
-
-    const connectWebSocket = async () => {
-      if (!isMounted || !isAuthenticated) return;
-      if (wsRef.current?.readyState === WebSocket.OPEN) return;
-
-      try {
-        const token = await resolveAccessToken();
-        if (!token) return;
-
-        const ws = new WebSocket(`${API_URL.replace('http', 'ws')}/messages/ws?token=${encodeURIComponent(token)}`);
-        wsRef.current = ws;
-
-        ws.onopen = () => {
-          console.log('WebSocket connected');
-        };
-
-        ws.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            
-            switch (data.type) {
-              case 'new_message':
-                handleNewMessage(data.message);
-                break;
-              case 'message_read':
-                handleMessageRead(data.messageId, data.conversationId);
-                break;
-              case 'typing_start':
-                setTypingUsers(prev => new Set(prev).add(data.userId));
-                break;
-              case 'typing_end':
-                setTypingUsers(prev => {
-                  const next = new Set(prev);
-                  next.delete(data.userId);
-                  return next;
-                });
-                break;
-            }
-          } catch (error) {
-            console.error('WebSocket message error:', error);
-          }
-        };
-
-        ws.onerror = (error) => {
-          console.error('WebSocket error:', error);
-        };
-
-        ws.onclose = () => {
-          if (!isMounted || !isAuthenticated) return;
-          console.log('WebSocket disconnected, reconnecting...');
-          reconnectTimer = window.setTimeout(connectWebSocket, 3000);
-        };
-      } catch (error) {
-        console.error('WebSocket connection error:', error);
-      }
-    };
-
-    void connectWebSocket();
-
-    return () => {
-      isMounted = false;
-      if (reconnectTimer !== null) {
-        window.clearTimeout(reconnectTimer);
-      }
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
-    };
-  }, [isAuthenticated, resolveAccessToken, handleNewMessage, handleMessageRead]);
-
   const showBrowserNotification = useCallback((title: string, body: string) => {
     if (typeof window === 'undefined' || !('Notification' in window)) return;
     if (Notification.permission !== 'granted') return;
@@ -2032,6 +1956,82 @@ export function Messages() {
       } : null);
     }
   };
+
+  // WebSocket connection for real-time updates
+  useEffect(() => {
+    if (!ENABLE_MESSAGES_WEBSOCKET) return;
+
+    let reconnectTimer: number | null = null;
+    let isMounted = true;
+
+    const connectWebSocket = async () => {
+      if (!isMounted || !isAuthenticated) return;
+      if (wsRef.current?.readyState === WebSocket.OPEN) return;
+
+      try {
+        const token = await resolveAccessToken();
+        if (!token) return;
+
+        const ws = new WebSocket(`${API_URL.replace('http', 'ws')}/messages/ws?token=${encodeURIComponent(token)}`);
+        wsRef.current = ws;
+
+        ws.onopen = () => {
+          console.log('WebSocket connected');
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            
+            switch (data.type) {
+              case 'new_message':
+                handleNewMessage(data.message);
+                break;
+              case 'message_read':
+                handleMessageRead(data.messageId, data.conversationId);
+                break;
+              case 'typing_start':
+                setTypingUsers(prev => new Set(prev).add(data.userId));
+                break;
+              case 'typing_end':
+                setTypingUsers(prev => {
+                  const next = new Set(prev);
+                  next.delete(data.userId);
+                  return next;
+                });
+                break;
+            }
+          } catch (error) {
+            console.error('WebSocket message error:', error);
+          }
+        };
+
+        ws.onerror = (error) => {
+          console.error('WebSocket error:', error);
+        };
+
+        ws.onclose = () => {
+          if (!isMounted || !isAuthenticated) return;
+          console.log('WebSocket disconnected, reconnecting...');
+          reconnectTimer = window.setTimeout(connectWebSocket, 3000);
+        };
+      } catch (error) {
+        console.error('WebSocket connection error:', error);
+      }
+    };
+
+    void connectWebSocket();
+
+    return () => {
+      isMounted = false;
+      if (reconnectTimer !== null) {
+        window.clearTimeout(reconnectTimer);
+      }
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+    };
+  }, [isAuthenticated, resolveAccessToken, handleNewMessage, handleMessageRead]);
 
   const sanitizeMessage = (content: string) => {
     return content
