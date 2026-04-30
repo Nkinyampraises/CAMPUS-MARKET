@@ -615,6 +615,8 @@ export function Messages() {
     if (fromState) return fromState;
     const fromStorage = (localStorage.getItem('accessToken') || '').trim();
     if (fromStorage) return fromStorage;
+    const fromSessionStorage = (sessionStorage.getItem('accessToken') || '').trim();
+    if (fromSessionStorage) return fromSessionStorage;
     return await refreshAuthToken();
   }, [accessToken, refreshAuthToken]);
 
@@ -894,10 +896,7 @@ export function Messages() {
         }),
       });
 
-    let token = accessToken;
-    if (!token) {
-      token = await refreshAuthToken();
-    }
+    let token = await resolveAccessToken();
     if (!token) {
       authSessionFailedRef.current = true;
       logout();
@@ -943,7 +942,7 @@ export function Messages() {
     } catch (_error) {
       return { success: false, error: 'Network error while sending call signal.' };
     }
-  }, [accessToken, logout, refreshAuthToken]);
+  }, [logout, refreshAuthToken, resolveAccessToken]);
 
   const scheduleConnectionWatchdog = useCallback((
     callId: string,
@@ -1031,10 +1030,7 @@ export function Messages() {
         }),
       });
 
-    let token = accessToken;
-    if (!token) {
-      token = await refreshAuthToken();
-    }
+    let token = await resolveAccessToken();
     if (!token) {
       authSessionFailedRef.current = true;
       logout();
@@ -1080,7 +1076,7 @@ export function Messages() {
     } catch (_error) {
       return { success: false, error: 'Network error while sending call log.' };
     }
-  }, [accessToken, logout, refreshAuthToken]);
+  }, [logout, refreshAuthToken, resolveAccessToken]);
 
   const buildSignalBaseRef = useRef(buildSignalBase);
   const sendCallSignalMessageRef = useRef(sendCallSignalMessage);

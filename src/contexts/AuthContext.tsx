@@ -268,23 +268,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const tokenToUse =
-      tokenOverride ||
-      refreshToken ||
-      getStorage(sessionModeRef.current).getItem('refreshToken') ||
-      localStorage.getItem('refreshToken') ||
-      sessionStorage.getItem('refreshToken');
+      [
+        tokenOverride,
+        refreshToken,
+        getStorage(sessionModeRef.current).getItem('refreshToken'),
+        localStorage.getItem('refreshToken'),
+        sessionStorage.getItem('refreshToken'),
+      ]
+        .map((candidate) => (typeof candidate === 'string' ? candidate.trim() : ''))
+        .find(Boolean) || '';
     if (!tokenToUse) {
       return null;
     }
 
     const runRefresh = async (): Promise<string | null> => {
       const refreshWithToken = async (token: string) => {
+        const normalizedToken = token.trim();
         return await fetch(`${API_URL}/auth/refresh`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ refreshToken: token }),
+          body: JSON.stringify({ refreshToken: normalizedToken }),
         });
       };
 
@@ -295,9 +300,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Another request/tab may have already rotated tokens; retry once with the latest token.
         if (!response.ok && response.status === 401) {
           const latestToken =
-            getStorage(sessionModeRef.current).getItem('refreshToken') ||
-            localStorage.getItem('refreshToken') ||
-            sessionStorage.getItem('refreshToken');
+            (
+              getStorage(sessionModeRef.current).getItem('refreshToken') ||
+              localStorage.getItem('refreshToken') ||
+              sessionStorage.getItem('refreshToken') ||
+              ''
+            ).trim();
           if (latestToken && latestToken !== tokenToUse) {
             response = await refreshWithToken(latestToken);
             usedToken = latestToken;
@@ -614,6 +622,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const hasStoredSessionToken = (() => {
+    if (typeof window === 'undefined') {
+      return false;
+    }
+    return Boolean(
+      localStorage.getItem('accessToken') ||
+      sessionStorage.getItem('accessToken') ||
+      localStorage.getItem('refreshToken') ||
+      sessionStorage.getItem('refreshToken'),
+    );
+  })();
+  const isAuthenticated = currentUser !== null && (Boolean(accessToken || refreshToken) || hasStoredSessionToken);
+
   const value = {
     currentUser,
     accessToken,
@@ -624,7 +645,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     resendConfirmationEmail,
     register,
     logout,
-    isAuthenticated: currentUser !== null,
+    isAuthenticated,
     updateProfile,
     refreshUser,
     refreshCurrentUser: refreshUser,
