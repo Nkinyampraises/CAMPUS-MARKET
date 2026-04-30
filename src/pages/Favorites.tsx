@@ -113,13 +113,18 @@ export function Favorites() {
     return 'View Details';
   };
 
+  const getCardSpan = (index: number) =>
+    index % 5 === 1
+      ? 'col-span-12 md:col-span-8 lg:col-span-6'
+      : 'col-span-12 md:col-span-4 lg:col-span-3';
+
   if (!isAuthenticated || !currentUser) {
     return null;
   }
 
   return (
     <div className="min-h-screen bg-[#f3f8f5] py-8">
-      <div className="mx-auto w-full px-4 lg:px-8">
+      <div className="mx-auto w-full max-w-[1300px] px-4 lg:px-6">
         <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight text-[#013b36]">Saved Items</h1>
@@ -176,7 +181,7 @@ export function Favorites() {
               </p>
               <Button
                 onClick={() => navigate('/marketplace')}
-                className="rounded-xl bg-[#1FAF9A] px-6 text-white hover:bg-[#27b9a6]"
+                className="rounded-xl bg-[#0c6a5a] px-6 text-white hover:bg-[#0a594c]"
               >
                 <ShoppingBag className="mr-2 h-4 w-4" />
                 Browse Marketplace
@@ -197,7 +202,7 @@ export function Favorites() {
                   setFilterType('all');
                   setSortBy('recent');
                 }}
-                className="rounded-xl border-[#b9d4c8] text-[#1FAF9A] hover:bg-[#edf7f2]"
+                className="rounded-xl border-[#b9d4c8] text-[#0c6a5a] hover:bg-[#edf7f2]"
               >
                 Clear Filters
               </Button>
@@ -205,92 +210,95 @@ export function Favorites() {
           </Card>
         ) : (
           <>
-            <div className="space-y-4">
-              {filteredItems.map((item) => {
+            <div className="grid grid-cols-12 items-start gap-4 lg:gap-5">
+              {filteredItems.map((item, index) => {
                 const categoryLabel = resolveNamedCatalogLabel(categories, item?.category, 'General');
                 const locationLabel = resolveNamedCatalogLabel(
                   universities,
                   item?.location,
                   item?.location ? String(item.location) : 'Campus pickup',
                 );
+                const isFeatured = index % 5 === 1;
 
                 return (
                   <Card
                     key={item.id}
                     className={cn(
-                      'w-full overflow-hidden rounded-2xl border border-[#d2e4dc] bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
+                      getCardSpan(index),
+                      'h-fit overflow-hidden rounded-2xl border border-[#d2e4dc] bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
                     )}
                   >
-                    <div className="flex flex-col md:flex-row">
-                      <div className="relative h-56 overflow-hidden bg-[#e8f1ec] md:h-auto md:w-[320px] lg:w-[360px]">
-                        {item?.images?.[0] ? (
-                          <img
-                            src={item.images[0]}
-                            alt={item?.title || 'Saved item'}
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <div className="flex h-full items-center justify-center text-sm text-[#6a8c82]">
-                            No image available
-                          </div>
-                        )}
-                        <button
-                          onClick={() => handleRemoveFavorite(item.id)}
-                          className="absolute right-3 top-3 rounded-full bg-white/95 p-1.5 shadow-sm transition-colors hover:bg-[#ffeef1]"
-                          aria-label="Remove from favorites"
+                    <div className={cn('relative overflow-hidden bg-[#e8f1ec]', isFeatured ? 'aspect-[8/3]' : 'aspect-[4/3]')}>
+                      {item?.images?.[0] ? (
+                        <img
+                          src={item.images[0]}
+                          alt={item?.title || 'Saved item'}
+                          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-sm text-[#6a8c82]">
+                          No image available
+                        </div>
+                      )}
+                      <button
+                        onClick={() => handleRemoveFavorite(item.id)}
+                        className="absolute right-3 top-3 rounded-full bg-white/95 p-1.5 shadow-sm transition-colors hover:bg-[#ffeef1]"
+                        aria-label="Remove from favorites"
+                      >
+                        <Heart className="h-4 w-4 fill-[#e35166] text-[#e35166]" />
+                      </button>
+                    </div>
+
+                    <CardContent className="space-y-3 p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-semibold uppercase tracking-wide text-[#6f9186]">
+                            {categoryLabel}
+                          </p>
+                          <h3 className="mt-1 line-clamp-2 text-base font-bold leading-tight text-[#0f3a31]">
+                            {item?.title || 'Saved Item'}
+                          </h3>
+                        </div>
+                        <Badge
+                          className={cn(
+                            'shrink-0 rounded-full px-2.5 py-0.5 text-[10px] uppercase',
+                            item?.status === 'available'
+                              ? 'bg-[#dff6ea] text-[#0a7c56]'
+                              : item?.status === 'sold'
+                                ? 'bg-[#eaedf0] text-[#51606d]'
+                                : 'bg-[#e4effc] text-[#2a5ca8]',
+                          )}
                         >
-                          <Heart className="h-4 w-4 fill-[#e35166] text-[#e35166]" />
-                        </button>
+                          {item?.status || 'available'}
+                        </Badge>
                       </div>
 
-                      <CardContent className="flex flex-1 flex-col justify-between gap-4 p-4 md:p-5">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="text-[10px] font-semibold uppercase tracking-wide text-[#6f9186]">
-                              {categoryLabel}
-                            </p>
-                            <h3 className="mt-1 line-clamp-2 text-lg font-bold leading-tight text-[#0f3a31]">
-                              {item?.title || 'Saved Item'}
-                            </h3>
-                          </div>
-                          <Badge
-                            className={cn(
-                              'shrink-0 rounded-full px-2.5 py-0.5 text-[10px] uppercase',
-                              item?.status === 'available'
-                                ? 'bg-[#dff6ea] text-[#0a7c56]'
-                                : item?.status === 'sold'
-                                  ? 'bg-[#eaedf0] text-[#51606d]'
-                                  : 'bg-[#e4effc] text-[#2a5ca8]',
-                            )}
-                          >
-                            {item?.status || 'available'}
-                          </Badge>
+                      <p className="line-clamp-2 text-sm text-[#5f7f75]">
+                        {item?.description || 'No description provided.'}
+                      </p>
+
+                      <div className="flex items-end justify-between gap-3">
+                        <div>
+                          <p className="text-xs text-[#7b978e]">{locationLabel}</p>
+                          <p className="text-2xl font-black tracking-tight text-[#004f3f]">
+                            {formatCurrency(Number(item?.price || 0))}
+                          </p>
                         </div>
+                        <Badge variant="outline" className="rounded-full border-[#c5dace] text-[#366458]">
+                          {item?.type === 'rent' ? 'Rent' : 'Sale'}
+                        </Badge>
+                      </div>
 
-                        <p className="line-clamp-3 text-sm text-[#5f7f75]">
-                          {item?.description || 'No description provided.'}
-                        </p>
-
-                        <div className="flex flex-wrap items-end justify-between gap-3">
-                          <div>
-                            <p className="text-xs text-[#7b978e]">{locationLabel}</p>
-                            <p className="text-2xl font-black tracking-tight text-[#004f3f]">
-                              {formatCurrency(Number(item?.price || 0))}
-                            </p>
-                          </div>
-                          <Badge variant="outline" className="rounded-full border-[#c5dace] text-[#366458]">
-                            {item?.type === 'rent' ? 'Rent' : 'Sale'}
-                          </Badge>
-                        </div>
-
-                        <Button
-                          className="w-full rounded-xl bg-[#1FAF9A] text-sm font-semibold text-white hover:bg-[#27b9a6] md:w-[220px]"
-                          onClick={() => navigate(`/item/${item.id}`)}
-                        >
-                          {getActionLabel(item)}
-                        </Button>
-                      </CardContent>
-                    </div>
+                      <Button
+                        className={cn(
+                          'w-full rounded-xl text-sm font-semibold text-white',
+                          isFeatured ? 'bg-[#0c6a5a] hover:bg-[#0a584b]' : 'bg-[#0f3a31] hover:bg-[#0c2f28]',
+                        )}
+                        onClick={() => navigate(`/item/${item.id}`)}
+                      >
+                        {getActionLabel(item)}
+                      </Button>
+                    </CardContent>
                   </Card>
                 );
               })}
@@ -306,7 +314,7 @@ export function Favorites() {
               </p>
               <Button
                 onClick={() => navigate('/marketplace')}
-                className="mt-5 rounded-xl bg-[#1FAF9A] px-6 text-white hover:bg-[#27b9a6]"
+                className="mt-5 rounded-xl bg-[#0c6a5a] px-6 text-white hover:bg-[#0a594c]"
               >
                 Browse Marketplace
               </Button>

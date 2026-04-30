@@ -516,11 +516,19 @@ export function Messages() {
   // WebSocket connection for real-time updates
   useEffect(() => {
     if (!ENABLE_MESSAGES_WEBSOCKET) return;
-    if (!accessToken || !isAuthenticated) return;
 
-    const connectWebSocket = () => {
+    let reconnectTimer: number | null = null;
+    let isMounted = true;
+
+    const connectWebSocket = async () => {
+      if (!isMounted || !isAuthenticated) return;
+      if (wsRef.current?.readyState === WebSocket.OPEN) return;
+
       try {
-        const ws = new WebSocket(`${API_URL.replace('http', 'ws')}/messages/ws?token=${accessToken}`);
+        const token = await resolveAccessToken();
+        if (!token) return;
+
+        const ws = new WebSocket(`${API_URL.replace('http', 'ws')}/messages/ws?token=${encodeURIComponent(token)}`);
         wsRef.current = ws;
 
         ws.onopen = () => {
@@ -559,22 +567,27 @@ export function Messages() {
         };
 
         ws.onclose = () => {
+          if (!isMounted || !isAuthenticated) return;
           console.log('WebSocket disconnected, reconnecting...');
-          setTimeout(connectWebSocket, 3000);
+          reconnectTimer = window.setTimeout(connectWebSocket, 3000);
         };
       } catch (error) {
         console.error('WebSocket connection error:', error);
       }
     };
 
-    connectWebSocket();
+    void connectWebSocket();
 
     return () => {
+      isMounted = false;
+      if (reconnectTimer !== null) {
+        window.clearTimeout(reconnectTimer);
+      }
       if (wsRef.current) {
         wsRef.current.close();
       }
     };
-  }, [accessToken, isAuthenticated]);
+  }, [isAuthenticated, resolveAccessToken, handleNewMessage, handleMessageRead]);
 
   const showBrowserNotification = useCallback((title: string, body: string) => {
     if (typeof window === 'undefined' || !('Notification' in window)) return;
@@ -881,12 +894,11 @@ export function Messages() {
     payload: CallSignalPayload,
     itemId?: string,
   ): Promise<{ success: boolean; error?: string }> => {
-    const postSignal = (token: string) =>
-      fetch(`${API_URL}/messages`, {
+    try {
+      const response = await fetchWithAuth(`${API_URL}/messages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           receiverId,
@@ -895,32 +907,6 @@ export function Messages() {
           messageType: 'text',
         }),
       });
-
-    let token = await resolveAccessToken();
-    if (!token) {
-      authSessionFailedRef.current = true;
-      logout();
-      return { success: false, error: 'Session expired. Please log in again.' };
-    }
-
-    try {
-      let response = await postSignal(token);
-
-      if (response.status === 401) {
-        const refreshedToken = await refreshAuthToken();
-        if (!refreshedToken) {
-          authSessionFailedRef.current = true;
-          logout();
-          return { success: false, error: 'Session expired. Please log in again.' };
-        }
-        response = await postSignal(refreshedToken);
-      }
-
-      if (response.status === 401) {
-        authSessionFailedRef.current = true;
-        logout();
-        return { success: false, error: 'Session expired. Please log in again.' };
-      }
 
       if (!response.ok) {
         const bodyText = await response.text();
@@ -939,10 +925,11 @@ export function Messages() {
       }
 
       return { success: true };
-    } catch (_error) {
+    } catch (error) {
+      console.error('Send call signal error:', error);
       return { success: false, error: 'Network error while sending call signal.' };
     }
-  }, [logout, refreshAuthToken, resolveAccessToken]);
+  }, [fetchWithAuth, buildCallSignalContent]);
 
   const scheduleConnectionWatchdog = useCallback((
     callId: string,
@@ -1015,12 +1002,11 @@ export function Messages() {
     payload: CallLogPayload,
     itemId?: string,
   ): Promise<{ success: boolean; error?: string }> => {
-    const postLog = (token: string) =>
-      fetch(`${API_URL}/messages`, {
+    try {
+      const response = await fetchWithAuth(`${API_URL}/messages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           receiverId,
@@ -1029,32 +1015,6 @@ export function Messages() {
           messageType: 'text',
         }),
       });
-
-    let token = await resolveAccessToken();
-    if (!token) {
-      authSessionFailedRef.current = true;
-      logout();
-      return { success: false, error: 'Session expired. Please log in again.' };
-    }
-
-    try {
-      let response = await postLog(token);
-
-      if (response.status === 401) {
-        const refreshedToken = await refreshAuthToken();
-        if (!refreshedToken) {
-          authSessionFailedRef.current = true;
-          logout();
-          return { success: false, error: 'Session expired. Please log in again.' };
-        }
-        response = await postLog(refreshedToken);
-      }
-
-      if (response.status === 401) {
-        authSessionFailedRef.current = true;
-        logout();
-        return { success: false, error: 'Session expired. Please log in again.' };
-      }
 
       if (!response.ok) {
         const bodyText = await response.text();
@@ -1073,10 +1033,11 @@ export function Messages() {
       }
 
       return { success: true };
-    } catch (_error) {
+    } catch (error) {
+      console.error('Send call log error:', error);
       return { success: false, error: 'Network error while sending call log.' };
     }
-  }, [logout, refreshAuthToken, resolveAccessToken]);
+  }, [fetchWithAuth, buildCallLogContent]);
 
   const buildSignalBaseRef = useRef(buildSignalBase);
   const sendCallSignalMessageRef = useRef(sendCallSignalMessage);
@@ -1129,7 +1090,16 @@ export function Messages() {
     itemId?: string,
   ) => {
     if (peerConnectionRef.current) {
-      return peerConnectionRef.current;
+      const existing = peerConnectionRef.current;
+      if (existing.connectionState !== 'closed' && existing.signalingState !== 'closed') {
+        return existing;
+      }
+      try {
+        existing.close();
+      } catch {
+        // ignore cleanup errors
+      }
+      peerConnectionRef.current = null;
     }
 
     const peerConnection = new RTCPeerConnection(WEBRTC_CONFIGURATION);
@@ -1402,44 +1372,49 @@ export function Messages() {
 
     if (signal.signalType === 'accept') {
       const active = activeCallRef.current;
-      if (active?.callId === signal.callId) {
-        clearCallTimeout();
-        stopOutgoingRingtone();
-        setActiveCall((prev) => {
-          if (!prev) return prev;
-          const next = { ...prev, status: 'connecting' as const };
-          activeCallRef.current = next;
-          return next;
-        });
-        const peerConnection = ensurePeerConnection(
-          signal.callId,
-          active.peerId,
-          active.mode,
-          active.itemId,
-        );
-
-        void (async () => {
-          try {
-            const offer = await peerConnection.createOffer();
-            await peerConnection.setLocalDescription(offer);
-            const offerSent = await sendCallSignalMessage(
-              active.peerId,
-              {
-                ...buildSignalBase('offer', signal.callId, active.mode),
-                sdp: serializeSessionDescription(offer),
-              },
-              active.itemId,
-            );
-            if (!offerSent.success) {
-              throw new Error(offerSent.error || 'Failed to send call offer');
-            }
-            scheduleConnectionWatchdog(signal.callId, active.peerId, active.mode, active.itemId);
-          } catch (error) {
-            console.error('Offer on accept error:', error);
-            toast.error('Unable to connect this call. Please try again.');
-          }
-        })();
+      if (!active || active.callId !== signal.callId) {
+        const queued = queuedSignalsRef.current.get(signal.callId) || [];
+        queued.push(signal);
+        queuedSignalsRef.current.set(signal.callId, queued);
+        return;
       }
+
+      clearCallTimeout();
+      stopOutgoingRingtone();
+      setActiveCall((prev) => {
+        if (!prev) return prev;
+        const next = { ...prev, status: 'connecting' as const };
+        activeCallRef.current = next;
+        return next;
+      });
+      const peerConnection = ensurePeerConnection(
+        signal.callId,
+        active.peerId,
+        active.mode,
+        active.itemId,
+      );
+
+      void (async () => {
+        try {
+          const offer = await peerConnection.createOffer();
+          await peerConnection.setLocalDescription(offer);
+          const offerSent = await sendCallSignalMessage(
+            active.peerId,
+            {
+              ...buildSignalBase('offer', signal.callId, active.mode),
+              sdp: serializeSessionDescription(offer),
+            },
+            active.itemId,
+          );
+          if (!offerSent.success) {
+            throw new Error(offerSent.error || 'Failed to send call offer');
+          }
+          scheduleConnectionWatchdog(signal.callId, active.peerId, active.mode, active.itemId);
+        } catch (error) {
+          console.error('Offer on accept error:', error);
+          toast.error('Unable to connect this call. Please try again.');
+        }
+      })();
       return;
     }
 
