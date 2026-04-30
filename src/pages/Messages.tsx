@@ -347,6 +347,7 @@ export function Messages() {
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [placingCall, setPlacingCall] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -1658,6 +1659,7 @@ export function Messages() {
           return new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime();
         });
 
+        setFetchError(null);
         setConversations(convos);
 
         // Update selected conversation with fresh data if it exists (for polling)
@@ -1712,6 +1714,7 @@ export function Messages() {
       }
     } catch (error) {
       console.error('Fetch messages error:', error);
+      setFetchError('Unable to load messages. Please refresh or sign in again.');
       throw error;
     } finally {
       setLoading(false);
@@ -1733,7 +1736,9 @@ export function Messages() {
           return;
         }
         if (i === retries - 1) {
-          toast.error('Failed to load messages. Please refresh.');
+          const message = 'Failed to load messages. Please refresh.';
+          setFetchError(message);
+          toast.error(message);
         }
         await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
       }
@@ -2922,6 +2927,19 @@ export function Messages() {
             {loading ? (
               <div className="flex h-[55vh] min-h-[320px] items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : fetchError ? (
+              <div className="flex h-[55vh] min-h-[320px] flex-col items-center justify-center gap-4 px-6 text-center">
+                <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">Unable to load messages</p>
+                <p className="max-w-md text-sm text-slate-500 dark:text-slate-400">{fetchError}</p>
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <Button onClick={() => fetchMessagesWithRetry()} className="bg-gradient-to-r from-emerald-500 to-cyan-500 text-white hover:from-emerald-600 hover:to-cyan-600">
+                    Retry
+                  </Button>
+                  <Button variant="outline" onClick={() => navigate('/login')}>
+                    Sign in again
+                  </Button>
+                </div>
               </div>
             ) : (
               <div className="flex h-[calc(100dvh-76px)] sm:h-[calc(100dvh-88px)] md:h-[calc(100vh-190px)]">
