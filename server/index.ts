@@ -3811,12 +3811,25 @@ app.post("/make-server-50b25a4f/auth/refresh", async (c) => {
       return c.json({ error: "Unauthorized" }, 401);
     }
 
+    // Keep refresh token reusable (non-rotating) to avoid cross-tab/device race logout loops.
+    // We still rotate access tokens on each refresh.
     const nextSession = await createSessionPair(refreshSession.userId, refreshSession.email || profile.email);
-    await kv.del(authRefreshKey(refreshToken));
+    const now = Date.now();
+    const nextRefreshSession = {
+      ...refreshSession,
+      type: "refresh",
+      userId: refreshSession.userId,
+      email: refreshSession.email || profile.email,
+      // Extend refresh expiry from "now" while preserving configured TTL.
+      expiresAt: new Date(now + REFRESH_TOKEN_TTL_MS).toISOString(),
+      lastUsedAt: new Date(now).toISOString(),
+    };
+    await kv.set(authRefreshKey(refreshToken), nextRefreshSession);
+    await kv.del(authRefreshKey(nextSession.refreshToken));
 
     return c.json({
       accessToken: nextSession.accessToken,
-      refreshToken: nextSession.refreshToken,
+      refreshToken,
     });
   } catch (error) {
     console.error("Token refresh error:", error);

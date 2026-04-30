@@ -427,6 +427,7 @@ export function Messages() {
     callId: null,
     attempts: 0,
   });
+  const authSessionFailedRef = useRef(false);
   // Cache for user and item data to prevent re-fetching on every poll
   const userCache = useRef<Map<string, any>>(new Map());
   const itemCache = useRef<Map<string, any>>(new Map());
@@ -459,6 +460,12 @@ export function Messages() {
   useEffect(() => {
     activeCallRef.current = activeCall;
   }, [activeCall]);
+
+  useEffect(() => {
+    if (isAuthenticated && currentUser) {
+      authSessionFailedRef.current = false;
+    }
+  }, [currentUser, isAuthenticated]);
 
   useEffect(() => {
     localStreamRef.current = localCallStream;
@@ -601,6 +608,9 @@ export function Messages() {
   }, [currentUser?.id]);
 
   const resolveAccessToken = useCallback(async () => {
+    if (authSessionFailedRef.current) {
+      return null;
+    }
     const fromState = accessToken?.trim();
     if (fromState) return fromState;
     const fromStorage = (localStorage.getItem('accessToken') || '').trim();
@@ -617,6 +627,7 @@ export function Messages() {
 
     const token = await resolveAccessToken();
     if (!token) {
+      authSessionFailedRef.current = true;
       logout();
       throw new Error('Session expired. Please log in again.');
     }
@@ -629,6 +640,7 @@ export function Messages() {
     if (response.status === 401) {
       const refreshed = await refreshAuthToken();
       if (!refreshed) {
+        authSessionFailedRef.current = true;
         logout();
         throw new Error('Session expired. Please log in again.');
       }
@@ -637,6 +649,7 @@ export function Messages() {
         headers: withTokenHeaders(refreshed, init.headers),
       });
       if (response.status === 401) {
+        authSessionFailedRef.current = true;
         logout();
         throw new Error('Session expired. Please log in again.');
       }
@@ -886,6 +899,8 @@ export function Messages() {
       token = await refreshAuthToken();
     }
     if (!token) {
+      authSessionFailedRef.current = true;
+      logout();
       return { success: false, error: 'Session expired. Please log in again.' };
     }
 
@@ -895,9 +910,17 @@ export function Messages() {
       if (response.status === 401) {
         const refreshedToken = await refreshAuthToken();
         if (!refreshedToken) {
+          authSessionFailedRef.current = true;
+          logout();
           return { success: false, error: 'Session expired. Please log in again.' };
         }
         response = await postSignal(refreshedToken);
+      }
+
+      if (response.status === 401) {
+        authSessionFailedRef.current = true;
+        logout();
+        return { success: false, error: 'Session expired. Please log in again.' };
       }
 
       if (!response.ok) {
@@ -920,7 +943,7 @@ export function Messages() {
     } catch (_error) {
       return { success: false, error: 'Network error while sending call signal.' };
     }
-  }, [accessToken, refreshAuthToken]);
+  }, [accessToken, logout, refreshAuthToken]);
 
   const scheduleConnectionWatchdog = useCallback((
     callId: string,
@@ -1013,6 +1036,8 @@ export function Messages() {
       token = await refreshAuthToken();
     }
     if (!token) {
+      authSessionFailedRef.current = true;
+      logout();
       return { success: false, error: 'Session expired. Please log in again.' };
     }
 
@@ -1022,9 +1047,17 @@ export function Messages() {
       if (response.status === 401) {
         const refreshedToken = await refreshAuthToken();
         if (!refreshedToken) {
+          authSessionFailedRef.current = true;
+          logout();
           return { success: false, error: 'Session expired. Please log in again.' };
         }
         response = await postLog(refreshedToken);
+      }
+
+      if (response.status === 401) {
+        authSessionFailedRef.current = true;
+        logout();
+        return { success: false, error: 'Session expired. Please log in again.' };
       }
 
       if (!response.ok) {
@@ -1047,7 +1080,7 @@ export function Messages() {
     } catch (_error) {
       return { success: false, error: 'Network error while sending call log.' };
     }
-  }, [accessToken, refreshAuthToken]);
+  }, [accessToken, logout, refreshAuthToken]);
 
   const buildSignalBaseRef = useRef(buildSignalBase);
   const sendCallSignalMessageRef = useRef(sendCallSignalMessage);
@@ -1805,13 +1838,18 @@ export function Messages() {
       navigate('/login');
       return;
     }
+    if (authSessionFailedRef.current) {
+      setLoading(false);
+      navigate('/login');
+      return;
+    }
     fetchMessagesWithRetry();
     const isCallFlowActive = Boolean(activeCall || incomingCall);
     const pollingIntervalMs = isCallFlowActive ? 800 : 3000;
     
     // Poll for new messages every 3 seconds to ensure seller receives messages
     const pollInterval = setInterval(() => {
-      if (!sending && !isRecording) {
+      if (!authSessionFailedRef.current && !sending && !isRecording) {
         fetchMessages();
       }
     }, pollingIntervalMs);
@@ -1863,6 +1901,13 @@ export function Messages() {
     }
     stopIncomingRingtone();
   }, [activeCall, incomingCall, startIncomingRingtone, stopIncomingRingtone]);
+
+  useEffect(() => {
+    if (isAuthenticated && currentUser && !authSessionFailedRef.current) return;
+    if (activeCallRef.current || incomingCall) {
+      clearCallResources(activeCallRef.current?.callId || incomingCall?.callId);
+    }
+  }, [clearCallResources, currentUser, incomingCall, isAuthenticated]);
 
   useEffect(() => {
     // Auto-scroll to bottom when new messages arrive
