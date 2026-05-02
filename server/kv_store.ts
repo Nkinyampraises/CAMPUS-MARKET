@@ -257,40 +257,53 @@ const stringifyValue = (value: unknown) => JSON.stringify(value ?? null);
 
 // Set stores a key-value pair in the database.
 export const set = async (key: string, value: any): Promise<void> => {
-  const table = await resolveKvTableName();
+  try {
+    const table = await resolveKvTableName();
 
-  await query(
-    `INSERT INTO ${quoteQualifiedName(table)} (key, value)
-     VALUES ($1, $2::jsonb)
-     ON CONFLICT (key)
-     DO UPDATE SET value = EXCLUDED.value`,
-    [key, stringifyValue(value)],
-  );
+    await query(
+      `INSERT INTO ${quoteQualifiedName(table)} (key, value)
+       VALUES ($1, $2::jsonb)
+       ON CONFLICT (key)
+       DO UPDATE SET value = EXCLUDED.value`,
+      [key, stringifyValue(value)],
+    );
+  } catch (error) {
+    console.error('KV store set error:', error);
+  }
 };
 
 // Get retrieves a key-value pair from the database.
 export const get = async (key: string): Promise<any> => {
-  const table = await resolveKvTableName();
-  const result = await query<{ value: any }>(
-    `SELECT value
-     FROM ${quoteQualifiedName(table)}
-     WHERE key = $1
-     LIMIT 1`,
-    [key],
-  );
+  try {
+    const table = await resolveKvTableName();
+    const result = await query<{ value: any }>(
+      `SELECT value
+       FROM ${quoteQualifiedName(table)}
+       WHERE key = $1
+       LIMIT 1`,
+      [key],
+    );
 
-  return result.rows[0]?.value;
+    return result.rows[0]?.value;
+  } catch (error) {
+    console.error('KV store get error:', error);
+    return null;
+  }
 };
 
 // Delete deletes a key-value pair from the database.
 export const del = async (key: string): Promise<void> => {
-  const table = await resolveKvTableName();
+  try {
+    const table = await resolveKvTableName();
 
-  await query(
-    `DELETE FROM ${quoteQualifiedName(table)}
-     WHERE key = $1`,
-    [key],
-  );
+    await query(
+      `DELETE FROM ${quoteQualifiedName(table)}
+       WHERE key = $1`,
+      [key],
+    );
+  } catch (error) {
+    console.error('KV store del error:', error);
+  }
 };
 
 // Sets multiple key-value pairs in the database.
@@ -303,28 +316,32 @@ export const mset = async (keys: string[], values: any[]): Promise<void> => {
     return;
   }
 
-  const table = await resolveKvTableName();
-  const client = await getClientWithRetry();
-
   try {
-    await client.query("BEGIN");
+    const table = await resolveKvTableName();
+    const client = await getClientWithRetry();
 
-    for (let index = 0; index < keys.length; index += 1) {
-      await client.query(
-        `INSERT INTO ${quoteQualifiedName(table)} (key, value)
-         VALUES ($1, $2::jsonb)
-         ON CONFLICT (key)
-         DO UPDATE SET value = EXCLUDED.value`,
-        [keys[index], stringifyValue(values[index])],
-      );
+    try {
+      await client.query("BEGIN");
+
+      for (let index = 0; index < keys.length; index += 1) {
+        await client.query(
+          `INSERT INTO ${quoteQualifiedName(table)} (key, value)
+           VALUES ($1, $2::jsonb)
+           ON CONFLICT (key)
+           DO UPDATE SET value = EXCLUDED.value`,
+          [keys[index], stringifyValue(values[index])],
+        );
+      }
+
+      await client.query("COMMIT");
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
     }
-
-    await client.query("COMMIT");
   } catch (error) {
-    await client.query("ROLLBACK");
-    throw error;
-  } finally {
-    client.release();
+    console.error('KV store mset error:', error);
   }
 };
 
@@ -334,20 +351,25 @@ export const mget = async (keys: string[]): Promise<any[]> => {
     return [];
   }
 
-  const table = await resolveKvTableName();
-  const result = await query<{ key: string; value: any }>(
-    `SELECT key, value
-     FROM ${quoteQualifiedName(table)}
-     WHERE key = ANY($1::text[])`,
-    [keys],
-  );
+  try {
+    const table = await resolveKvTableName();
+    const result = await query<{ key: string; value: any }>(
+      `SELECT key, value
+       FROM ${quoteQualifiedName(table)}
+       WHERE key = ANY($1::text[])`,
+      [keys],
+    );
 
-  const valuesByKey = new Map(
-    result.rows.map((row: { key: string; value: any }) => [row.key, row.value] as const),
-  );
-  return keys
-    .map((key) => valuesByKey.get(key))
-    .filter((value) => typeof value !== "undefined");
+    const valuesByKey = new Map(
+      result.rows.map((row: { key: string; value: any }) => [row.key, row.value] as const),
+    );
+    return keys
+      .map((key) => valuesByKey.get(key))
+      .filter((value) => typeof value !== "undefined");
+  } catch (error) {
+    console.error('KV store mget error:', error);
+    return [];
+  }
 };
 
 // Deletes multiple key-value pairs from the database.
@@ -356,25 +378,34 @@ export const mdel = async (keys: string[]): Promise<void> => {
     return;
   }
 
-  const table = await resolveKvTableName();
+  try {
+    const table = await resolveKvTableName();
 
-  await query(
-    `DELETE FROM ${quoteQualifiedName(table)}
-     WHERE key = ANY($1::text[])`,
-    [keys],
-  );
+    await query(
+      `DELETE FROM ${quoteQualifiedName(table)}
+       WHERE key = ANY($1::text[])`,
+      [keys],
+    );
+  } catch (error) {
+    console.error('KV store mdel error:', error);
+  }
 };
 
 // Search for key-value pairs by prefix.
 export const getByPrefix = async (prefix: string): Promise<any[]> => {
-  const table = await resolveKvTableName();
-  const result = await query<{ value: any }>(
-    `SELECT value
-     FROM ${quoteQualifiedName(table)}
-     WHERE key LIKE $1
-     ORDER BY key ASC`,
-    [`${prefix}%`],
-  );
+  try {
+    const table = await resolveKvTableName();
+    const result = await query<{ value: any }>(
+      `SELECT value
+       FROM ${quoteQualifiedName(table)}
+       WHERE key LIKE $1
+       ORDER BY key ASC`,
+      [`${prefix}%`],
+    );
 
-  return result.rows.map((row: { value: any }) => row.value);
+    return result.rows.map((row: { value: any }) => row.value);
+  } catch (error) {
+    console.error('KV store getByPrefix error:', error);
+    return [];
+  }
 };

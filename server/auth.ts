@@ -509,22 +509,27 @@ export async function deleteUserAuthArtifacts(userId: string, email?: string) {
 }
 
 export async function verifyAuthHeader(authHeader: string | null | undefined) {
-  if (!authHeader?.startsWith("Bearer ")) {
+  if (!authHeader?.startsWith('Bearer ')) {
     return null;
   }
 
-  const token = authHeader.slice("Bearer ".length).trim();
+  const token = authHeader.slice('Bearer '.length).trim();
   if (!token) {
     return null;
   }
 
-  const payload = await verifyAccessToken(token);
-  if (!payload) {
+  try {
+    const payload = await verifyAccessToken(token);
+    if (!payload) {
+      return null;
+    }
+
+    return {
+      id: payload.sub as string,
+      email: typeof payload.email === 'string' ? payload.email : undefined,
+    };
+  } catch (error) {
+    console.error('Verify auth header error:', error);
     return null;
   }
-
-  return {
-    id: payload.sub as string,
-    email: typeof payload.email === "string" ? payload.email : undefined,
-  };
 }
