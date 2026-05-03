@@ -282,6 +282,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const runRefresh = async (): Promise<string | null> => {
+      const activeStorage = getStorage(sessionModeRef.current);
+      const inactiveStorage = getStorage(sessionModeRef.current === 'local' ? 'session' : 'local');
+
       const refreshWithToken = async (token: string) => {
         const normalizedToken = token.trim();
         return await fetch(`${API_URL}/auth/refresh`, {
@@ -315,11 +318,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!response.ok) {
           if (response.status === 401) {
             refreshBlockedRef.current = true;
-            // Only clear tokens and logout if we already have no valid session
-            // Don't force logout here - let the caller handle fallback
             setRefreshToken(null);
+            setAccessToken(null);
             activeStorage.removeItem('refreshToken');
+            activeStorage.removeItem('accessToken');
             inactiveStorage.removeItem('refreshToken');
+            inactiveStorage.removeItem('accessToken');
           }
           return null;
         }
@@ -335,8 +339,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         setAccessToken(nextAccessToken);
         setRefreshToken(nextRefreshToken);
-        const activeStorage = getStorage(sessionModeRef.current);
-        const inactiveStorage = getStorage(sessionModeRef.current === 'local' ? 'session' : 'local');
         activeStorage.setItem('accessToken', nextAccessToken);
         activeStorage.setItem('refreshToken', nextRefreshToken);
         activeStorage.setItem(

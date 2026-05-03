@@ -558,19 +558,19 @@ export function Messages() {
     return await refreshAuthToken();
   }, [accessToken, refreshAuthToken]);
 
-   const fetchWithAuth = useCallback(async (url: string, init: RequestInit = {}) => {
+  const fetchWithAuth = useCallback(async (url: string, init: RequestInit = {}) => {
      const withTokenHeaders = (token: string, sourceHeaders?: HeadersInit) => {
        const headers = new Headers(sourceHeaders || {});
        headers.set('Authorization', `Bearer ${token}`);
        return headers;
      };
 
-     const token = await resolveAccessToken();
-     if (!token) {
-       // No token available, but don't force logout - let caller handle gracefully
-       authSessionFailedRef.current = true;
-       return new Response(null, { status: 401, statusText: 'No token' });
-     }
+      const token = await resolveAccessToken();
+      if (!token) {
+        authSessionFailedRef.current = true;
+        logout();
+        return new Response(null, { status: 401, statusText: 'No token' });
+      }
 
      let response = await fetch(url, {
        ...init,
@@ -581,8 +581,8 @@ export function Messages() {
       // Try to refresh the token and retry
       const refreshed = await refreshAuthToken();
       if (!refreshed) {
-        // Token refresh failed, but the original token might still work for some endpoints
-        // Return the 401 response and let the caller decide how to handle it
+        authSessionFailedRef.current = true;
+        logout();
         return response;
       }
       response = await fetch(url, {
@@ -590,7 +590,8 @@ export function Messages() {
         headers: withTokenHeaders(refreshed, init.headers),
       });
       if (response.status === 401) {
-        // Still getting 401 after refresh - return response for caller to handle
+        authSessionFailedRef.current = true;
+        logout();
         return response;
       }
     }
@@ -1428,6 +1429,10 @@ export function Messages() {
     try {
       const endpoint = currentUser.role === 'admin' ? '/admin/messages' : '/messages';
       const response = await fetchWithAuth(`${API_URL}${endpoint}`);
+      if (response.status === 401) {
+        setFetchError('Session expired. Please sign in again.');
+        return;
+      }
 
       if (response.ok) {
         const data = await response.json();
