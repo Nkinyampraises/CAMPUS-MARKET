@@ -1,0 +1,26 @@
+services:
+  - type: web
+    runtime: node
+    name: market-backend
+    plan: standard
+    numInstances: 1
+    buildCommand: npm install
+    startCommand: npm run start:render
+    healthCheckPath: /make-server-50b25a4f/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: FRONTEND_URL
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: POSTGRES_SSL
+        value: "true"
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
