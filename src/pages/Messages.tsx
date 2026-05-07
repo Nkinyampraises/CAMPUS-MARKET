@@ -331,38 +331,14 @@ const serializeSessionDescription = (
   sdp: description.sdp ?? '',
 });
 
-// Wait for ICE gathering to complete then return the final SDP (with all
-// candidates embedded). This lets us send a single offer/answer over HTTP
-// polling instead of a separate message per ICE candidate, which would race
-// with delivery delays and break the connection.
-const waitForGatheredLocalDescription = (
-  pc: RTCPeerConnection,
-  timeoutMs = 7000,
-): Promise<RTCSessionDescriptionInit> =>
-  new Promise((resolve) => {
-    const getDesc = (): RTCSessionDescriptionInit =>
-      serializeSessionDescription(
-        pc.localDescription ?? { type: 'offer' as RTCSdpType, sdp: '' },
-      );
-    if (pc.iceGatheringState === 'complete') {
-      resolve(getDesc());
-      return;
-    }
-    // Use addEventListener (not onicegatheringstatechange=) so concurrent calls
-    // from the watchdog cannot overwrite each other's handlers.
-    const handler = () => {
-      if (pc.iceGatheringState === 'complete') {
-        window.clearTimeout(timer);
-        pc.removeEventListener('icegatheringstatechange', handler);
-        resolve(getDesc());
-      }
-    };
-    const timer = window.setTimeout(() => {
-      pc.removeEventListener('icegatheringstatechange', handler);
-      resolve(getDesc());
-    }, timeoutMs);
-    pc.addEventListener('icegatheringstatechange', handler);
-  });
+const serializeIceCandidate = (
+  candidate: RTCIceCandidate | RTCIceCandidateInit,
+): RTCIceCandidateInit => ({
+  candidate: candidate.candidate ?? '',
+  sdpMid: candidate.sdpMid ?? null,
+  sdpMLineIndex: candidate.sdpMLineIndex ?? null,
+});
+
 
 export function Messages() {
   const { currentUser, isAuthenticated, accessToken, refreshAuthToken, logout } = useAuth();
@@ -975,12 +951,11 @@ export function Messages() {
         try {
           const restartOffer = await peerConnection.createOffer({ iceRestart: true });
           await peerConnection.setLocalDescription(restartOffer);
-          const gatheredRestartSdp = await waitForGatheredLocalDescription(peerConnection);
           const sent = await sendCallSignalMessage(
             peerId,
             {
               ...buildSignalBase('offer', callId, mode),
-              sdp: gatheredRestartSdp,
+              sdp: serializeSessionDescription(restartOffer),
             },
             itemId,
           );
@@ -1104,9 +1079,15 @@ export function Messages() {
     const peerConnection = new RTCPeerConnection(WEBRTC_CONFIGURATION);
     peerConnectionRef.current = peerConnection;
 
-    peerConnection.onicecandidate = (_event) => {
-      // Candidates are embedded in the gathered local description SDP sent
-      // with the offer/answer — no per-candidate HTTP messages needed.
+    peerConnection.onicecandidate = (event) => {
+      if (!event.candidate) return;
+      const active = activeCallRef.current;
+      if (!active || active.callId !== callId) return;
+      void sendCallSignalMessageRef.current(
+        peerId,
+        { ...buildSignalBaseRef.current('ice', callId, mode), candidate: serializeIceCandidate(event.candidate) },
+        itemId,
+      ).catch(() => {});
     };
 
     peerConnection.ontrack = (event) => {
@@ -1175,7 +1156,7 @@ export function Messages() {
     };
 
     return peerConnection;
-  }, [clearCallResources, markCallConnected, scheduleConnectionWatchdog]);
+  }, [buildSignalBase, clearCallResources, markCallConnected, scheduleConnectionWatchdog, sendCallSignalMessage]);
 
   const getCallMediaStream = useCallback(async (
     mode: CallMode,
@@ -1253,12 +1234,11 @@ export function Messages() {
       }
       const answer = await peerConnection.createAnswer();
       await peerConnection.setLocalDescription(answer);
-      const gatheredAnswerSdp = await waitForGatheredLocalDescription(peerConnection);
       await sendCallSignalMessage(
         senderId,
         {
           ...buildSignalBase('answer', signal.callId, active.mode),
-          sdp: gatheredAnswerSdp,
+          sdp: serializeSessionDescription(answer),
         },
         itemId,
       );
@@ -1414,12 +1394,11 @@ export function Messages() {
         try {
           const offer = await peerConnection.createOffer();
           await peerConnection.setLocalDescription(offer);
-          const gatheredOfferSdp = await waitForGatheredLocalDescription(peerConnection);
           const offerSent = await sendCallSignalMessage(
             active.peerId,
             {
               ...buildSignalBase('offer', signal.callId, active.mode),
-              sdp: gatheredOfferSdp,
+              sdp: serializeSessionDescription(offer),
             },
             active.itemId,
           );
