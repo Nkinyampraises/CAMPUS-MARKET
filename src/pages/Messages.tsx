@@ -179,7 +179,7 @@ const normalizeConversationUser = (user: any) => {
 
 type CallMode = 'audio' | 'video';
 
-type CallSignalType = 'invite' | 'accept' | 'offer' | 'answer' | 'ice' | 'end' | 'decline';
+type CallSignalType = 'invite' | 'accept' | 'offer' | 'answer' | 'ice' | 'ice_batch' | 'end' | 'decline';
 type CallLogOutcome = 'started' | 'no_answer' | 'declined' | 'completed';
 
 interface CallSignalPayload {
@@ -191,6 +191,7 @@ interface CallSignalPayload {
   createdAt: string;
   sdp?: RTCSessionDescriptionInit;
   candidate?: RTCIceCandidateInit;
+  candidates?: RTCIceCandidateInit[];
 }
 
 interface CallLogPayload {
@@ -1079,15 +1080,35 @@ export function Messages() {
     const peerConnection = new RTCPeerConnection(WEBRTC_CONFIGURATION);
     peerConnectionRef.current = peerConnection;
 
-    peerConnection.onicecandidate = (event) => {
-      if (!event.candidate) return;
+    // Collect all ICE candidates and send them in ONE batch when gathering
+    // finishes. This replaces 15+ individual HTTP requests with a single one,
+    // which is critical for unstable connections.
+    const pendingCandidates: RTCIceCandidateInit[] = [];
+    let batchSendTimer: ReturnType<typeof window.setTimeout> | null = null;
+
+    const flushCandidateBatch = () => {
+      if (batchSendTimer !== null) { window.clearTimeout(batchSendTimer); batchSendTimer = null; }
       const active = activeCallRef.current;
-      if (!active || active.callId !== callId) return;
+      if (!active || active.callId !== callId || !pendingCandidates.length) return;
+      const batch = pendingCandidates.splice(0);
       void sendCallSignalMessageRef.current(
         peerId,
-        { ...buildSignalBaseRef.current('ice', callId, mode), candidate: serializeIceCandidate(event.candidate) },
+        { ...buildSignalBaseRef.current('ice_batch', callId, mode), candidates: batch },
         itemId,
       ).catch(() => {});
+    };
+
+    peerConnection.onicecandidate = (event) => {
+      if (event.candidate) {
+        pendingCandidates.push(serializeIceCandidate(event.candidate));
+        // Safety flush after 3 s in case the null-terminator never fires.
+        if (batchSendTimer === null) {
+          batchSendTimer = window.setTimeout(flushCandidateBatch, 3000);
+        }
+        return;
+      }
+      // event.candidate === null → gathering finished, send the batch now.
+      flushCandidateBatch();
     };
 
     peerConnection.ontrack = (event) => {
@@ -1282,19 +1303,29 @@ export function Messages() {
       return;
     }
 
-    if (signal.signalType === 'ice' && signal.candidate) {
+    const applyIceCandidate = async (candidate: RTCIceCandidateInit) => {
       if (!peerConnection.remoteDescription) {
         const pending = queuedIceRef.current.get(signal.callId) || [];
-        pending.push(signal.candidate);
+        pending.push(candidate);
         queuedIceRef.current.set(signal.callId, pending);
         return;
       }
-
       try {
-        await peerConnection.addIceCandidate(new RTCIceCandidate(signal.candidate));
+        await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
       } catch (error) {
         console.error('Add ICE candidate error:', error);
       }
+    };
+
+    if (signal.signalType === 'ice_batch' && Array.isArray(signal.candidates)) {
+      for (const c of signal.candidates) {
+        await applyIceCandidate(c);
+      }
+      return;
+    }
+
+    if (signal.signalType === 'ice' && signal.candidate) {
+      await applyIceCandidate(signal.candidate);
     }
   }, [buildSignalBase, clearCallTimeout, flushQueuedIceCandidates, sendCallSignalMessage, stopOutgoingRingtone]);
 
