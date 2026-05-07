@@ -40,7 +40,10 @@ import {
 import { toast } from 'sonner';
 
 import { API_URL, resolveClientAssetUrl } from '@/lib/api';
-const ENABLE_MESSAGES_WEBSOCKET = String(import.meta.env.VITE_ENABLE_MESSAGES_WS || '').toLowerCase() === 'true';
+const ENABLE_MESSAGES_WEBSOCKET = String((import.meta as any).env?.VITE_ENABLE_MESSAGES_WS || '').toLowerCase() === 'true';
+// Dedicated WebSocket base URL (e.g. wss://market-backend.onrender.com).
+// Falls back to the HTTP API base if not set.
+const WS_BASE_URL = String((import.meta as any).env?.VITE_WS_BASE_URL || '').trim();
 const parseConfiguredIceServers = (): RTCIceServer[] => {
   const raw = String(import.meta.env.VITE_WEBRTC_ICE_SERVERS || '').trim();
   if (!raw) return [];
@@ -2079,7 +2082,9 @@ export function Messages() {
         const token = await resolveAccessToken();
         if (!token) return;
 
-        const ws = new WebSocket(`${API_URL.replace('http', 'ws')}/messages/ws?token=${encodeURIComponent(token)}`);
+        const wsBase = WS_BASE_URL || API_URL;
+        const wsUrl = wsBase.replace(/^http/, 'ws') + `/messages/ws?token=${encodeURIComponent(token)}`;
+        const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
 
         ws.onopen = () => {

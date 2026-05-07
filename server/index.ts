@@ -4437,6 +4437,13 @@ app.post("/make-server-50b25a4f/messages", async (c) => {
       // Still return success so signaling can proceed
     }
 
+    // Push to recipient via WebSocket if they are connected — this makes
+    // call signals (invite/accept/offer/answer/ICE) arrive in real-time
+    // without waiting for the next 800ms poll cycle.
+    wsBroadcastToUser(receiverId, { type: "new_message", message });
+    // Also echo to sender so their own UI updates instantly.
+    wsBroadcastToUser(user.id, { type: "new_message", message });
+
     return c.json({ success: true, message });
   } catch (error) {
     console.error('Send message error:', error);
@@ -8383,6 +8390,66 @@ app.post("/make-server-50b25a4f/upload", async (c) => {
     return c.json({ error: 'Failed to upload file' }, 500);
   }
 });
+
+// ── WebSocket real-time hub ─────────────────────────────────────────────────
+// Maps userId → Set of open WebSocket connections for that user.
+// Used to push new messages (including call signals) in real-time so the
+// frontend doesn't have to rely on 800ms HTTP polling for signaling.
+const wsClients = new Map<string, Set<WebSocket>>();
+
+function wsBroadcastToUser(userId: string, payload: unknown) {
+  const sockets = wsClients.get(userId);
+  if (!sockets) return;
+  const data = JSON.stringify(payload);
+  sockets.forEach((ws) => {
+    if (ws.readyState === WebSocket.OPEN) {
+      try { ws.send(data); } catch { /* ignore closed socket */ }
+    }
+  });
+}
+
+app.get("/make-server-50b25a4f/messages/ws", async (c) => {
+  const rawToken = c.req.query("token") || c.req.header("Authorization")?.replace(/^bearer\s+/i, "") || "";
+  const user = await verifyMessagingAuth(`Bearer ${rawToken}`, rawToken);
+  if (!user) return c.json({ error: "Unauthorized" }, 401);
+
+  // Deno native WebSocket upgrade (only available on Deno runtime).
+  const denoGlobal = globalThis as any;
+  if (typeof denoGlobal?.Deno?.upgradeWebSocket !== "function") {
+    return c.json({ error: "WebSocket not supported in this runtime" }, 501);
+  }
+
+  const { socket, response } = denoGlobal.Deno.upgradeWebSocket(c.req.raw);
+
+  if (!wsClients.has(user.id)) wsClients.set(user.id, new Set());
+  wsClients.get(user.id)!.add(socket);
+
+  socket.onclose = () => {
+    const set = wsClients.get(user.id);
+    if (set) { set.delete(socket); if (set.size === 0) wsClients.delete(user.id); }
+  };
+
+  socket.onmessage = (event: MessageEvent) => {
+    try {
+      const data = JSON.parse(String(event.data));
+      // Relay typing / read-receipt events to the conversation partner.
+      if ((data.type === "typing_start" || data.type === "typing_end") && data.conversationId) {
+        wsBroadcastToUser(data.conversationId, { ...data, userId: user.id });
+      }
+      if (data.type === "message_read" && data.conversationId) {
+        wsBroadcastToUser(data.conversationId, { ...data, userId: user.id });
+      }
+    } catch { /* ignore malformed frames */ }
+  };
+
+  socket.onerror = () => {
+    const set = wsClients.get(user.id);
+    if (set) { set.delete(socket); if (set.size === 0) wsClients.delete(user.id); }
+  };
+
+  return response;
+});
+// ────────────────────────────────────────────────────────────────────────────
 
 const serverPort = Math.max(1, toSafeNumber(Deno.env.get("PORT"), 8000));
 const isDenoDeployRuntime = Boolean((Deno.env.get("DENO_DEPLOYMENT_ID") || "").trim());
