@@ -15,7 +15,7 @@ const { Pool } = pg;
 const DEFAULT_KV_TABLE = "kv_store_50b25a4f";
 const LEGACY_KV_TABLE = "kv_store";
 const TRANSIENT_CONNECTION_ERROR_PATTERN =
-  /MaxClientsInSessionMode|too many clients|remaining connection slots|connection terminated unexpectedly|timeout acquiring a client/i;
+  /MaxClientsInSessionMode|too many clients|remaining connection slots|connection terminated unexpectedly|timeout acquiring a client|ECONNREFUSED|ECONNRESET|ETIMEDOUT|ENOTFOUND|connection refused|connection reset|network error|getaddrinfo|could not connect|ssl connection|server closed|Connection terminated|remaining connection/i;
 const SERVERLESS_ENV_KEYS = [
   "VERCEL",
   "AWS_LAMBDA_FUNCTION_NAME",
@@ -117,7 +117,8 @@ const buildPoolConfig = () => {
   const sharedPoolOptions = {
     max: resolvePoolMax(),
     idleTimeoutMillis: toSafePort(firstNonEmptyEnv("POSTGRES_IDLE_TIMEOUT_MS"), 10_000),
-    connectionTimeoutMillis: toSafePort(firstNonEmptyEnv("POSTGRES_CONNECT_TIMEOUT_MS"), 5_000),
+    // 15s timeout handles Supabase free-tier wake-up (can take 5-10s after pausing).
+    connectionTimeoutMillis: toSafePort(firstNonEmptyEnv("POSTGRES_CONNECT_TIMEOUT_MS"), 15_000),
     // Helps serverless functions release idle clients between invocations.
     allowExitOnIdle: true,
   };
@@ -161,15 +162,17 @@ const getPool = () => {
 };
 
 const getClientWithRetry = async () => {
+  // Retry up to 4 times with back-off to survive Supabase cold-starts and
+  // brief network blips (each attempt can take up to 15s connection timeout).
   for (let attempt = 0; ; attempt += 1) {
     try {
       return await getPool().connect();
     } catch (error) {
-      const canRetry = attempt < 2 && isTransientConnectionError(error);
+      const canRetry = attempt < 4 && isTransientConnectionError(error);
       if (!canRetry) {
         throw error;
       }
-      await delay(120 * (attempt + 1));
+      await delay(300 * (attempt + 1));
     }
   }
 };
@@ -194,11 +197,11 @@ async function query<T = any>(text: string, params: unknown[] = []) {
     try {
       return await client.query<T>(text, params);
     } catch (error) {
-      const canRetry = attempt < 2 && isTransientConnectionError(error);
+      const canRetry = attempt < 3 && isTransientConnectionError(error);
       if (!canRetry) {
         throw error;
       }
-      await delay(120 * (attempt + 1));
+      await delay(300 * (attempt + 1));
     } finally {
       client.release();
     }
