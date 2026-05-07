@@ -2071,6 +2071,13 @@ export function Messages() {
   useEffect(() => {
     if (!ENABLE_MESSAGES_WEBSOCKET) return;
 
+    // Wake up the Render backend immediately so the WebSocket can connect
+    // faster (free-tier servers sleep after 15 min of inactivity).
+    if (WS_BASE_URL) {
+      fetch(WS_BASE_URL.replace(/^wss?/, 'https') + '/make-server-50b25a4f/health')
+        .catch(() => {});
+    }
+
     let reconnectTimer: number | null = null;
     let isMounted = true;
 

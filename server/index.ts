@@ -8505,6 +8505,12 @@ const shouldStartDenoServer = Boolean((Deno as any)?.version?.deno);
 
 if (shouldStartDenoServer) {
   await startServer();
+
+  // Keep-alive: ping own health endpoint every 10 min so Render free tier
+  // never spins the server down while it is in use.
+  setInterval(() => {
+    fetch(`http://localhost:${serverPort}/make-server-50b25a4f/health`).catch(() => {});
+  }, 10 * 60 * 1000);
 }
 
 export { app };
