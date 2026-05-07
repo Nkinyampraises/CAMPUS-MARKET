@@ -617,8 +617,11 @@ export function Messages() {
 
       const token = await resolveAccessToken();
       if (!token) {
-        authSessionFailedRef.current = true;
-        logout();
+        // Never force logout while a call is active — it would destroy the call state.
+        if (!activeCallRef.current) {
+          authSessionFailedRef.current = true;
+          logout();
+        }
         return new Response(null, { status: 401, statusText: 'No token' });
       }
 
@@ -631,8 +634,10 @@ export function Messages() {
       // Try to refresh the token and retry
       const refreshed = await refreshAuthToken();
       if (!refreshed) {
-        authSessionFailedRef.current = true;
-        logout();
+        if (!activeCallRef.current) {
+          authSessionFailedRef.current = true;
+          logout();
+        }
         return response;
       }
       response = await fetch(url, {
@@ -640,8 +645,10 @@ export function Messages() {
         headers: withTokenHeaders(refreshed, init.headers),
       });
       if (response.status === 401) {
-        authSessionFailedRef.current = true;
-        logout();
+        if (!activeCallRef.current) {
+          authSessionFailedRef.current = true;
+          logout();
+        }
         return response;
       }
     }
@@ -870,22 +877,30 @@ export function Messages() {
     payload: CallSignalPayload,
     itemId?: string,
   ): Promise<{ success: boolean; error?: string }> => {
-    try {
-      const response = await fetchWithAuth(`${API_URL}/messages`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          receiverId,
-          itemId,
-          content: buildCallSignalContent(payload),
-          messageType: 'text',
-        }),
-      });
+    // Retry up to 4 times with increasing delays so transient auth/network
+    // failures during a call don't silently drop the signal.
+    for (let attempt = 0; attempt < 4; attempt++) {
+      try {
+        const response = await fetchWithAuth(`${API_URL}/messages`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            receiverId,
+            itemId,
+            content: buildCallSignalContent(payload),
+            messageType: 'text',
+          }),
+        });
 
-      if (!response.ok) {
-        const bodyText = await response.text();
+        if (response.ok) return { success: true };
+
+        // Retry on 401/503 (transient server issues) unless we're out of attempts.
+        if ((response.status === 401 || response.status === 503) && attempt < 3) {
+          await new Promise((r) => window.setTimeout(r, 800 * (attempt + 1)));
+          continue;
+        }
+
+        const bodyText = await response.text().catch(() => '');
         try {
           const bodyJson = JSON.parse(bodyText);
           return {
@@ -898,13 +913,16 @@ export function Messages() {
             error: bodyText || `Failed to send call signal (${response.status})`,
           };
         }
+      } catch (error) {
+        if (attempt < 3) {
+          await new Promise((r) => window.setTimeout(r, 600 * (attempt + 1)));
+          continue;
+        }
+        console.error('Send call signal error:', error);
+        return { success: false, error: 'Network error while sending call signal.' };
       }
-
-      return { success: true };
-    } catch (error) {
-      console.error('Send call signal error:', error);
-      return { success: false, error: 'Network error while sending call signal.' };
     }
+    return { success: false, error: 'Failed to send call signal after retries.' };
   }, [fetchWithAuth, buildCallSignalContent]);
 
   const scheduleConnectionWatchdog = useCallback((
@@ -1493,8 +1511,11 @@ export function Messages() {
       const response = await fetchWithAuth(`${API_URL}${endpoint}`);
       if (response.status === 401) {
         setFetchError('Session expired. Please sign in again.');
-        authSessionFailedRef.current = true;
-        logout();
+        // Keep the call alive — do not logout or stop polling while a call is active.
+        if (!activeCallRef.current) {
+          authSessionFailedRef.current = true;
+          logout();
+        }
         return;
       }
 
