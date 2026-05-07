@@ -258,21 +258,17 @@ async function resolveKvTableName() {
 
 const stringifyValue = (value: unknown) => JSON.stringify(value ?? null);
 
-// Set stores a key-value pair in the database.
+// Set stores a key-value pair in the database. Errors are re-thrown.
 export const set = async (key: string, value: any): Promise<void> => {
-  try {
-    const table = await resolveKvTableName();
+  const table = await resolveKvTableName();
 
-    await query(
-      `INSERT INTO ${quoteQualifiedName(table)} (key, value)
-       VALUES ($1, $2::jsonb)
-       ON CONFLICT (key)
-       DO UPDATE SET value = EXCLUDED.value`,
-      [key, stringifyValue(value)],
-    );
-  } catch (error) {
-    console.error('KV store set error:', error);
-  }
+  await query(
+    `INSERT INTO ${quoteQualifiedName(table)} (key, value)
+     VALUES ($1, $2::jsonb)
+     ON CONFLICT (key)
+     DO UPDATE SET value = EXCLUDED.value`,
+    [key, stringifyValue(value)],
+  );
 };
 
 // Appends a string item to a JSON array value atomically.
@@ -338,6 +334,7 @@ export const del = async (key: string): Promise<void> => {
 };
 
 // Sets multiple key-value pairs in the database.
+// NOTE: errors are re-thrown so callers that need atomic writes can detect failure.
 export const mset = async (keys: string[], values: any[]): Promise<void> => {
   if (keys.length !== values.length) {
     throw new Error("mset expects keys and values to have the same length");
@@ -347,32 +344,28 @@ export const mset = async (keys: string[], values: any[]): Promise<void> => {
     return;
   }
 
+  const table = await resolveKvTableName();
+  const client = await getClientWithRetry();
+
   try {
-    const table = await resolveKvTableName();
-    const client = await getClientWithRetry();
+    await client.query("BEGIN");
 
-    try {
-      await client.query("BEGIN");
-
-      for (let index = 0; index < keys.length; index += 1) {
-        await client.query(
-          `INSERT INTO ${quoteQualifiedName(table)} (key, value)
-           VALUES ($1, $2::jsonb)
-           ON CONFLICT (key)
-           DO UPDATE SET value = EXCLUDED.value`,
-          [keys[index], stringifyValue(values[index])],
-        );
-      }
-
-      await client.query("COMMIT");
-    } catch (error) {
-      await client.query("ROLLBACK");
-      throw error;
-    } finally {
-      client.release();
+    for (let index = 0; index < keys.length; index += 1) {
+      await client.query(
+        `INSERT INTO ${quoteQualifiedName(table)} (key, value)
+         VALUES ($1, $2::jsonb)
+         ON CONFLICT (key)
+         DO UPDATE SET value = EXCLUDED.value`,
+        [keys[index], stringifyValue(values[index])],
+      );
     }
+
+    await client.query("COMMIT");
   } catch (error) {
-    console.error('KV store mset error:', error);
+    try { await client.query("ROLLBACK"); } catch { /* ignore rollback errors */ }
+    throw error;
+  } finally {
+    client.release();
   }
 };
 
