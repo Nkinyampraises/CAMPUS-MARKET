@@ -115,6 +115,11 @@ const TWO_FACTOR_MAX_RESENDS = Math.max(1, readEnvNumber("TWO_FACTOR_MAX_RESENDS
 const requireTwoFactorByDefault = !/^(0|false|no|off)$/i.test(
   (Deno.env.get("AUTH_REQUIRE_TWO_FACTOR") || "true").trim(),
 );
+// Default OFF — campus marketplace doesn't need email gating.
+// Set AUTH_REQUIRE_EMAIL_CONFIRMATION=true in env to enable.
+const requireEmailConfirmation = /^(1|true|yes|on)$/i.test(
+  (Deno.env.get("AUTH_REQUIRE_EMAIL_CONFIRMATION") || "false").trim(),
+);
 const MAX_UPLOAD_SIZE_BYTES = 5 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp", "image/jfif", "image/pjpeg"]);
 const FILE_ROUTE_PREFIX = "/make-server-50b25a4f/files";
@@ -3413,14 +3418,16 @@ app.post("/make-server-50b25a4f/signup", async (c) => {
     }
 
     const userId = crypto.randomUUID();
+    const now = new Date().toISOString();
     const authRecord = {
       userId,
       email: normalizedEmail,
-      emailVerified: false,
-      emailConfirmedAt: "",
+      // Auto-verify unless email confirmation is explicitly required.
+      emailVerified: !requireEmailConfirmation,
+      emailConfirmedAt: requireEmailConfirmation ? "" : now,
       twoFactorEnabled: requireTwoFactorByDefault,
       ...(await createPasswordRecord(password)),
-      createdAt: new Date().toISOString(),
+      createdAt: now,
     };
 
     const userProfile = {
@@ -3433,13 +3440,13 @@ app.post("/make-server-50b25a4f/signup", async (c) => {
       rating: 0,
       reviewCount: 0,
       isVerified: false,
-      isApproved: true, // Auto-approve (no admin approval required)
+      isApproved: true,
       role: 'student',
       userType: normalizedUserType,
       profilePicture: normalizedProfilePicture,
       avatar: normalizedProfilePicture,
       isBanned: false,
-      createdAt: new Date().toISOString(),
+      createdAt: now,
     };
 
     await persistLocalAuthRecord(authRecord);
@@ -3451,35 +3458,44 @@ app.post("/make-server-50b25a4f/signup", async (c) => {
           userId,
           availableBalance: 0,
           pendingBalance: 0,
-          updatedAt: new Date().toISOString(),
+          updatedAt: now,
         },
       ],
     );
 
-    const confirmationToken = await createEmailConfirmationSession(userId, normalizedEmail);
-    const confirmationLink = await createEmailConfirmationLink(c.req.raw, confirmationToken);
-    let responseMessage = 'Account created successfully. Check your email to confirm your account before logging in.';
-    let fallbackConfirmationLink = '';
+    if (requireEmailConfirmation) {
+      const confirmationToken = await createEmailConfirmationSession(userId, normalizedEmail);
+      const confirmationLink = await createEmailConfirmationLink(c.req.raw, confirmationToken);
+      let responseMessage = 'Account created successfully. Check your email to confirm your account before logging in.';
+      let fallbackConfirmationLink = '';
 
-    if (isEmailDeliveryConfigured) {
-      try {
-        await sendAccountConfirmationEmail(normalizedEmail, confirmationLink);
-      } catch (error) {
-        console.error('Confirmation email error:', error);
-        responseMessage = 'Account created. We could not send your confirmation email right now, so use the link below to confirm.';
+      if (isEmailDeliveryConfigured) {
+        try {
+          await sendAccountConfirmationEmail(normalizedEmail, confirmationLink);
+        } catch (error) {
+          console.error('Confirmation email error:', error);
+          responseMessage = 'Account created. We could not send your confirmation email right now, so use the link below to confirm.';
+          fallbackConfirmationLink = confirmationLink;
+        }
+      } else {
+        responseMessage = 'Account created. Email delivery is not configured here, so use the confirmation link below.';
         fallbackConfirmationLink = confirmationLink;
       }
-    } else {
-      responseMessage = 'Account created. Email delivery is not configured here, so use the confirmation link below.';
-      fallbackConfirmationLink = confirmationLink;
+
+      return c.json({
+        success: true,
+        message: responseMessage,
+        userId,
+        requiresEmailConfirmation: true,
+        ...(fallbackConfirmationLink ? { confirmationLink: fallbackConfirmationLink } : {}),
+      });
     }
 
-    return c.json({ 
-      success: true, 
-      message: responseMessage,
+    return c.json({
+      success: true,
+      message: 'Account created successfully. You can now sign in.',
       userId,
-      requiresEmailConfirmation: true,
-      ...(fallbackConfirmationLink ? { confirmationLink: fallbackConfirmationLink } : {}),
+      requiresEmailConfirmation: false,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'An error occurred during signup';
@@ -3730,7 +3746,7 @@ app.post("/make-server-50b25a4f/signin", async (c) => {
       return c.json({ error: 'Invalid email or password' }, 400);
     }
 
-    if (authRecord.emailVerified === false) {
+    if (requireEmailConfirmation && authRecord.emailVerified === false) {
       return c.json({ error: 'Please confirm your email before logging in.' }, 403);
     }
 
