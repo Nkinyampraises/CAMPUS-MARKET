@@ -115,6 +115,51 @@ const TWO_FACTOR_MAX_RESENDS = Math.max(1, readEnvNumber("TWO_FACTOR_MAX_RESENDS
 const requireTwoFactorByDefault = !/^(0|false|no|off)$/i.test(
   (Deno.env.get("AUTH_REQUIRE_TWO_FACTOR") || "true").trim(),
 );
+
+// ── JWT helpers ─────────────────────────────────────────────────────────────
+// Access tokens are self-contained JWTs signed with JWT_SECRET.
+// Validation requires NO database lookup — the signature is verified
+// cryptographically. This eliminates the "401 on every request" problem
+// caused by intermittent Supabase connection-pool failures.
+const JWT_SECRET = (Deno.env.get("JWT_SECRET") || "").trim();
+const JWT_ENABLED = JWT_SECRET.length >= 32;
+
+const b64url = (buf: ArrayBuffer) =>
+  Buffer.from(buf).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+
+const b64urlStr = (s: string) =>
+  Buffer.from(s).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+
+const fromB64url = (s: string) =>
+  Buffer.from(s.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString();
+
+async function signJwtToken(userId: string, email: string, expiresAt: string): Promise<string> {
+  const header = b64urlStr(JSON.stringify({ alg: "HS256", typ: "JWT" }));
+  const payload = b64urlStr(JSON.stringify({ sub: userId, email, exp: Math.floor(new Date(expiresAt).getTime() / 1000), typ: "access" }));
+  const data = `${header}.${payload}`;
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(JWT_SECRET), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(data));
+  return `${data}.${b64url(sig)}`;
+}
+
+async function verifyJwtToken(token: string): Promise<{ userId: string; email: string; expiresAt: string } | null> {
+  if (!JWT_ENABLED) return null;
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+    const [header, payload, signature] = parts;
+    const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(JWT_SECRET), { name: "HMAC", hash: "SHA-256" }, false, ["verify"]);
+    const valid = await crypto.subtle.verify("HMAC", key, Buffer.from(signature.replace(/-/g, "+").replace(/_/g, "/"), "base64"), new TextEncoder().encode(`${header}.${payload}`));
+    if (!valid) return null;
+    const data = JSON.parse(fromB64url(payload));
+    if (data.typ !== "access" || !data.sub || !data.email) return null;
+    if (data.exp && Date.now() / 1000 > data.exp) return null;
+    return { userId: data.sub, email: data.email, expiresAt: new Date(data.exp * 1000).toISOString() };
+  } catch {
+    return null;
+  }
+}
+// ────────────────────────────────────────────────────────────────────────────
 // Default OFF — campus marketplace doesn't need email gating.
 // Set AUTH_REQUIRE_EMAIL_CONFIRMATION=true in env to enable.
 const requireEmailConfirmation = /^(1|true|yes|on)$/i.test(
@@ -397,37 +442,29 @@ async function createSessionPair(userId: string, email: string) {
   const now = Date.now();
   const createdAt = new Date(now).toISOString();
   const normalizedEmail = normalizeEmail(email);
-  const accessToken = createRandomToken(32);
+  const expiresAt = new Date(now + ACCESS_TOKEN_TTL_MS).toISOString();
+
+  // Access token: JWT when possible (no DB write/read needed).
+  const accessToken = JWT_ENABLED
+    ? await signJwtToken(userId, normalizedEmail, expiresAt)
+    : createRandomToken(32);
+
   const refreshToken = createRandomToken(32);
 
-  const accessSession = {
-    type: "access",
-    userId,
-    email: normalizedEmail,
-    createdAt,
-    expiresAt: new Date(now + ACCESS_TOKEN_TTL_MS).toISOString(),
-  };
-
-  const refreshSession = {
-    type: "refresh",
-    userId,
-    email: normalizedEmail,
-    createdAt,
-    expiresAt: new Date(now + REFRESH_TOKEN_TTL_MS).toISOString(),
-  };
-
-  await kv.mset(
-    [authAccessKey(accessToken), authRefreshKey(refreshToken)],
-    [accessSession, refreshSession],
-  );
-
-  // Guard against silent KV write failures. Some KV adapters swallow transient
-  // write errors; without this check we could return tokens that are immediately
-  // rejected by verifyAuth().
-  const persistedAccessSession = await getValidSession(accessToken, "access");
-  const persistedRefreshSession = await getValidSession(refreshToken, "refresh");
-  if (!persistedAccessSession || !persistedRefreshSession) {
-    throw new Error("Failed to persist authentication session");
+  if (JWT_ENABLED) {
+    // Only write the refresh token to the DB.
+    const refreshSession = { type: "refresh", userId, email: normalizedEmail, createdAt, expiresAt: new Date(now + REFRESH_TOKEN_TTL_MS).toISOString() };
+    await kv.set(authRefreshKey(refreshToken), refreshSession);
+    const persisted = await getValidSession(refreshToken, "refresh");
+    if (!persisted) throw new Error("Failed to persist refresh session");
+  } else {
+    // Legacy: store both tokens in DB.
+    const accessSession = { type: "access", userId, email: normalizedEmail, createdAt, expiresAt };
+    const refreshSession = { type: "refresh", userId, email: normalizedEmail, createdAt, expiresAt: new Date(now + REFRESH_TOKEN_TTL_MS).toISOString() };
+    await kv.mset([authAccessKey(accessToken), authRefreshKey(refreshToken)], [accessSession, refreshSession]);
+    const persistedAccess = await getValidSession(accessToken, "access");
+    const persistedRefresh = await getValidSession(refreshToken, "refresh");
+    if (!persistedAccess || !persistedRefresh) throw new Error("Failed to persist authentication session");
   }
 
   return { accessToken, refreshToken };
@@ -598,21 +635,27 @@ async function resendTwoFactorSessionCode(token: string) {
 }
 
 async function getValidSession(token: string, type: "access" | "refresh") {
+  // For access tokens, try JWT first — zero DB round trip.
+  if (type === "access" && JWT_ENABLED && token.split(".").length === 3) {
+    const jwtData = await verifyJwtToken(token);
+    if (jwtData) {
+      return { type: "access", userId: jwtData.userId, email: jwtData.email, expiresAt: jwtData.expiresAt };
+    }
+    return null;
+  }
+
+  // Refresh tokens and legacy opaque access tokens: DB lookup.
   try {
     const lookupKey = type === "access" ? authAccessKey(token) : authRefreshKey(token);
     const session = await kv.get(lookupKey);
     if (!session?.userId || session?.type !== type) {
       return null;
     }
-
     const expiresAt = typeof session.expiresAt === "string" ? Date.parse(session.expiresAt) : Number.NaN;
     if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
-      try {
-        await kv.del(lookupKey);
-      } catch {}
+      try { await kv.del(lookupKey); } catch {}
       return null;
     }
-
     return session;
   } catch (error) {
     console.error('Get valid session error:', error);
