@@ -206,7 +206,8 @@ interface CallLogPayload {
 const CALL_SIGNAL_PREFIX = '__CALL_SIGNAL__::';
 const LEGACY_CALL_INVITE_PREFIX = '__CALL_INVITE__::';
 const CALL_LOG_PREFIX = '__CALL_LOG__::';
-const CALL_CONNECTION_WATCHDOG_INTERVAL_MS = 12000;
+// Must be longer than: offer ICE gather (7s) + poll delivery (1s) + answer ICE gather (7s) + poll delivery (1s) ≈ 16s.
+const CALL_CONNECTION_WATCHDOG_INTERVAL_MS = 30000;
 
 const buildCallSignalContent = (payload: CallSignalPayload) =>
   `${CALL_SIGNAL_PREFIX}${JSON.stringify(payload)}`;
@@ -347,17 +348,20 @@ const waitForGatheredLocalDescription = (
       resolve(getDesc());
       return;
     }
-    const done = () => {
-      pc.onicegatheringstatechange = null;
-      resolve(getDesc());
-    };
-    const timer = window.setTimeout(done, timeoutMs);
-    pc.onicegatheringstatechange = () => {
+    // Use addEventListener (not onicegatheringstatechange=) so concurrent calls
+    // from the watchdog cannot overwrite each other's handlers.
+    const handler = () => {
       if (pc.iceGatheringState === 'complete') {
         window.clearTimeout(timer);
-        done();
+        pc.removeEventListener('icegatheringstatechange', handler);
+        resolve(getDesc());
       }
     };
+    const timer = window.setTimeout(() => {
+      pc.removeEventListener('icegatheringstatechange', handler);
+      resolve(getDesc());
+    }, timeoutMs);
+    pc.addEventListener('icegatheringstatechange', handler);
   });
 
 export function Messages() {
@@ -1241,6 +1245,12 @@ export function Messages() {
       }
       await peerConnection.setRemoteDescription(new RTCSessionDescription(signal.sdp));
       await flushQueuedIceCandidates(signal.callId, peerConnection);
+      // Guard: state must be have-remote-offer after setRemoteDescription.
+      // Cast bypasses TS narrowing — signalingState changes during the async await above.
+      if ((peerConnection.signalingState as RTCSignalingState) !== 'have-remote-offer') {
+        console.warn('Unexpected signaling state after setRemoteDescription(offer):', peerConnection.signalingState);
+        return;
+      }
       const answer = await peerConnection.createAnswer();
       await peerConnection.setLocalDescription(answer);
       const gatheredAnswerSdp = await waitForGatheredLocalDescription(peerConnection);
@@ -1258,6 +1268,7 @@ export function Messages() {
         activeCallRef.current = next;
         return next;
       });
+      // Start watchdog only now — offer/answer cycle is complete, watching for ICE connection.
       scheduleConnectionWatchdog(signal.callId, senderId, active.mode, itemId);
       return;
     }
@@ -2808,12 +2819,9 @@ export function Messages() {
       };
       activeCallRef.current = nextActiveCall;
       setActiveCall(nextActiveCall);
-      scheduleConnectionWatchdog(
-        acceptedCall.callId,
-        acceptedCall.senderId,
-        acceptedCall.mode,
-        acceptedCall.itemId,
-      );
+      // Do NOT schedule the watchdog here — the offer hasn't arrived yet.
+      // The watchdog is started in applySignalingPayload after the offer is
+      // processed and the answer is sent, so it doesn't interfere with ICE gathering.
 
       await flushQueuedSignalsForCall(
         acceptedCall.callId,
