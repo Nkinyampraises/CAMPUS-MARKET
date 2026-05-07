@@ -59,44 +59,44 @@ const configuredTurnUrls = String(import.meta.env.VITE_TURN_URLS || '')
   .filter(Boolean);
 const configuredTurnUsername = String(import.meta.env.VITE_TURN_USERNAME || '').trim();
 const configuredTurnCredential = String(import.meta.env.VITE_TURN_CREDENTIAL || '').trim();
-const configuredIceTransportPolicy = String(import.meta.env.VITE_WEBRTC_ICE_TRANSPORT_POLICY || '')
-  .trim()
-  .toLowerCase() === 'relay'
-  ? 'relay'
-  : 'all';
-const defaultRelayServers: RTCIceServer[] = [
-  { urls: 'stun:stun.relay.metered.ca:80' },
-  { urls: 'stun:global.stun.twilio.com:3478' },
-  { urls: 'stun:stun.cloudflare.com:3478' },
-  { urls: 'stun:openrelay.metered.ca:80' },
-  {
-    urls: [
-      'turn:openrelay.metered.ca:80',
-      'turn:openrelay.metered.ca:443',
-      'turn:openrelay.metered.ca:443?transport=tcp',
-      'turns:openrelay.metered.ca:443?transport=tcp',
-    ],
-    username: 'openrelayproject',
-    credential: 'openrelayproject',
-  },
-];
+// Always use 'all' — never restrict to relay-only unless explicitly set AND valid TURN
+// credentials are configured. Relay-only with expired credentials = zero candidates = calls fail.
+const configuredIceTransportPolicy: RTCIceTransportPolicy =
+  String(import.meta.env.VITE_WEBRTC_ICE_TRANSPORT_POLICY || '').trim().toLowerCase() === 'relay' &&
+  configuredTurnUrls.length > 0 &&
+  configuredTurnUsername &&
+  configuredTurnCredential
+    ? 'relay'
+    : 'all';
 const configuredRelayServers: RTCIceServer[] = configuredTurnUrls.length
   ? [{
       urls: configuredTurnUrls,
       ...(configuredTurnUsername && configuredTurnCredential
-        ? {
-            username: configuredTurnUsername,
-            credential: configuredTurnCredential,
-          }
+        ? { username: configuredTurnUsername, credential: configuredTurnCredential }
         : {}),
     }]
   : [];
 const WEBRTC_CONFIGURATION: RTCConfiguration = {
-  iceTransportPolicy: configuredIceTransportPolicy as RTCIceTransportPolicy,
+  iceTransportPolicy: configuredIceTransportPolicy,
   iceServers: [
+    // Google STUN — most reliable globally, free, no credentials needed
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
-    ...defaultRelayServers,
+    { urls: 'stun:stun2.l.google.com:19302' },
+    { urls: 'stun:stun3.l.google.com:19302' },
+    // Cloudflare STUN — fast global coverage
+    { urls: 'stun:stun.cloudflare.com:3478' },
+    // Free TURN relay for cross-network calls (when both on different ISPs/mobile data)
+    {
+      urls: [
+        'turn:openrelay.metered.ca:80',
+        'turn:openrelay.metered.ca:443',
+        'turns:openrelay.metered.ca:443?transport=tcp',
+      ],
+      username: 'openrelayproject',
+      credential: 'openrelayproject',
+    },
+    // Any custom TURN from env vars (optional)
     ...configuredRelayServers,
     ...parseConfiguredIceServers(),
   ],
