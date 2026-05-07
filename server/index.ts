@@ -416,6 +416,15 @@ async function createSessionPair(userId: string, email: string) {
     [accessSession, refreshSession],
   );
 
+  // Guard against silent KV write failures. Some KV adapters swallow transient
+  // write errors; without this check we could return tokens that are immediately
+  // rejected by verifyAuth().
+  const persistedAccessSession = await getValidSession(accessToken, "access");
+  const persistedRefreshSession = await getValidSession(refreshToken, "refresh");
+  if (!persistedAccessSession || !persistedRefreshSession) {
+    throw new Error("Failed to persist authentication session");
+  }
+
   return { accessToken, refreshToken };
 }
 
@@ -1951,13 +1960,54 @@ async function getPlatformRevenueWalletSummary() {
   };
 }
 
+const normalizeAuthTokenInput = (value: string | null | undefined) => {
+  if (!value) {
+    return "";
+  }
+  let token = String(value).trim().replace(/^"(.*)"$/, "$1").trim();
+  for (let i = 0; i < 2; i += 1) {
+    if (!/^bearer\s+/i.test(token)) break;
+    token = token.replace(/^bearer\s+/i, "").trim();
+  }
+  if (!token || token.toLowerCase() === "null" || token.toLowerCase() === "undefined") {
+    return "";
+  }
+  return token;
+};
+
+const extractBearerToken = (headerValue: string | null | undefined) => {
+  if (!headerValue) {
+    return "";
+  }
+  const match = String(headerValue).trim().match(/^bearer\s+(.+)$/i);
+  if (!match?.[1]) {
+    return "";
+  }
+  return normalizeAuthTokenInput(match[1]);
+};
+
+const verifyRefreshTokenUser = async (rawRefreshToken: string | null | undefined) => {
+  const refreshToken = normalizeAuthTokenInput(rawRefreshToken);
+  if (!refreshToken) {
+    return null;
+  }
+  const refreshSession = await getValidSession(refreshToken, "refresh");
+  if (!refreshSession?.userId) {
+    return null;
+  }
+  return {
+    id: refreshSession.userId,
+    email: refreshSession.email,
+  };
+};
+
 // Helper function to verify auth token
 async function verifyAuth(authHeader: string | null | undefined) {
-  if (!authHeader?.startsWith('Bearer ')) {
+  const token = extractBearerToken(authHeader);
+  if (!token) {
     return null;
   }
 
-  const token = authHeader.split(' ')[1];
   const session = await getValidSession(token, "access");
   if (!session) {
     return null;
@@ -1967,6 +2017,20 @@ async function verifyAuth(authHeader: string | null | undefined) {
     id: session.userId,
     email: session.email,
   };
+}
+
+// Messaging endpoints can accept a valid refresh token as fallback when
+// access tokens are stale to avoid call/signaling interruption loops.
+async function verifyMessagingAuth(
+  authHeader: string | null | undefined,
+  refreshTokenHeader: string | null | undefined,
+) {
+  const accessUser = await verifyAuth(authHeader);
+  if (accessUser) {
+    return accessUser;
+  }
+
+  return await verifyRefreshTokenUser(refreshTokenHeader);
 }
 
 // Helper function to get user profile
@@ -3801,7 +3865,11 @@ app.post("/make-server-50b25a4f/auth/resend-2fa", async (c) => {
 app.post("/make-server-50b25a4f/auth/refresh", async (c) => {
   try {
     const body = await c.req.json().catch(() => ({}));
-    const refreshToken = typeof body?.refreshToken === "string" ? body.refreshToken : "";
+    const refreshToken = normalizeAuthTokenInput(
+      typeof body?.refreshToken === "string"
+        ? body.refreshToken
+        : c.req.header("x-refresh-token"),
+    );
 
     if (!refreshToken) {
       return c.json({ error: "Refresh token is required" }, 400);
@@ -3846,7 +3914,9 @@ app.post("/make-server-50b25a4f/auth/refresh", async (c) => {
 
 // Get current user profile
 app.get("/make-server-50b25a4f/auth/me", async (c) => {
-  const user = await verifyAuth(c.req.header('Authorization'));
+  const user =
+    (await verifyAuth(c.req.header('Authorization'))) ||
+    (await verifyRefreshTokenUser(c.req.header("x-refresh-token")));
   
   if (!user) {
     return c.json({ error: 'Unauthorized' }, 401);
@@ -4231,7 +4301,10 @@ app.delete("/make-server-50b25a4f/listings/:id", async (c) => {
 
 // Send message
 app.post("/make-server-50b25a4f/messages", async (c) => {
-  const user = await verifyAuth(c.req.header('Authorization'));
+  const user = await verifyMessagingAuth(
+    c.req.header("Authorization"),
+    c.req.header("x-refresh-token"),
+  );
   
   if (!user) {
     return c.json({ error: 'Unauthorized' }, 401);
@@ -4294,14 +4367,12 @@ app.post("/make-server-50b25a4f/messages", async (c) => {
     try {
       await kv.set(`message:${messageId}`, message);
 
-      // Add to both users' message lists
-      const senderMessages = (await kv.get(`user:${user.id}:messages`)) || [];
-      senderMessages.push(messageId);
-      await kv.set(`user:${user.id}:messages`, senderMessages);
-
-      const receiverMessages = (await kv.get(`user:${receiverId}:messages`)) || [];
-      receiverMessages.push(messageId);
-      await kv.set(`user:${receiverId}:messages`, receiverMessages);
+      // Add to both users' message lists using atomic append to avoid
+      // dropped IDs when multiple signaling messages (ICE) arrive quickly.
+      await Promise.all([
+        kv.appendUniqueStringToArray(`user:${user.id}:messages`, messageId),
+        kv.appendUniqueStringToArray(`user:${receiverId}:messages`, messageId),
+      ]);
     } catch (error) {
       console.error('KV store error, message not persisted:', error);
       // Still return success so signaling can proceed
@@ -4316,7 +4387,10 @@ app.post("/make-server-50b25a4f/messages", async (c) => {
 
 // Get user's messages
 app.get("/make-server-50b25a4f/messages", async (c) => {
-  const user = await verifyAuth(c.req.header('Authorization'));
+  const user = await verifyMessagingAuth(
+    c.req.header("Authorization"),
+    c.req.header("x-refresh-token"),
+  );
   
   if (!user) {
     return c.json({ error: 'Unauthorized' }, 401);
@@ -4325,7 +4399,7 @@ app.get("/make-server-50b25a4f/messages", async (c) => {
   try {
     const rawMessageIds = await kv.get(`user:${user.id}:messages`);
     const messageIds = Array.isArray(rawMessageIds)
-      ? rawMessageIds.filter((id: unknown): id is string => typeof id === 'string')
+      ? Array.from(new Set(rawMessageIds.filter((id: unknown): id is string => typeof id === 'string')))
       : [];
     const messages = await Promise.all(
       messageIds.map(async (id) => await kv.get(`message:${id}`))
@@ -4359,7 +4433,10 @@ app.get("/make-server-50b25a4f/messages", async (c) => {
 
 // Mark message as read
 app.put("/make-server-50b25a4f/messages/:id/read", async (c) => {
-  const user = await verifyAuth(c.req.header('Authorization'));
+  const user = await verifyMessagingAuth(
+    c.req.header("Authorization"),
+    c.req.header("x-refresh-token"),
+  );
   
   if (!user) {
     return c.json({ error: 'Unauthorized' }, 401);
@@ -4389,7 +4466,10 @@ app.put("/make-server-50b25a4f/messages/:id/read", async (c) => {
 
 // Edit message content
 app.put("/make-server-50b25a4f/messages/:id", async (c) => {
-  const user = await verifyAuth(c.req.header('Authorization'));
+  const user = await verifyMessagingAuth(
+    c.req.header("Authorization"),
+    c.req.header("x-refresh-token"),
+  );
 
   if (!user) {
     return c.json({ error: 'Unauthorized' }, 401);
@@ -4430,7 +4510,10 @@ app.put("/make-server-50b25a4f/messages/:id", async (c) => {
 
 // Delete message (soft delete)
 app.delete("/make-server-50b25a4f/messages/:id", async (c) => {
-  const user = await verifyAuth(c.req.header('Authorization'));
+  const user = await verifyMessagingAuth(
+    c.req.header("Authorization"),
+    c.req.header("x-refresh-token"),
+  );
 
   if (!user) {
     return c.json({ error: 'Unauthorized' }, 401);
@@ -4468,7 +4551,10 @@ app.delete("/make-server-50b25a4f/messages/:id", async (c) => {
 
 // Delete a conversation for the current user only
 app.delete("/make-server-50b25a4f/conversations/:otherUserId", async (c) => {
-  const user = await verifyAuth(c.req.header('Authorization'));
+  const user = await verifyMessagingAuth(
+    c.req.header("Authorization"),
+    c.req.header("x-refresh-token"),
+  );
 
   if (!user) {
     return c.json({ error: 'Unauthorized' }, 401);
@@ -4480,7 +4566,10 @@ app.delete("/make-server-50b25a4f/conversations/:otherUserId", async (c) => {
       return c.json({ error: 'Conversation user is required' }, 400);
     }
 
-    const messageIds = await kv.get(`user:${user.id}:messages`) || [];
+    const rawMessageIds = await kv.get(`user:${user.id}:messages`);
+    const messageIds = Array.isArray(rawMessageIds)
+      ? Array.from(new Set(rawMessageIds.filter((id: unknown): id is string => typeof id === "string")))
+      : [];
     const keptIds: string[] = [];
     let removedCount = 0;
 
@@ -7095,7 +7184,7 @@ app.get("/make-server-50b25a4f/admin/messages", async (c) => {
   try {
     const rawMessageIds = await kv.get(`admin:messages`);
     const messageIds = Array.isArray(rawMessageIds)
-      ? rawMessageIds.filter((id: unknown): id is string => typeof id === 'string')
+      ? Array.from(new Set(rawMessageIds.filter((id: unknown): id is string => typeof id === 'string')))
       : [];
     const messages = await Promise.all(
       messageIds.map(async (id) => await kv.get(`message:${id}`))

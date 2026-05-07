@@ -88,6 +88,20 @@ const normalizeUser = (user: any): User => {
   } as User;
 };
 
+const normalizeStoredToken = (value: unknown): string | null => {
+  if (typeof value !== 'string') return null;
+  let normalized = value.trim().replace(/^"(.*)"$/, '$1').trim();
+  // Self-heal legacy stored values like "Bearer <token>".
+  for (let i = 0; i < 2; i += 1) {
+    if (!/^bearer\s+/i.test(normalized)) break;
+    normalized = normalized.replace(/^bearer\s+/i, '').trim();
+  }
+  if (!normalized) return null;
+  const lower = normalized.toLowerCase();
+  if (lower === 'null' || lower === 'undefined') return null;
+  return normalized;
+};
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const AUTH_REMEMBER_KEY = 'authRememberDevice';
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -116,13 +130,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     nextRefreshToken: string | null,
     mode: 'local' | 'session',
   ) => {
+    const normalizedAccessToken = normalizeStoredToken(token);
+    const normalizedRefreshToken = normalizeStoredToken(nextRefreshToken);
+    if (!normalizedAccessToken) {
+      return;
+    }
     const activeStorage = getStorage(mode);
     const inactiveStorage = getStorage(mode === 'local' ? 'session' : 'local');
     activeStorage.setItem('currentUser', JSON.stringify(user));
-    activeStorage.setItem('accessToken', token);
+    activeStorage.setItem('accessToken', normalizedAccessToken);
     activeStorage.setItem(AUTH_REMEMBER_KEY, mode === 'local' ? 'true' : 'false');
-    if (nextRefreshToken) {
-      activeStorage.setItem('refreshToken', nextRefreshToken);
+    if (normalizedRefreshToken) {
+      activeStorage.setItem('refreshToken', normalizedRefreshToken);
     } else {
       activeStorage.removeItem('refreshToken');
     }
@@ -138,8 +157,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const applyAuthenticatedSession = (data: any, options?: { rememberDevice?: boolean }) => {
     const normalizedUser = normalizeUser(data.user);
-    const nextAccessToken = typeof data?.accessToken === 'string' ? data.accessToken : null;
-    const nextRefreshToken = typeof data?.refreshToken === 'string' ? data.refreshToken : null;
+    const nextAccessToken = normalizeStoredToken(data?.accessToken);
+    const nextRefreshToken = normalizeStoredToken(data?.refreshToken);
     const storageMode: 'local' | 'session' = options?.rememberDevice ? 'local' : 'session';
 
     if (!normalizedUser || !nextAccessToken) {
@@ -155,15 +174,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return true;
   };
 
-  // Check if user is stored in localStorage on mount
+  // Check persisted session on mount and validate token before treating
+  // the user as authenticated.
   useEffect(() => {
+    let isMounted = true;
+
     const readStoredSession = (mode: 'local' | 'session') => {
       const storage = getStorage(mode);
       const storedUser = storage.getItem('currentUser');
-      const storedToken = storage.getItem('accessToken');
-      const storedRefreshToken = storage.getItem('refreshToken');
+      const storedToken = normalizeStoredToken(storage.getItem('accessToken'));
+      const storedRefreshToken = normalizeStoredToken(storage.getItem('refreshToken'));
       const rememberFlag = storage.getItem(AUTH_REMEMBER_KEY);
 
+      if (storedUser && !storedToken) {
+        // Session payload without a valid access token is stale/invalid.
+        clearStorage(storage);
+        return null;
+      }
       if (!storedUser || !storedToken) return null;
       if (mode === 'local' && rememberFlag !== 'true') {
         // Legacy sessions (before remember-me wiring) are cleared once to avoid forced auto-login.
@@ -176,7 +203,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           mode,
           user: parsedUser,
           token: storedToken,
-          refreshToken: storedRefreshToken || null,
+          refreshToken: storedRefreshToken,
         };
       } catch (error) {
         console.error('Failed to parse stored user data:', error);
@@ -185,17 +212,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
-    const storedSession = readStoredSession('local') || readStoredSession('session');
-    if (storedSession) {
+    const bootstrapSession = async () => {
+      const storedSession = readStoredSession('local') || readStoredSession('session');
+      if (!storedSession) {
+        if (isMounted) setLoading(false);
+        return;
+      }
+
       sessionModeRef.current = storedSession.mode;
       refreshBlockedRef.current = false;
-      setCurrentUser(storedSession.user);
       setAccessToken(storedSession.token);
       setRefreshToken(storedSession.refreshToken);
-      // Verify and refresh user data
-      refreshUserData(storedSession.token, storedSession.refreshToken, storedSession.mode);
-    }
-    setLoading(false);
+      await refreshUserData(storedSession.token, storedSession.refreshToken, storedSession.mode);
+      if (isMounted) setLoading(false);
+    };
+
+    void bootstrapSession();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const refreshUserData = async (
@@ -203,10 +239,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     fallbackRefreshToken?: string | null,
     storageMode: 'local' | 'session' = sessionModeRef.current,
   ) => {
+    const refreshTokenForHeader =
+      normalizeStoredToken(fallbackRefreshToken) ||
+      normalizeStoredToken(refreshToken) ||
+      normalizeStoredToken(getStorage(storageMode).getItem('refreshToken')) ||
+      normalizeStoredToken(localStorage.getItem('refreshToken')) ||
+      normalizeStoredToken(sessionStorage.getItem('refreshToken'));
+
     try {
       const response = await fetch(`${API_URL}/auth/me`, {
         headers: {
           'Authorization': `Bearer ${token}`,
+          ...(refreshTokenForHeader ? { 'x-refresh-token': refreshTokenForHeader } : {}),
         },
       });
 
@@ -222,14 +266,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else if (response.status === 401) {
         const nextToken = await refreshAuthToken(fallbackRefreshToken || null);
         if (!nextToken) {
-          // Access token might still be valid, let the caller decide
-          console.warn('Unable to refresh auth token, keeping existing session');
+          // Startup session is invalid and cannot be refreshed: clear it to avoid
+          // repeated unauthorized polling loops in authenticated pages.
+          logout();
           return;
         }
 
         const retryResponse = await fetch(`${API_URL}/auth/me`, {
           headers: {
             'Authorization': `Bearer ${nextToken}`,
+            ...(refreshTokenForHeader ? { 'x-refresh-token': refreshTokenForHeader } : {}),
           },
         });
 
@@ -275,7 +321,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.getItem('refreshToken'),
         sessionStorage.getItem('refreshToken'),
       ]
-        .map((candidate) => (typeof candidate === 'string' ? candidate.trim() : ''))
+        .map((candidate) => normalizeStoredToken(candidate) || '')
         .find(Boolean) || '';
     if (!tokenToUse) {
       return null;
@@ -291,6 +337,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'x-refresh-token': normalizedToken,
           },
           body: JSON.stringify({ refreshToken: normalizedToken }),
         });
@@ -304,11 +351,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!response.ok && response.status === 401) {
           const latestToken =
             (
-              getStorage(sessionModeRef.current).getItem('refreshToken') ||
-              localStorage.getItem('refreshToken') ||
-              sessionStorage.getItem('refreshToken') ||
+              normalizeStoredToken(getStorage(sessionModeRef.current).getItem('refreshToken')) ||
+              normalizeStoredToken(localStorage.getItem('refreshToken')) ||
+              normalizeStoredToken(sessionStorage.getItem('refreshToken')) ||
               ''
-            ).trim();
+            );
           if (latestToken && latestToken !== tokenToUse) {
             response = await refreshWithToken(latestToken);
             usedToken = latestToken;
@@ -329,9 +376,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         const data = await response.json();
-        const nextAccessToken = typeof data?.accessToken === 'string' ? data.accessToken : null;
-        const nextRefreshToken =
-          typeof data?.refreshToken === 'string' ? data.refreshToken : usedToken;
+        const nextAccessToken = normalizeStoredToken(data?.accessToken);
+        const nextRefreshToken = normalizeStoredToken(data?.refreshToken) || normalizeStoredToken(usedToken);
 
         if (!nextAccessToken || !nextRefreshToken) {
           return null;
@@ -642,10 +688,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return false;
     }
     return Boolean(
-      localStorage.getItem('accessToken') ||
-      sessionStorage.getItem('accessToken') ||
-      localStorage.getItem('refreshToken') ||
-      sessionStorage.getItem('refreshToken'),
+      normalizeStoredToken(localStorage.getItem('accessToken')) ||
+      normalizeStoredToken(sessionStorage.getItem('accessToken')) ||
+      normalizeStoredToken(localStorage.getItem('refreshToken')) ||
+      normalizeStoredToken(sessionStorage.getItem('refreshToken')),
     );
   })();
   const isAuthenticated = currentUser !== null && (Boolean(accessToken || refreshToken) || hasStoredSessionToken);

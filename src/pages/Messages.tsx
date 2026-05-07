@@ -330,13 +330,35 @@ const serializeSessionDescription = (
   sdp: description.sdp ?? '',
 });
 
-const serializeIceCandidate = (
-  candidate: RTCIceCandidate | RTCIceCandidateInit,
-): RTCIceCandidateInit => ({
-  candidate: candidate.candidate ?? '',
-  sdpMid: candidate.sdpMid ?? null,
-  sdpMLineIndex: candidate.sdpMLineIndex ?? null,
-});
+// Wait for ICE gathering to complete then return the final SDP (with all
+// candidates embedded). This lets us send a single offer/answer over HTTP
+// polling instead of a separate message per ICE candidate, which would race
+// with delivery delays and break the connection.
+const waitForGatheredLocalDescription = (
+  pc: RTCPeerConnection,
+  timeoutMs = 7000,
+): Promise<RTCSessionDescriptionInit> =>
+  new Promise((resolve) => {
+    const getDesc = (): RTCSessionDescriptionInit =>
+      serializeSessionDescription(
+        pc.localDescription ?? { type: 'offer' as RTCSdpType, sdp: '' },
+      );
+    if (pc.iceGatheringState === 'complete') {
+      resolve(getDesc());
+      return;
+    }
+    const done = () => {
+      pc.onicegatheringstatechange = null;
+      resolve(getDesc());
+    };
+    const timer = window.setTimeout(done, timeoutMs);
+    pc.onicegatheringstatechange = () => {
+      if (pc.iceGatheringState === 'complete') {
+        window.clearTimeout(timer);
+        done();
+      }
+    };
+  });
 
 export function Messages() {
   const { currentUser, isAuthenticated, accessToken, refreshAuthToken, logout } = useAuth();
@@ -546,24 +568,52 @@ export function Messages() {
   }, [currentUser?.id]);
 
   const resolveAccessToken = useCallback(async () => {
+    const normalizeToken = (candidate?: string | null) => {
+      let value = typeof candidate === 'string' ? candidate.trim().replace(/^"(.*)"$/, '$1').trim() : '';
+      for (let i = 0; i < 2; i += 1) {
+        if (!/^bearer\s+/i.test(value)) break;
+        value = value.replace(/^bearer\s+/i, '').trim();
+      }
+      if (!value) return '';
+      const lower = value.toLowerCase();
+      if (lower === 'null' || lower === 'undefined') return '';
+      return value;
+    };
     if (authSessionFailedRef.current) {
       return null;
     }
-    const fromState = accessToken?.trim();
+    const fromState = normalizeToken(accessToken);
     if (fromState) return fromState;
-    const fromStorage = (localStorage.getItem('accessToken') || '').trim();
+    const fromStorage = normalizeToken(localStorage.getItem('accessToken'));
     if (fromStorage) return fromStorage;
-    const fromSessionStorage = (sessionStorage.getItem('accessToken') || '').trim();
+    const fromSessionStorage = normalizeToken(sessionStorage.getItem('accessToken'));
     if (fromSessionStorage) return fromSessionStorage;
     return await refreshAuthToken();
   }, [accessToken, refreshAuthToken]);
 
   const fetchWithAuth = useCallback(async (url: string, init: RequestInit = {}) => {
+     const normalizeToken = (candidate?: string | null) => {
+       let value = typeof candidate === 'string' ? candidate.trim().replace(/^"(.*)"$/, '$1').trim() : '';
+       for (let i = 0; i < 2; i += 1) {
+         if (!/^bearer\s+/i.test(value)) break;
+         value = value.replace(/^bearer\s+/i, '').trim();
+       }
+       if (!value) return '';
+       const lower = value.toLowerCase();
+       if (lower === 'null' || lower === 'undefined') return '';
+       return value;
+     };
      const withTokenHeaders = (token: string, sourceHeaders?: HeadersInit) => {
        const headers = new Headers(sourceHeaders || {});
        headers.set('Authorization', `Bearer ${token}`);
-       return headers;
-     };
+       const refreshTokenCandidate = normalizeToken(
+         localStorage.getItem('refreshToken') || sessionStorage.getItem('refreshToken'),
+       );
+       if (refreshTokenCandidate) {
+         headers.set('x-refresh-token', refreshTokenCandidate);
+       }
+        return headers;
+      };
 
       const token = await resolveAccessToken();
       if (!token) {
@@ -903,11 +953,12 @@ export function Messages() {
         try {
           const restartOffer = await peerConnection.createOffer({ iceRestart: true });
           await peerConnection.setLocalDescription(restartOffer);
+          const gatheredRestartSdp = await waitForGatheredLocalDescription(peerConnection);
           const sent = await sendCallSignalMessage(
             peerId,
             {
               ...buildSignalBase('offer', callId, mode),
-              sdp: serializeSessionDescription(restartOffer),
+              sdp: gatheredRestartSdp,
             },
             itemId,
           );
@@ -1031,23 +1082,9 @@ export function Messages() {
     const peerConnection = new RTCPeerConnection(WEBRTC_CONFIGURATION);
     peerConnectionRef.current = peerConnection;
 
-    peerConnection.onicecandidate = (event) => {
-      if (!event.candidate) return;
-      const active = activeCallRef.current;
-      if (!active) return;
-
-      void sendCallSignalMessage(
-        peerId,
-        {
-          ...buildSignalBase('ice', callId, mode),
-          candidate: serializeIceCandidate(event.candidate),
-        },
-        itemId,
-      ).then((result) => {
-        if (!result.success) {
-          console.error('Failed to send ICE signal:', result.error);
-        }
-      });
+    peerConnection.onicecandidate = (_event) => {
+      // Candidates are embedded in the gathered local description SDP sent
+      // with the offer/answer — no per-candidate HTTP messages needed.
     };
 
     peerConnection.ontrack = (event) => {
@@ -1116,7 +1153,7 @@ export function Messages() {
     };
 
     return peerConnection;
-  }, [buildSignalBase, clearCallResources, markCallConnected, scheduleConnectionWatchdog, sendCallSignalMessage]);
+  }, [clearCallResources, markCallConnected, scheduleConnectionWatchdog]);
 
   const getCallMediaStream = useCallback(async (
     mode: CallMode,
@@ -1175,15 +1212,25 @@ export function Messages() {
     }
 
     if (signal.signalType === 'offer' && signal.sdp) {
+      if (peerConnection.signalingState === 'closed') {
+        return;
+      }
+      if (peerConnection.signalingState !== 'stable' && peerConnection.signalingState !== 'have-local-offer') {
+        const queued = queuedSignalsRef.current.get(signal.callId) || [];
+        queued.push(signal);
+        queuedSignalsRef.current.set(signal.callId, queued);
+        return;
+      }
       await peerConnection.setRemoteDescription(new RTCSessionDescription(signal.sdp));
       await flushQueuedIceCandidates(signal.callId, peerConnection);
       const answer = await peerConnection.createAnswer();
       await peerConnection.setLocalDescription(answer);
+      const gatheredAnswerSdp = await waitForGatheredLocalDescription(peerConnection);
       await sendCallSignalMessage(
         senderId,
         {
           ...buildSignalBase('answer', signal.callId, active.mode),
-          sdp: serializeSessionDescription(answer),
+          sdp: gatheredAnswerSdp,
         },
         itemId,
       );
@@ -1198,6 +1245,20 @@ export function Messages() {
     }
 
     if (signal.signalType === 'answer' && signal.sdp) {
+      if (peerConnection.signalingState === 'closed') {
+        return;
+      }
+      if (peerConnection.signalingState !== 'have-local-offer') {
+        const alreadyApplied = peerConnection.remoteDescription?.type === 'answer';
+        if (alreadyApplied || peerConnection.signalingState === 'stable') {
+          // Duplicate answer can arrive after retries/polling overlap.
+          return;
+        }
+        const queued = queuedSignalsRef.current.get(signal.callId) || [];
+        queued.push(signal);
+        queuedSignalsRef.current.set(signal.callId, queued);
+        return;
+      }
       await peerConnection.setRemoteDescription(new RTCSessionDescription(signal.sdp));
       await flushQueuedIceCandidates(signal.callId, peerConnection);
       clearCallTimeout();
@@ -1324,11 +1385,12 @@ export function Messages() {
         try {
           const offer = await peerConnection.createOffer();
           await peerConnection.setLocalDescription(offer);
+          const gatheredOfferSdp = await waitForGatheredLocalDescription(peerConnection);
           const offerSent = await sendCallSignalMessage(
             active.peerId,
             {
               ...buildSignalBase('offer', signal.callId, active.mode),
-              sdp: serializeSessionDescription(offer),
+              sdp: gatheredOfferSdp,
             },
             active.itemId,
           );
@@ -1431,6 +1493,8 @@ export function Messages() {
       const response = await fetchWithAuth(`${API_URL}${endpoint}`);
       if (response.status === 401) {
         setFetchError('Session expired. Please sign in again.');
+        authSessionFailedRef.current = true;
+        logout();
         return;
       }
 
@@ -1648,7 +1712,7 @@ export function Messages() {
     } finally {
       setLoading(false);
     }
-  }, [currentUser, fetchWithAuth, isMobileView, markMessagesAsRead, notifyIncomingMessage, searchParams]);
+  }, [currentUser, fetchWithAuth, isMobileView, logout, markMessagesAsRead, notifyIncomingMessage, searchParams]);
 
   // Fetch messages with retry logic
   const fetchMessagesWithRetry = useCallback(async (retries = 3) => {

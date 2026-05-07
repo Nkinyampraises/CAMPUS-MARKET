@@ -272,6 +272,34 @@ export const set = async (key: string, value: any): Promise<void> => {
   }
 };
 
+// Appends a string item to a JSON array value atomically.
+// The array is created automatically when the key is missing.
+export const appendUniqueStringToArray = async (key: string, item: string): Promise<void> => {
+  if (typeof key !== "string" || !key.trim() || typeof item !== "string" || !item.trim()) {
+    return;
+  }
+
+  try {
+    const table = await resolveKvTableName();
+    await query(
+      `INSERT INTO ${quoteQualifiedName(table)} AS kv (key, value)
+       VALUES ($1, jsonb_build_array($2::text))
+       ON CONFLICT (key)
+       DO UPDATE SET value = CASE
+         WHEN jsonb_typeof(kv.value) = 'array' THEN
+           CASE
+             WHEN kv.value ? $2 THEN kv.value
+             ELSE kv.value || to_jsonb($2::text)
+           END
+         ELSE jsonb_build_array($2::text)
+       END`,
+      [key, item],
+    );
+  } catch (error) {
+    console.error("KV store appendUniqueStringToArray error:", error);
+  }
+};
+
 // Get retrieves a key-value pair from the database.
 export const get = async (key: string): Promise<any> => {
   try {

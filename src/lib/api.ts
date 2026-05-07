@@ -1,5 +1,7 @@
 const API_ROUTE_SEGMENT = "make-server-50b25a4f";
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "0.0.0.0"]);
+const FORCE_CONFIGURED_API_BASE =
+  String(import.meta.env.VITE_FORCE_CONFIGURED_API || "").trim().toLowerCase() === "true";
 
 const trimTrailingSlashes = (value: string) => value.replace(/\/+$/, "");
 const normalizeHost = (value: string) => String(value || "").trim().toLowerCase();
@@ -33,6 +35,30 @@ const normalizeConfiguredApiBase = (value: string) => {
 
 const resolveConfiguredBase = () =>
   normalizeConfiguredApiBase(String(import.meta.env.VITE_API_URL || ""));
+
+const resolveRemoteWebBase = () => {
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  const protocol = window.location.protocol;
+  if (protocol === "file:" || protocol === "capacitor:") {
+    return "";
+  }
+
+  const currentHost = normalizeHost(window.location.hostname);
+  if (!currentHost || isLocalHost(currentHost)) {
+    return "";
+  }
+
+  // In production web, default to same-origin so each deployment talks to its own API
+  // and avoids stale cross-deployment token/session mismatches.
+  if (!FORCE_CONFIGURED_API_BASE) {
+    return resolveSameOriginBase();
+  }
+
+  return "";
+};
 
 const resolveLocalhostBase = () => {
   if (typeof window === "undefined") {
@@ -103,7 +129,12 @@ const joinApiPath = (base: string) => {
   return `${base}${segmentPath}`;
 };
 
-export const API_BASE = resolveNativeBase() || resolveLocalhostBase() || resolveConfiguredBase() || resolveSameOriginBase();
+export const API_BASE =
+  resolveNativeBase() ||
+  resolveLocalhostBase() ||
+  resolveRemoteWebBase() ||
+  resolveConfiguredBase() ||
+  resolveSameOriginBase();
 export const API_URL = joinApiPath(API_BASE);
 
 const FILE_PATH_PREFIX = `/${API_ROUTE_SEGMENT}/files/`;
@@ -126,7 +157,7 @@ export const resolveClientAssetUrl = (value?: string | null) => {
 
     const currentHost = normalizeHost(window.location.hostname);
     const isCurrentHostRemote = Boolean(currentHost) && !isLocalHost(currentHost);
-    if (isCurrentHostRemote && isLocalHost(parsed.hostname) && parsed.pathname.startsWith(FILE_PATH_PREFIX)) {
+    if (isCurrentHostRemote && parsed.pathname.startsWith(FILE_PATH_PREFIX) && normalizeHost(parsed.hostname) !== currentHost) {
       const origin = resolveSameOriginBase() || window.location.origin;
       return `${origin}${parsed.pathname}${parsed.search}${parsed.hash}`;
     }
