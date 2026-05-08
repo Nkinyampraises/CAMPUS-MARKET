@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "Bash(git commit -m ' *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(curl -s --request GET --url 'https://api.render.com/v1/services/srv-d7rbkc1kh4rs73ennmm0/env-vars?limit=50' --header 'Authorization: Bearer rnd_mKhsma2YCChaJPUyfjAS60FteRqt' --header 'Accept: application/json')",
+      "Bash(curl -s --request PUT --url https://api.render.com/v1/services/srv-d7rbkc1kh4rs73ennmm0/env-vars --header 'Authorization: Bearer rnd_mKhsma2YCChaJPUyfjAS60FteRqt' --header 'Content-Type: application/json' --header 'Accept: application/json' --data '[{\"key\":\"AI_CHAT_DAILY_LIMIT\",\"value\":\"100\"}]')",
+      "Bash(curl -s --request POST --url https://api.render.com/v1/services/srv-d7rbkc1kh4rs73ennmm0/deploys --header 'Authorization: Bearer rnd_mKhsma2YCChaJPUyfjAS60FteRqt' --header 'Content-Type: application/json' --header 'Accept: application/json' --data '{\"clearCache\":\"do_not_clear\"}')"
     ]
   }
 }
