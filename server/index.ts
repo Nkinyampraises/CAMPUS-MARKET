@@ -189,7 +189,7 @@ const AI_CHAT_HISTORY_LIMIT = Math.max(20, readEnvNumber("AI_CHAT_HISTORY_LIMIT"
 const AI_CHAT_CONVERSATION_LIMIT = Math.max(5, readEnvNumber("AI_CHAT_CONVERSATION_LIMIT", 30));
 const AI_MAX_PROMPT_LISTINGS = Math.max(10, readEnvNumber("AI_MAX_PROMPT_LISTINGS", 50));
 const AI_MAX_USER_IMAGES = 3;
-const AI_CHAT_DAILY_LIMIT = Math.max(1, readEnvNumber("AI_CHAT_DAILY_LIMIT", 6));
+const AI_CHAT_DAILY_LIMIT = Math.max(1, readEnvNumber("AI_CHAT_DAILY_LIMIT", 100));
 const AI_CHAT_LIMIT_WINDOW_MS = Math.max(
   60_000,
   readEnvNumber("AI_CHAT_LIMIT_WINDOW_MS", 24 * 60 * 60 * 1000),
@@ -8172,6 +8172,16 @@ app.post("/make-server-50b25a4f/ai-chat", async (c) => {
         ? parsedModel.recommendation_reasons
         : {};
 
+    // Determine intent early so we know whether to show products at all.
+    const rawIntent = normalizeAiText(parsedModel?.intent, 80) || inferredIntent || "";
+    const PRODUCT_INTENTS = [
+      "product_recommendation", "room_setup", "kitchen_list",
+      "shopping_plan", "buyer_guide", "room_setup",
+    ];
+    const isShoppingIntent =
+      PRODUCT_INTENTS.some((i) => rawIntent.toLowerCase().includes(i)) ||
+      requestedIds.length > 0;
+
     const selectedListings: any[] = [];
     for (const id of requestedIds) {
       const match = topRankedListings.find((listing: any) => String(listing.id) === id);
@@ -8183,7 +8193,9 @@ app.post("/make-server-50b25a4f/ai-chat", async (c) => {
       }
     }
 
-    if (selectedListings.length < 6) {
+    // Only pad with random listings when the user is actually shopping.
+    // For greetings, general Q&A, science, coding, etc. show NO products.
+    if (isShoppingIntent && selectedListings.length < 6) {
       for (const listing of topRankedListings) {
         if (!selectedListings.find((entry: any) => entry.id === listing.id)) {
           selectedListings.push(listing);
@@ -8224,7 +8236,7 @@ app.post("/make-server-50b25a4f/ai-chat", async (c) => {
         .slice(0, 4)
       : [];
 
-    const intent = normalizeAiText(parsedModel?.intent, 80) || inferredIntent || "product_recommendation";
+    const intent = rawIntent || "general_qa";
     const stylePlan =
       parsedModel?.style_plan && typeof parsedModel.style_plan === "object" ? parsedModel.style_plan : null;
     const kitchenList =
