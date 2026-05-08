@@ -2665,11 +2665,23 @@ const detectStyleFromText = (text: string) => {
 };
 
 const detectPrimaryIntent = (text: string) => {
-  const normalized = String(text || "").toLowerCase();
-  if (/(room|decorate|decor|arrange|style|bedroom|living room)/.test(normalized)) {
+  const normalized = String(text || "").toLowerCase().trim();
+
+  // Greetings and conversational openers — never show products
+  if (/^(hi|hello|hey|good morning|good afternoon|good evening|bonjour|salut|bonsoir|yo|sup|hiya|howdy|greetings|cava|ça va|how are you|how r u|how are u|what's up|whats up|morning|evening|afternoon)[\s!?.,:]*$/.test(normalized)) {
+    return "greeting";
+  }
+
+  // General knowledge / question — never show products
+  if (/^(what|how|why|when|who|where|which|explain|define|tell me|describe|can you|could you|difference between|is it|are there|do you know|what is|what are|how does|how do|why is|why does)/.test(normalized)) {
+    return "general_qa";
+  }
+
+  // Shopping intents — show products
+  if (/(room|decorate|decor|arrange|style|bedroom|living room|parlor|sitting room)/.test(normalized)) {
     return "room_setup";
   }
-  if (/(kitchen|cookware|pots|utensils|fridge|stove|kettle)/.test(normalized)) {
+  if (/(kitchen|cookware|pots|utensils|fridge|stove|kettle|cook)/.test(normalized)) {
     return "kitchen_setup";
   }
   if (/(cheaper|affordable|budget|lower price|less expensive)/.test(normalized)) {
@@ -2678,7 +2690,12 @@ const detectPrimaryIntent = (text: string) => {
   if (/(similar|like this|related)/.test(normalized)) {
     return "similar_items";
   }
-  return "product_recommendation";
+  if (/(buy|purchase|sell|rent|find|need|looking for|i want|i need|show me|recommend|suggest|price|cost|how much|laptop|phone|furniture|mattress|desk|chair|textbook|fridge|fan)/.test(normalized)) {
+    return "product_recommendation";
+  }
+
+  // Default: treat as general conversation, NOT a product search
+  return "general_qa";
 };
 
 const mergeAiPreferences = (previous: any, updates: any) => {
@@ -8175,8 +8192,8 @@ app.post("/make-server-50b25a4f/ai-chat", async (c) => {
     // Determine intent early so we know whether to show products at all.
     const rawIntent = normalizeAiText(parsedModel?.intent, 80) || inferredIntent || "";
     const PRODUCT_INTENTS = [
-      "product_recommendation", "room_setup", "kitchen_list",
-      "shopping_plan", "buyer_guide", "room_setup",
+      "product_recommendation", "room_setup", "kitchen_list", "kitchen_setup",
+      "shopping_plan", "buyer_guide", "cheaper_alternatives", "similar_items",
     ];
     const isShoppingIntent =
       PRODUCT_INTENTS.some((i) => rawIntent.toLowerCase().includes(i)) ||
