@@ -68,9 +68,25 @@ type DailyUsage = {
   timeZone?: string;
 };
 
-const GUEST_AI_CHAT_STORAGE_KEY = 'kori-ai-chat-history-v1';
-const GUEST_AI_CHAT_THREADS_STORAGE_KEY = 'kori-ai-chat-threads-v2';
-const GUEST_AI_ID_STORAGE_KEY = 'kori-ai-guest-id-v1';
+const GUEST_AI_CHAT_STORAGE_KEY = 'sasha-ai-chat-history-v1';
+const GUEST_AI_CHAT_THREADS_STORAGE_KEY = 'sasha-ai-chat-threads-v2';
+const GUEST_AI_ID_STORAGE_KEY = 'sasha-ai-guest-id-v1';
+
+// Migrate any data stored under the old "kori" keys so returning users don't lose history.
+try {
+  const OLD_HISTORY_KEY = 'kori-ai-chat-history-v1';
+  const OLD_THREADS_KEY = 'kori-ai-chat-threads-v2';
+  const OLD_GUEST_KEY   = 'kori-ai-guest-id-v1';
+  if (localStorage.getItem(OLD_HISTORY_KEY) && !localStorage.getItem(GUEST_AI_CHAT_STORAGE_KEY)) {
+    localStorage.setItem(GUEST_AI_CHAT_STORAGE_KEY, localStorage.getItem(OLD_HISTORY_KEY)!);
+  }
+  if (localStorage.getItem(OLD_THREADS_KEY) && !localStorage.getItem(GUEST_AI_CHAT_THREADS_STORAGE_KEY)) {
+    localStorage.setItem(GUEST_AI_CHAT_THREADS_STORAGE_KEY, localStorage.getItem(OLD_THREADS_KEY)!);
+  }
+  if (localStorage.getItem(OLD_GUEST_KEY) && !localStorage.getItem(GUEST_AI_ID_STORAGE_KEY)) {
+    localStorage.setItem(GUEST_AI_ID_STORAGE_KEY, localStorage.getItem(OLD_GUEST_KEY)!);
+  }
+} catch { /* ignore storage errors */ }
 const MAX_CHAT_THREADS = 30;
 
 const formatCurrency = (amount: number) =>
@@ -710,7 +726,7 @@ export function AiAssistant() {
         setIsTranscribing(true);
         try {
           const formData = new FormData();
-          formData.append('audio', audioBlob, 'kori-voice.webm');
+          formData.append('audio', audioBlob, 'sasha-voice.webm');
 
           const response = await requestWithAuthRetry('/ai-chat/transcribe', {
             method: 'POST',
@@ -764,7 +780,7 @@ export function AiAssistant() {
       <div className="mx-auto max-w-7xl px-4 lg:px-6">
         <section className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-semibold text-[#1f1f1f]">{t('assistant.title', 'Kori AI Assistant')}</h1>
+            <h1 className="text-3xl font-semibold text-[#1f1f1f]">{t('assistant.title', 'Sasha AI Assistant')}</h1>
             <p className="mt-2 text-sm text-[#6a6a6a]">
               {t(
                 'assistant.subtitle',
@@ -1056,6 +1072,7 @@ export function AiAssistant() {
                   <input
                     ref={fileInputRef}
                     type="file"
+                    title="Upload image"
                     accept="image/*"
                     multiple
                     className="hidden"
@@ -1087,7 +1104,7 @@ export function AiAssistant() {
                   <Input
                     value={draft}
                     onChange={(event) => setDraft(event.target.value)}
-                    placeholder={t('assistant.placeholder', 'Ask Kori for product ideas, room style, or kitchen essentials...')}
+                    placeholder={t('assistant.placeholder', 'Ask Sasha anything — products, advice, science, tech, or any question...')}
                     className="h-10 rounded-full border-[#e4dbd6] bg-[#faf8f6]"
                     onKeyDown={(event) => {
                       if (event.key === 'Enter' && !event.shiftKey) {

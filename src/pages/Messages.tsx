@@ -485,6 +485,10 @@ export function Messages() {
     remoteStreamRef.current = remoteCallStream;
     if (remoteVideoRef.current) {
       remoteVideoRef.current.srcObject = remoteCallStream;
+      // React's JSX `muted` attribute is not reliably applied when srcObject is
+      // set programmatically — set the property explicitly to prevent the video
+      // element from playing audio (the <audio> element handles that).
+      remoteVideoRef.current.muted = true;
       if (remoteCallStream) {
         void remoteVideoRef.current.play().catch(() => {});
       }
@@ -1198,7 +1202,11 @@ export function Messages() {
       return await navigator.mediaDevices.getUserMedia(preferredConstraints);
     } catch (primaryError) {
       const fallbackConstraints: MediaStreamConstraints = {
-        audio: true,
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
         video: mode === 'video' ? true : false,
       };
       try {

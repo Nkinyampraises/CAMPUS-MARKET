@@ -29,8 +29,20 @@ type DailyUsage = {
   remaining: number;
 };
 
-const MINI_CHAT_STORAGE_KEY = 'kori-mini-chat-v1';
-const GUEST_AI_ID_STORAGE_KEY = 'kori-ai-guest-id-v1';
+const MINI_CHAT_STORAGE_KEY = 'sasha-mini-chat-v1';
+const GUEST_AI_ID_STORAGE_KEY = 'sasha-ai-guest-id-v1';
+
+// Migrate any data stored under the old "kori" keys so returning users don't lose history.
+try {
+  const OLD_MINI_KEY  = 'kori-mini-chat-v1';
+  const OLD_GUEST_KEY = 'kori-ai-guest-id-v1';
+  if (localStorage.getItem(OLD_MINI_KEY) && !localStorage.getItem(MINI_CHAT_STORAGE_KEY)) {
+    localStorage.setItem(MINI_CHAT_STORAGE_KEY, localStorage.getItem(OLD_MINI_KEY)!);
+  }
+  if (localStorage.getItem(OLD_GUEST_KEY) && !localStorage.getItem(GUEST_AI_ID_STORAGE_KEY)) {
+    localStorage.setItem(GUEST_AI_ID_STORAGE_KEY, localStorage.getItem(OLD_GUEST_KEY)!);
+  }
+} catch { /* ignore storage errors */ }
 
 const createId = () => `mini-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 const toUsageInt = (value: unknown, fallback = 0) => {
@@ -228,7 +240,7 @@ export function AiAssistantLauncher() {
       const reply =
         typeof data?.assistantMessage === 'string' && data.assistantMessage.trim()
           ? data.assistantMessage.trim()
-          : 'I can help you with products, room setup, and kitchen lists. Tell me your budget and location.';
+          : "I'm Sasha! I can help with products, advice, science, tech, or any question you have.";
 
       setMessages((prev) =>
         [
@@ -245,7 +257,7 @@ export function AiAssistantLauncher() {
       const fallbackMessage =
         error instanceof Error && error.message.trim()
           ? error.message.trim()
-          : 'I could not respond right now. Open full assistant for advanced chat.';
+          : 'I could not respond right now. Open the full assistant for advanced chat.';
       setMessages((prev) =>
         [
           ...prev,
@@ -273,7 +285,7 @@ export function AiAssistantLauncher() {
           <div className="mb-2 flex items-center justify-between">
             <p className="inline-flex items-center gap-1 text-sm font-semibold text-[#2f2f2f]">
               <Sparkles className="h-4 w-4 text-[#6f3bb2]" />
-              {t('assistant.quickChat', 'Quick chat with Kori')}
+              {t('assistant.quickChat', 'Quick chat with Sasha')}
             </p>
             <button
               type="button"
@@ -305,7 +317,7 @@ export function AiAssistantLauncher() {
               ))
             ) : (
               <p className="text-xs text-[#747474]">
-                {t('assistant.quickEmpty', 'Ask for room style, kitchen essentials, or product recommendations.')}
+                {t('assistant.quickEmpty', 'Ask me anything — products, advice, science, tech, or anything else!')}
               </p>
             )}
           </div>
@@ -314,7 +326,7 @@ export function AiAssistantLauncher() {
             <Input
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
-              placeholder={t('assistant.quickPlaceholder', 'Ask Kori quickly...')}
+              placeholder={t('assistant.quickPlaceholder', 'Ask Sasha anything...')}
               className="h-9 rounded-full border-[#dbcdf0]"
               disabled={isDailyLimitReached}
               onKeyDown={(event) => {
@@ -363,15 +375,15 @@ export function AiAssistantLauncher() {
           type="button"
           onClick={() => setIsOpen((prev) => !prev)}
           className="rounded-2xl border-2 border-[#6f3bb2] bg-white px-4 py-1.5 text-base font-semibold text-[#30407f] shadow-sm transition-transform duration-200 hover:-translate-y-0.5"
-          aria-label={t('assistant.launchQuick', 'Toggle Kori quick chat')}
+          aria-label={t('assistant.launchQuick', 'Toggle Sasha quick chat')}
         >
-          {t('assistant.launchLabel', "Hi! I'm Kori")}
+          {t('assistant.launchLabel', "Hi! I'm Sasha")}
         </button>
         <button
           type="button"
           onClick={() => navigate('/ai-assistant')}
           className="mt-2 inline-flex h-20 w-20 items-center justify-center rounded-full border-[5px] border-[#8a9ce7] bg-[radial-gradient(circle_at_30%_30%,#ffffff_0%,#d8f1ff_60%,#c3e6f9_100%)] shadow-md transition-transform hover:-translate-y-0.5"
-          aria-label={t('assistant.launch', 'Open Kori AI assistant')}
+          aria-label={t('assistant.launch', 'Open Sasha AI assistant')}
         >
           <Bot className="h-10 w-10 text-[#2f8ab3]" />
         </button>
