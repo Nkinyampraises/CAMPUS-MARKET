@@ -35,3 +35,4 @@ yarn-error.log*
 /mobile/web-build
 
 .vercel
+.claude/settings.local.json
