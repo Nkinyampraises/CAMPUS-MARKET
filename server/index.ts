@@ -169,6 +169,7 @@ const MAX_UPLOAD_SIZE_BYTES = 5 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp", "image/jfif", "image/pjpeg"]);
 const FILE_ROUTE_PREFIX = "/make-server-50b25a4f/files";
 const OPENAI_API_KEY = (Deno.env.get("OPENAI_API_KEY") || "").trim();
+const OPENAI_BASE_URL = (Deno.env.get("OPENAI_BASE_URL") || "https://api.openai.com/v1").trim().replace(/\/$/, "");
 const OPENAI_CHAT_MODEL = (Deno.env.get("OPENAI_CHAT_MODEL") || "gpt-4.1-mini").trim();
 const OPENAI_TRANSCRIBE_MODEL = (Deno.env.get("OPENAI_TRANSCRIBE_MODEL") || "gpt-4o-mini-transcribe").trim();
 const GEMINI_API_KEY = (Deno.env.get("GEMINI_API_KEY") || "").trim();
@@ -3022,11 +3023,13 @@ async function requestOpenAiChatResponse(args: AiChatRequestArgs) {
     content: userContent,
   });
 
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+  const response = await fetch(`${OPENAI_BASE_URL}/chat/completions`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${OPENAI_API_KEY}`,
       "Content-Type": "application/json",
+      "HTTP-Referer": "https://campus-market-yz1h.onrender.com",
+      "X-Title": "Campus Market Sasha AI",
     },
     body: JSON.stringify({
       model: OPENAI_CHAT_MODEL,
