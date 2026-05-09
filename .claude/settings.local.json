@@ -5,7 +5,30 @@
       "Bash(git push *)",
       "Bash(curl -s --request GET --url 'https://api.render.com/v1/services/srv-d7rbkc1kh4rs73ennmm0/env-vars?limit=50' --header 'Authorization: Bearer rnd_mKhsma2YCChaJPUyfjAS60FteRqt' --header 'Accept: application/json')",
       "Bash(curl -s --request PUT --url https://api.render.com/v1/services/srv-d7rbkc1kh4rs73ennmm0/env-vars --header 'Authorization: Bearer rnd_mKhsma2YCChaJPUyfjAS60FteRqt' --header 'Content-Type: application/json' --header 'Accept: application/json' --data '[{\"key\":\"AI_CHAT_DAILY_LIMIT\",\"value\":\"100\"}]')",
-      "Bash(curl -s --request POST --url https://api.render.com/v1/services/srv-d7rbkc1kh4rs73ennmm0/deploys --header 'Authorization: Bearer rnd_mKhsma2YCChaJPUyfjAS60FteRqt' --header 'Content-Type: application/json' --header 'Accept: application/json' --data '{\"clearCache\":\"do_not_clear\"}')"
+      "Bash(curl -s --request POST --url https://api.render.com/v1/services/srv-d7rbkc1kh4rs73ennmm0/deploys --header 'Authorization: Bearer rnd_mKhsma2YCChaJPUyfjAS60FteRqt' --header 'Content-Type: application/json' --header 'Accept: application/json' --data '{\"clearCache\":\"do_not_clear\"}')",
+      "Bash(curl -s --request GET --url 'https://api.render.com/v1/services/srv-d7rbkc1kh4rs73ennmm0/deploys?limit=3' --header 'Authorization: Bearer rnd_mKhsma2YCChaJPUyfjAS60FteRqt' --header 'Accept: application/json')",
+      "Bash(python -c \"import json,sys; deploys=json.load\\(sys.stdin\\); [print\\(d['deploy']['id'], d['deploy']['status'], d['deploy']['commit']['message'][:60]\\) for d in deploys]\")",
+      "Bash(curl -s --request GET --url https://api.render.com/v1/services/srv-d7rbkc1kh4rs73ennmm0/deploys/dep-d7v349faqgkc73d46t4g/logs --header 'Authorization: Bearer rnd_mKhsma2YCChaJPUyfjAS60FteRqt' --header 'Accept: application/json')",
+      "Bash(python -c ' *)",
+      "Bash(curl -s \"https://api.render.com/v1/services/srv-d7rbkc1kh4rs73ennmm0/deploys/dep-d7v349faqgkc73d46t4g\" -H \"Authorization: Bearer rnd_mKhsma2YCChaJPUyfjAS60FteRqt\" -H \"Accept: application/json\")",
+      "Bash(python -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('build:', d.get\\('scripts',{}\\).get\\('build','none'\\)\\); print\\('start:', d.get\\('scripts',{}\\).get\\('start','none'\\)\\); print\\('engines:', d.get\\('engines',{}\\)\\)\")",
+      "Bash(cat render.yaml)",
+      "Bash(ls *.yaml *.toml)",
+      "Bash(python -c \"import json,sys; d=json.load\\(sys.stdin\\); scripts=d.get\\('scripts',{}\\); [print\\(k,':',v\\) for k,v in scripts.items\\(\\)]\")",
+      "Bash(python -c \"import json,sys; d=json.load\\(sys.stdin\\); deps={**d.get\\('dependencies',{}\\), **d.get\\('devDependencies',{}\\)}; print\\('ts-node:', deps.get\\('ts-node','NOT FOUND'\\)\\); print\\('node ver:', d.get\\('engines',{}\\).get\\('node','not set'\\)\\)\")",
+      "Bash(curl -s \"https://api.render.com/v1/services/srv-d7rbkc1kh4rs73ennmm0\" -H \"Authorization: Bearer rnd_mKhsma2YCChaJPUyfjAS60FteRqt\" -H \"Accept: application/json\")",
+      "Bash(python -c \"import json,sys; d=json.load\\(sys.stdin\\); svc=d.get\\('service',d\\); print\\('name:', svc.get\\('name'\\)\\); print\\('buildCommand:', svc.get\\('buildCommand'\\)\\); print\\('startCommand:', svc.get\\('startCommand'\\)\\); print\\('runtime:', svc.get\\('runtime'\\)\\); print\\('status:', svc.get\\('suspended'\\)\\)\")",
+      "Bash(curl -s --request PATCH --url https://api.render.com/v1/services/srv-d7rbkc1kh4rs73ennmm0 --header 'Authorization: Bearer rnd_mKhsma2YCChaJPUyfjAS60FteRqt' --header 'Content-Type: application/json' --header 'Accept: application/json' --data '{ *)",
+      "Bash(curl -s --request PATCH --url https://api.render.com/v1/services/srv-d7rbkc1kh4rs73ennmm0 --header 'Authorization: Bearer rnd_mKhsma2YCChaJPUyfjAS60FteRqt' --header 'Content-Type: application/json' --header 'Accept: application/json' --data '{\"serviceDetails\":{\"envSpecificDetails\":{\"buildCommand\":\"npm install\",\"startCommand\":\"npm run start:render\"}}}')",
+      "Bash(python -c \"import json,sys; d=json.load\\(sys.stdin\\); sd=d.get\\('serviceDetails',{}\\); ed=sd.get\\('envSpecificDetails',{}\\); print\\('build:', ed.get\\('buildCommand'\\)\\); print\\('start:', ed.get\\('startCommand'\\)\\)\")",
+      "Bash(python -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('Deploy ID:', d['id']\\); print\\('Status:', d['status']\\); print\\('Commit:', d['commit']['message'][:60]\\)\")",
+      "Bash(curl -s \"https://api.render.com/v1/services/srv-d7rbkc1kh4rs73ennmm0/deploys?limit=3\" -H \"Authorization: Bearer rnd_mKhsma2YCChaJPUyfjAS60FteRqt\" -H \"Accept: application/json\")",
+      "Bash(python -c \"import json,sys; [print\\(d['deploy']['status'], '-', d['deploy']['commit']['message'][:50]\\) for d in json.load\\(sys.stdin\\)]\")",
+      "Bash(curl -s \"https://api.render.com/v1/services/srv-d7rbkc1kh4rs73ennmm0/env-vars\" -H \"Authorization: Bearer rnd_mKhsma2YCChaJPUyfjAS60FteRqt\" -H \"Accept: application/json\")",
+      "Bash(curl -s \"https://api.render.com/v1/services/srv-d7rbkc1kh4rs73ennmm0/deploys?limit=5\" -H \"Authorization: Bearer rnd_mKhsma2YCChaJPUyfjAS60FteRqt\" -H \"Accept: application/json\")",
+      "Bash(python -c \"import json,sys; [print\\(d['deploy']['status'].ljust\\(15\\), d['deploy']['commit']['message'][:55]\\) for d in json.load\\(sys.stdin\\)]\")",
+      "Bash(curl -s --request PUT --url https://api.render.com/v1/services/srv-d7rbkc1kh4rs73ennmm0/env-vars --header 'Authorization: Bearer rnd_mKhsma2YCChaJPUyfjAS60FteRqt' --header 'Content-Type: application/json' --header 'Accept: application/json' --data '[{\"key\":\"AI_CHAT_DAILY_LIMIT\",\"value\":\"9999\"}]')",
+      "Bash(python -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('Deploy:', d['id'], '|', d['status']\\)\")"
     ]
   }
 }
