@@ -2896,9 +2896,9 @@ const buildFallbackAssistantMessage = (recommendedCount: number, intent = "") =>
     return "Here are the essentials for setting up a student room 🛋️\n\n• Mattress or foam\n• Study desk and chair\n• Wardrobe or storage shelves\n• Desk lamp\n• Bedsheets, pillow and blanket\n• Curtains\n• Small rug\n• Mirror\n\nTell me your budget and city and I'll find matching items on Campus Market! 😊";
   }
   if (recommendedCount > 0) {
-    return "Here are some options I found for you! 🛍️ Let me know your budget or location and I'll narrow it down even better.";
+    return "Here are some products from Campus Market that match your request! 🛍️ Let me know your budget or city and I'll narrow it down further.";
   }
-  return "I'm here to help! 😊 Tell me what you're looking for — a laptop, furniture, kitchen items, textbooks — and I'll find the best options on Campus Market for you.";
+  return "I didn't find exact matches right now, but I can help! 😊 Try being more specific — for example: 'I need a laptop under 100,000 XAF in Buea' or 'show me kitchen items under 50,000 XAF'.";
 };
 
 const buildDefaultRecommendationReason = (listing: any) => {
@@ -8285,15 +8285,39 @@ app.post("/make-server-50b25a4f/ai-chat", async (c) => {
       PRODUCT_INTENTS.some((i) => rawIntent.toLowerCase().includes(i)) ||
       requestedIds.length > 0;
 
-    // Only include listings the AI explicitly recommended — never pad with random products.
+    // Start with AI-recommended listings by ID.
     const selectedListings: any[] = [];
     for (const id of requestedIds) {
       const match = topRankedListings.find((listing: any) => String(listing.id) === id);
       if (match && !selectedListings.find((entry: any) => entry.id === match.id)) {
         selectedListings.push(match);
       }
-      if (selectedListings.length >= 6) {
-        break;
+      if (selectedListings.length >= 6) break;
+    }
+
+    // If AI found nothing but user is shopping → do server-side keyword search.
+    if (isShoppingIntent && selectedListings.length === 0) {
+      const msgWords = message.toLowerCase().replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter((w) => w.length > 2);
+      const STOP_WORDS = new Set(["the","and","for","are","can","you","what","show","list","want","need","buy","get","me","my","a","an","in","of","to","i","is","it","at","be","do","so","on","or","ok","yes","no","please"]);
+      const keywords = msgWords.filter((w) => !STOP_WORDS.has(w));
+
+      // Score each listing by how many keywords appear in title+category+description
+      const scored = topRankedListings.map((listing: any) => {
+        const haystack = `${listing.title} ${listing.category} ${listing.description}`.toLowerCase();
+        const score = keywords.reduce((acc: number, kw: string) => acc + (haystack.includes(kw) ? 2 : 0), 0);
+        return { listing, score };
+      }).filter(({ score }: { score: number }) => score > 0)
+        .sort((a: any, b: any) => b.score - a.score);
+
+      for (const { listing } of scored.slice(0, 6)) {
+        selectedListings.push(listing);
+      }
+
+      // If still nothing matches, show top available listings so the page is never empty.
+      if (selectedListings.length === 0 && topRankedListings.length > 0) {
+        for (const listing of topRankedListings.slice(0, 4)) {
+          selectedListings.push(listing);
+        }
       }
     }
 
