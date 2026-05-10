@@ -100,8 +100,10 @@ const AUTH_PROVIDER = "postgres";
 const STORAGE_PROVIDER = "postgres";
 const textEncoder = new TextEncoder();
 const readEnvNumber = (key: string, fallback: number) => {
-  const raw = Number((Deno.env.get(key) || "").trim());
-  return Number.isFinite(raw) ? raw : fallback;
+  const str = (Deno.env.get(key) || "").trim();
+  if (!str) return fallback;
+  const raw = Number(str);
+  return Number.isFinite(raw) && raw > 0 ? raw : fallback;
 };
 const PASSWORD_HASH_ITERATIONS = Math.max(100_000, readEnvNumber("PASSWORD_HASH_ITERATIONS", 120_000));
 const ACCESS_TOKEN_TTL_MS = Math.max(60_000, readEnvNumber("ACCESS_TOKEN_TTL_MS", 1000 * 60 * 60 * 12));
