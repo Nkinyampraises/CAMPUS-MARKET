@@ -2671,7 +2671,15 @@ const detectPrimaryIntent = (text: string) => {
   const normalized = String(text || "").toLowerCase().trim();
 
   // Greetings and conversational openers — never show products
-  if (/^(hi|hello|hey|good morning|good afternoon|good evening|bonjour|salut|bonsoir|yo|sup|hiya|howdy|greetings|cava|ça va|how are you|how r u|how are u|what's up|whats up|morning|evening|afternoon)[\s!?.,:]*$/.test(normalized)) {
+  if (/^(hi|hello|hey|good morning|good afternoon|good evening|good night|bonjour|salut|bonsoir|yo|sup|hiya|howdy|greetings|cava|ça va|morning|evening|afternoon|night)[\s!?.,:]*$/.test(normalized)) {
+    return "greeting";
+  }
+  // "How are you" variations — always a greeting
+  if (/^how are you|^how r u|^how are u|^how do you do|^how is it going|^how are things|^how are you doing|^how have you been|^what's up|^whats up|^how's it going|^hows it going|^you good|^u good/.test(normalized)) {
+    return "greeting";
+  }
+  // Short casual messages that are clearly conversational
+  if (/^(ok|okay|yes|yeah|no|nope|sure|cool|great|nice|thanks|thank you|merci|bye|goodbye|see you|later|lol|haha|😊|👋)[\s!?.]*$/.test(normalized)) {
     return "greeting";
   }
 
@@ -2870,7 +2878,13 @@ const parseJsonFromModelText = (text: string) => {
 
 const buildFallbackAssistantMessage = (recommendedCount: number, intent = "") => {
   if (intent === "greeting") {
-    return "Hey! 👋 I'm Sasha, your Campus Market assistant. How are you doing today? I'm here to help you find great products, answer questions, or just chat. What can I do for you? 😊";
+    const greetings = [
+      "I'm doing great, thanks for asking! 😊 How can I help you today?",
+      "I'm fine, thank you! 😄 What can I do for you?",
+      "Doing well, thanks! 👋 What's on your mind today?",
+      "Great, thanks for asking! 😊 Ready to help — what do you need?",
+    ];
+    return greetings[Math.floor(Math.random() * greetings.length)];
   }
   if (intent === "general_qa" || intent === "student_advice" || intent === "career_advice") {
     return "That's a great question! 😊 I'm Sasha, your Campus Market assistant. I can help you with general questions, product recommendations, room setup ideas, kitchen essentials, study tips, and much more. What would you like to know?";
