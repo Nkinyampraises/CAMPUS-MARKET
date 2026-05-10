@@ -2872,11 +2872,17 @@ const buildFallbackAssistantMessage = (recommendedCount: number, intent = "") =>
   if (intent === "greeting") {
     return "Hey! 👋 I'm Sasha, your Campus Market assistant. How are you doing today? I'm here to help you find great products, answer questions, or just chat. What can I do for you? 😊";
   }
-  if (intent === "general_qa") {
-    return "That's a great question! I'm Sasha, your Campus Market assistant. I can help you with general questions, product recommendations, room setup ideas, kitchen essentials, and much more. What would you like to know? 😊";
+  if (intent === "general_qa" || intent === "student_advice" || intent === "career_advice") {
+    return "That's a great question! 😊 I'm Sasha, your Campus Market assistant. I can help you with general questions, product recommendations, room setup ideas, kitchen essentials, study tips, and much more. What would you like to know?";
+  }
+  if (intent === "kitchen_list" || intent === "kitchen_setup") {
+    return "Here are some essentials students usually buy for their kitchen 🍳\n\n• Gas stove or electric hotplate\n• Cooking pots (large + medium)\n• Frying pan\n• Electric kettle\n• Plates, bowls and cups\n• Cutlery set (fork, knife, spoon)\n• Cutting board and knife\n• Food storage containers\n• Blender\n• Dish rack\n\nWould you like me to search Campus Market for any of these? Tell me your budget and city! 😊";
+  }
+  if (intent === "room_setup") {
+    return "Here are the essentials for setting up a student room 🛋️\n\n• Mattress or foam\n• Study desk and chair\n• Wardrobe or storage shelves\n• Desk lamp\n• Bedsheets, pillow and blanket\n• Curtains\n• Small rug\n• Mirror\n\nTell me your budget and city and I'll find matching items on Campus Market! 😊";
   }
   if (recommendedCount > 0) {
-    return "Here are some great options I found for you! 🛍️ Let me know your budget or location and I'll narrow it down even better.";
+    return "Here are some options I found for you! 🛍️ Let me know your budget or location and I'll narrow it down even better.";
   }
   return "I'm here to help! 😊 Tell me what you're looking for — a laptop, furniture, kitchen items, textbooks — and I'll find the best options on Campus Market for you.";
 };
@@ -8220,6 +8226,7 @@ app.post("/make-server-50b25a4f/ai-chat", async (c) => {
       PRODUCT_INTENTS.some((i) => rawIntent.toLowerCase().includes(i)) ||
       requestedIds.length > 0;
 
+    // Only include listings the AI explicitly recommended — never pad with random products.
     const selectedListings: any[] = [];
     for (const id of requestedIds) {
       const match = topRankedListings.find((listing: any) => String(listing.id) === id);
@@ -8228,19 +8235,6 @@ app.post("/make-server-50b25a4f/ai-chat", async (c) => {
       }
       if (selectedListings.length >= 6) {
         break;
-      }
-    }
-
-    // Only pad with random listings when the user is actually shopping.
-    // For greetings, general Q&A, science, coding, etc. show NO products.
-    if (isShoppingIntent && selectedListings.length < 6) {
-      for (const listing of topRankedListings) {
-        if (!selectedListings.find((entry: any) => entry.id === listing.id)) {
-          selectedListings.push(listing);
-        }
-        if (selectedListings.length >= 6) {
-          break;
-        }
       }
     }
 
