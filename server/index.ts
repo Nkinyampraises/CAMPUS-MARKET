@@ -8245,7 +8245,9 @@ app.post("/make-server-50b25a4f/ai-chat", async (c) => {
 
     const modelResponse = await requestAiChatResponse({
       systemPrompt,
-      listingsContext,
+      // For general questions, skip the large listings context — makes the model
+      // respond faster and more accurately for non-shopping queries.
+      listingsContext: ["product_recommendation","room_setup","kitchen_setup","kitchen_list","shopping_plan","buyer_guide","cheaper_alternatives","similar_items"].some((i) => inferredIntent === i) ? listingsContext : [],
       history: activeHistory,
       userMessage: message,
       imageDataUrls: images,
@@ -8295,26 +8297,50 @@ app.post("/make-server-50b25a4f/ai-chat", async (c) => {
       if (selectedListings.length >= 6) break;
     }
 
-    // If AI found nothing but user is shopping → do server-side keyword search.
+    // If AI found nothing but user is shopping → smart server-side keyword search.
     if (isShoppingIntent && selectedListings.length === 0) {
-      const msgWords = message.toLowerCase().replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter((w) => w.length > 2);
-      const STOP_WORDS = new Set(["the","and","for","are","can","you","what","show","list","want","need","buy","get","me","my","a","an","in","of","to","i","is","it","at","be","do","so","on","or","ok","yes","no","please"]);
-      const keywords = msgWords.filter((w) => !STOP_WORDS.has(w));
+      const STOP_WORDS = new Set(["the","and","for","are","can","you","what","show","list","want","need","buy","get","me","my","a","an","in","of","to","i","is","it","at","be","do","so","on","or","ok","yes","no","please","some","give","find","search","marketplace","campus","market","products","items","things"]);
+      const keywords = message.toLowerCase().replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter((w) => w.length > 2 && !STOP_WORDS.has(w));
 
-      // Score each listing by how many keywords appear in title+category+description
+      // Category synonyms — map user words to likely categories
+      const CATEGORY_MAP: Record<string, string[]> = {
+        furniture: ["furniture","chair","desk","table","wardrobe","shelf","bed","sofa","couch","cabinet","drawer"],
+        electronics: ["laptop","computer","phone","tablet","camera","speaker","headphone","earphone","charger","gadget","electronic","screen","monitor","keyboard","mouse"],
+        kitchen: ["pot","pan","stove","kettle","blender","plate","bowl","cup","spoon","fork","knife","cooker","fridge","gas","cooking","kitchen","utensil"],
+        clothing: ["shirt","trouser","dress","shoe","bag","cloth","wear","fashion","jeans","jacket","skirt","hat","cap","cloth"],
+        books: ["book","textbook","novel","study","note","pen","pencil","stationery","calculator"],
+        room: ["mattress","foam","pillow","curtain","rug","lamp","fan","decoration","decor","mirror","room"],
+      };
+
+      // Expand keywords with category synonyms
+      const expandedKeywords = new Set(keywords);
+      for (const kw of keywords) {
+        for (const [, synonyms] of Object.entries(CATEGORY_MAP)) {
+          if (synonyms.includes(kw)) {
+            synonyms.forEach((s) => expandedKeywords.add(s));
+          }
+        }
+      }
+
       const scored = topRankedListings.map((listing: any) => {
-        const haystack = `${listing.title} ${listing.category} ${listing.description}`.toLowerCase();
-        const score = keywords.reduce((acc: number, kw: string) => acc + (haystack.includes(kw) ? 2 : 0), 0);
+        const titleAndCat = `${listing.title} ${listing.category}`.toLowerCase();
+        const desc = String(listing.description || "").toLowerCase();
+        let score = 0;
+        for (const kw of expandedKeywords) {
+          // Title/category match scores 4x more than description match
+          if (titleAndCat.includes(kw)) score += 4;
+          else if (desc.includes(kw)) score += 1;
+        }
         return { listing, score };
-      }).filter(({ score }: { score: number }) => score > 0)
+      }).filter(({ score }: { score: number }) => score >= 4) // Must match title or category
         .sort((a: any, b: any) => b.score - a.score);
 
       for (const { listing } of scored.slice(0, 6)) {
         selectedListings.push(listing);
       }
 
-      // If still nothing matches, show top available listings so the page is never empty.
-      if (selectedListings.length === 0 && topRankedListings.length > 0) {
+      // If still nothing, show top listings but only when user explicitly asked for products
+      if (selectedListings.length === 0 && /show|browse|all|available|marketplace|what.*sell|what.*buy/.test(message.toLowerCase()) && topRankedListings.length > 0) {
         for (const listing of topRankedListings.slice(0, 4)) {
           selectedListings.push(listing);
         }
