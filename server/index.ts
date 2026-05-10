@@ -8050,6 +8050,48 @@ app.post("/make-server-50b25a4f/ai-chat", async (c) => {
     const requestedConversationTitle = normalizeAiText(body?.conversationTitle, 120);
     const inferredIntent = detectPrimaryIntent(message);
 
+    // Handle greetings instantly on the server — no AI call needed, always reliable.
+    if (inferredIntent === "greeting") {
+      const msg = message.toLowerCase().trim();
+      let reply = "I'm doing great, thanks for asking! 😊 What can I help you with today?";
+      if (/^(hi|hello|hey|hiya|howdy|yo|sup)/.test(msg)) {
+        reply = "Hey! 👋 I'm Sasha, your Campus Market assistant. How are you doing? What can I help you with today? 😊";
+      } else if (/good morning/.test(msg)) {
+        reply = "Good morning! ☀️ Hope you're having a great day. What can I help you with today?";
+      } else if (/good afternoon/.test(msg)) {
+        reply = "Good afternoon! 😊 How can I help you today?";
+      } else if (/good evening|good night/.test(msg)) {
+        reply = "Good evening! 🌙 How can I help you today?";
+      } else if (/how are you|how r u|how are u|how.*doing|how.*going|how.*things|you good/.test(msg)) {
+        reply = "I'm doing great, thanks for asking! 😄 Always ready to help. What's on your mind?";
+      } else if (/^(yes|yeah|yep|sure|ok|okay|alright|go ahead|please)/.test(msg)) {
+        reply = "Of course! 😊 Could you tell me a bit more? For example — what are you looking for, and what's your budget?";
+      } else if (/^(no|nope|nah)/.test(msg)) {
+        reply = "No problem at all! 😊 Let me know whenever you need help — I'm always here.";
+      } else if (/^(thanks|thank you|merci|thx)/.test(msg)) {
+        reply = "You're welcome! 😊 Let me know if there's anything else I can help with.";
+      } else if (/^(bye|goodbye|see you|later|ciao)/.test(msg)) {
+        reply = "Goodbye! 👋 Come back anytime. Have a great day! 😊";
+      }
+      return c.json({
+        success: true,
+        intent: "greeting",
+        assistantMessage: reply,
+        recommendedItems: [],
+        stylePlan: null,
+        kitchenList: null,
+        budgetBreakdown: null,
+        nextQuestions: ["What are you looking for?", "Show me products on the marketplace", "What can Sasha do?"],
+        messages: [],
+        conversationId: "",
+        activeConversationId: "",
+        conversations: [],
+        preferences: {},
+        usage: toPublicAiUsageSnapshot(usageSnapshot),
+        metadata: { model: "sasha-instant", source: "server", warning: "" },
+      });
+    }
+
     const savedPreferences = user
       ? mergeAiPreferences(await kv.get(aiPreferenceKey(user.id)), {})
       : mergeAiPreferences({}, {});
