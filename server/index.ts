@@ -8260,6 +8260,8 @@ app.post("/make-server-50b25a4f/ai-chat", async (c) => {
       reason: normalizeAiText(reasonsMap?.[listing.id], 300) || buildDefaultRecommendationReason(listing),
     }));
 
+    const intent = rawIntent || "general_qa";
+
     const assistantMessage = normalizeAiText(
       parsedModel?.assistant_message,
       6000,
@@ -8271,8 +8273,6 @@ app.post("/make-server-50b25a4f/ai-chat", async (c) => {
         .filter(Boolean)
         .slice(0, 4)
       : [];
-
-    const intent = rawIntent || "general_qa";
     const stylePlan =
       parsedModel?.style_plan && typeof parsedModel.style_plan === "object" ? parsedModel.style_plan : null;
     const kitchenList =
