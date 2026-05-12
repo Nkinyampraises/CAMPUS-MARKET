@@ -99,6 +99,13 @@ export function PaymentReview() {
     [paymentMeta.merchantNumber, totalAmount],
   );
 
+  // QR code that opens the phone dialer with the USSD code pre-filled.
+  // User scans with phone camera → tap Call → enter PIN. Works on any device.
+  const qrCodeUrl = useMemo(
+    () => `https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=12&data=${encodeURIComponent(`tel:${ussdCode}`)}`,
+    [ussdCode],
+  );
+
   const postWithAuthRetry = async (url: string, payload: any) => {
     if (!accessToken) {
       return { response: null as Response | null, data: { error: 'Missing payment session' } };
@@ -240,56 +247,70 @@ export function PaymentReview() {
     return null;
   }
 
-  // Desktop modal — shown when user is on a non-mobile device and clicks Confirm Payment.
+  // Desktop / laptop modal — shows a QR code the user scans with their phone.
+  // Scanning opens the phone dialer with the USSD code already typed.
+  // User just taps Call then enters their PIN. No copying, no typing.
   const DesktopPayModal = showDesktopModal ? (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
-        <div className="mb-4 flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#e8f9f5]">
-            <Phone className="h-6 w-6 text-[#1FAF9A]" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl">
+
+        {/* Header */}
+        <div className="mb-5 text-center">
+          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#e8f9f5]">
+            <Smartphone className="h-7 w-7 text-[#1FAF9A]" />
           </div>
-          <div>
-            <h3 className="text-lg font-extrabold text-[#082d26]">Pay from your phone</h3>
-            <p className="text-xs text-[#5f7e75]">You are on a computer — dial from your mobile phone</p>
-          </div>
+          <h3 className="text-xl font-extrabold text-[#082d26]">Scan to Pay</h3>
+          <p className="mt-1 text-sm text-[#5f7e75]">
+            Point your phone camera at the QR code below
+          </p>
         </div>
 
-        <p className="mb-3 text-sm text-[#4f6b62]">
-          Open your phone's dialer and call this USSD code to pay <strong className="text-[#082d26]">{formatMoney(totalAmount)} FCFA</strong>:
-        </p>
-
-        <div className="mb-4 flex items-center gap-2 rounded-2xl border-2 border-[#1FAF9A] bg-[#f0fdf8] px-4 py-3">
-          <code className="flex-1 text-lg font-black tracking-wider text-[#0d6e5c]">{ussdCode}</code>
-          <button
-            type="button"
-            onClick={handleCopyCode}
-            className="flex items-center gap-1.5 rounded-xl bg-[#1FAF9A] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#27b9a6]"
-          >
-            {codeCopied ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-            {codeCopied ? 'Copied!' : 'Copy'}
-          </button>
+        {/* QR Code */}
+        <div className="mx-auto mb-5 flex w-fit flex-col items-center rounded-2xl border-2 border-[#1FAF9A] bg-[#f0fdf8] p-3">
+          <img
+            src={qrCodeUrl}
+            alt="Scan to open MTN MoMo payment"
+            className="h-52 w-52 rounded-xl"
+          />
+          <p className="mt-2 text-[11px] font-semibold text-[#0d6e5c]">
+            {formatMoney(totalAmount)} FCFA — MTN MoMo
+          </p>
         </div>
 
-        <ol className="mb-5 space-y-2 text-sm text-[#4f6b62]">
-          <li className="flex gap-2"><span className="font-bold text-[#1FAF9A]">1.</span> Open your phone → Dialer</li>
-          <li className="flex gap-2"><span className="font-bold text-[#1FAF9A]">2.</span> Dial the code above and press <strong>Call</strong></li>
-          <li className="flex gap-2"><span className="font-bold text-[#1FAF9A]">3.</span> Enter your <strong>MTN MoMo PIN</strong> when prompted</li>
-          <li className="flex gap-2"><span className="font-bold text-[#1FAF9A]">4.</span> Come back here and click <strong>"I've Paid"</strong></li>
+        {/* Steps */}
+        <ol className="mb-5 space-y-2.5 text-sm text-[#4f6b62]">
+          <li className="flex items-center gap-3">
+            <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#1FAF9A] text-xs font-bold text-white">1</span>
+            Open your phone camera and scan the QR code
+          </li>
+          <li className="flex items-center gap-3">
+            <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#1FAF9A] text-xs font-bold text-white">2</span>
+            Tap the link that appears — your dialer opens
+          </li>
+          <li className="flex items-center gap-3">
+            <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#1FAF9A] text-xs font-bold text-white">3</span>
+            Tap <strong>Call</strong> then enter your <strong>MTN MoMo PIN</strong>
+          </li>
+          <li className="flex items-center gap-3">
+            <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#0d6e5c] text-xs font-bold text-white">4</span>
+            Come back here and click <strong>"I've Paid"</strong>
+          </li>
         </ol>
 
+        {/* Buttons */}
         <div className="flex flex-col gap-2">
           <Button
             className="h-12 w-full rounded-xl bg-[#1FAF9A] text-base font-bold text-white hover:bg-[#27b9a6]"
             onClick={() => { setUssdStarted(true); setShowDesktopModal(false); }}
-            disabled={submitting}
           >
-            {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
+            <CheckCircle2 className="mr-2 h-5 w-5" />
             I've Paid — Confirm Order
           </Button>
-          <Button variant="ghost" className="w-full text-[#476f65]" onClick={() => setShowDesktopModal(false)}>
+          <Button variant="ghost" className="w-full text-[#476f65] hover:bg-[#edf6f2]" onClick={() => setShowDesktopModal(false)}>
             Cancel
           </Button>
         </div>
+
       </div>
     </div>
   ) : null;
