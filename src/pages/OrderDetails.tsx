@@ -237,7 +237,7 @@ export function OrderDetails() {
 
   return (
     <div className="min-h-screen bg-[#f5f7f6] py-8">
-      <div className="mx-auto w-full max-w-[1220px] px-4 lg:px-6">
+      <div className="w-full px-4 lg:px-8 xl:px-12">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-3xl font-black tracking-tight text-[#082f28]">Order Details</h1>

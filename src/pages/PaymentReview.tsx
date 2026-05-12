@@ -231,7 +231,7 @@ export function PaymentReview() {
 
   return (
     <div className="min-h-screen bg-[#f5f7f6] py-7">
-      <div className="mx-auto w-full max-w-[1180px] px-4 lg:px-6">
+      <div className="w-full px-4 lg:px-8 xl:px-12">
         <Button variant="ghost" onClick={() => navigate(-1)} className="mb-3 text-[#2e5950] hover:bg-[#e8f4ee]">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back

@@ -363,7 +363,7 @@ export function ItemDetails() {
 
   return (
     <div className="min-h-screen bg-[#f6f8f7] py-7">
-      <div className="mx-auto w-full max-w-[1220px] px-4 lg:px-6">
+      <div className="w-full px-4 lg:px-8 xl:px-12">
         <div className="mb-4 flex flex-wrap items-center gap-1.5 text-xs font-medium text-[#5d7b72]">
           <button type="button" className="hover:text-[#0c6a5a]" onClick={() => navigate('/marketplace')}>
             Marketplace

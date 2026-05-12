@@ -134,7 +134,7 @@ export function Profile() {
   if (isLoadingProfile && !isOwnProfile) {
     return (
       <div className="min-h-screen bg-[#f5f7f6] py-8">
-        <div className="mx-auto w-full max-w-[1220px] px-4 lg:px-6">
+        <div className="w-full px-4 lg:px-8 xl:px-12">
           <Card className="rounded-2xl border border-[#d3e3dc] bg-white p-8 text-center shadow-sm">
             <div className="inline-flex items-center gap-2 text-[#0f6f58]">
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -149,7 +149,7 @@ export function Profile() {
   if (!viewedUser) {
     return (
       <div className="min-h-screen bg-[#f5f7f6] py-8">
-        <div className="mx-auto w-full max-w-[1220px] px-4 lg:px-6">
+        <div className="w-full px-4 lg:px-8 xl:px-12">
           <Card className="rounded-2xl border border-[#d3e3dc] bg-white p-8 text-center shadow-sm">
             <p className="text-sm text-[#4f6b62]">Profile not available.</p>
           </Card>

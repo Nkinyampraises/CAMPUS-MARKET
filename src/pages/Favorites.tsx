@@ -124,7 +124,7 @@ export function Favorites() {
 
   return (
     <div className="min-h-screen bg-[#f3f8f5] py-8">
-      <div className="mx-auto w-full max-w-[1300px] px-4 lg:px-6">
+      <div className="w-full px-4 lg:px-8 xl:px-12">
         <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight text-[#013b36]">Saved Items</h1>

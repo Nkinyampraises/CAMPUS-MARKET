@@ -366,7 +366,7 @@ export function Checkout() {
 
   return (
     <div className="min-h-screen bg-[#f3f6f4] py-8">
-      <div className="mx-auto w-full max-w-[1200px] px-4 lg:px-6">
+      <div className="w-full px-4 lg:px-8 xl:px-12">
         <Button variant="ghost" onClick={() => navigate(-1)} className="mb-3 text-[#2e5950] hover:bg-[#e7f3ed]">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back

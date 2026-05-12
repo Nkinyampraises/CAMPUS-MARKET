@@ -199,7 +199,7 @@ export function AddListing() {
 
   return (
     <div className="min-h-screen bg-[#f5f7f6] py-8">
-      <div className="mx-auto w-full max-w-[1220px] px-4 lg:px-6">
+      <div className="w-full px-4 lg:px-8 xl:px-12">
         <section className="mb-6 rounded-2xl border border-[#d3e3dc] bg-white p-6 shadow-sm sm:p-7">
           <div className="inline-flex items-center gap-2 rounded-full bg-[#e8f5ef] px-3 py-1 text-xs font-semibold uppercase tracking-[0.15em] text-[#0f6f58]">
             <Sparkles className="h-3.5 w-3.5" />
