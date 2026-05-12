@@ -254,7 +254,6 @@ export function ItemDetails() {
     const actual = Number(item?.price || 0);
     const compare = Number(item?.originalPrice || item?.compareAtPrice || 0);
     if (Number.isFinite(compare) && compare > actual) return compare;
-    if (actual > 0) return Math.round(actual * 1.15);
     return 0;
   })();
 

@@ -356,8 +356,7 @@ export function Checkout() {
 
   const subtotal = Math.max(0, Number(item.price || 0));
   const platformFee = Math.max(500, Math.round(subtotal * 0.007));
-  const insuranceFee = 500;
-  const checkoutTotal = subtotal + platformFee + insuranceFee;
+  const checkoutTotal = subtotal + platformFee;
   const categoryLabel = resolveNamedCatalogLabel(categories, item.category, 'Marketplace Item');
   const conditionLabel = String(item.condition || 'Good')
     .replace(/-/g, ' ')
@@ -413,10 +412,7 @@ export function Checkout() {
                   <span>Platform Fee</span>
                   <span>{platformFee.toLocaleString()} XAF</span>
                 </div>
-                <div className="flex items-center justify-between text-[#58796f]">
-                  <span>Insurance</span>
-                  <span>{insuranceFee.toLocaleString()} XAF</span>
-                </div>
+
                 <div className="mt-2 border-t border-[#dbe7e1] pt-2">
                   <div className="flex items-center justify-between text-xl font-black text-[#014a3d]">
                     <span>Total</span>
