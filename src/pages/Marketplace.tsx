@@ -457,173 +457,148 @@ export function Marketplace() {
   );
 
   return (
-    <div className="min-h-screen bg-[#f8f4f2] py-10">
+    <div className="min-h-screen bg-gray-50">
       <div className="mx-auto w-full max-w-none px-4 lg:px-6">
-        <section className="mb-6 flex flex-wrap items-start justify-between gap-6">
-          <div className="max-w-xl">
-            <h1 className="text-3xl font-semibold text-[#1f1f1f]">{t('marketplace.title', 'Student Marketplace')}</h1>
-            <p className="mt-2 text-sm text-[#6a6a6a]">
-              {t(
-                'marketplace.subtitle',
-                'Find the best deals on campus. Verified student sellers from top universities in Cameroon.',
-              )}
-            </p>
-          </div>
-          <div className="min-w-[200px]">
-            <div className="text-xs font-semibold uppercase tracking-[0.12em] text-[#8a8a8a]">
-              {t('marketplace.sortBy', 'Sort by')}
+
+        {/* ── Hero Banner ───────────────────────────────────────── */}
+        <section className="marketplace-hero relative mb-8 overflow-hidden rounded-b-3xl px-6 py-10 text-white md:px-10 md:py-12">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(10,157,143,0.25),transparent_55%)]" />
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,rgba(124,58,237,0.12),transparent_55%)]" />
+          <div className="relative flex flex-wrap items-center justify-between gap-6">
+            <div className="max-w-xl">
+              <span className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-teal-500/20 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-teal-300">
+                🎓 {t('marketplace.subtitle', 'Verified Student Sellers')}
+              </span>
+              <h1 className="font-sora text-3xl font-extrabold text-white md:text-4xl">
+                {t('marketplace.title', 'Student Marketplace')}
+              </h1>
+              <p className="mt-2 text-sm text-teal-100/70">
+                {t('marketplace.description', 'Find the best deals on campus — electronics, furniture, books & more from students across Cameroon.')}
+              </p>
+              {/* Stats row */}
+              <div className="mt-6 flex flex-wrap items-center gap-6 text-sm">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl font-bold text-teal-300">{filteredItems.length}</span>
+                  <span className="text-teal-100/60">{t('marketplace.itemsAvailable', 'Available')}</span>
+                </div>
+                <div className="flex items-center gap-2 border-l border-white/15 pl-6">
+                  <span className="text-2xl font-bold text-emerald-300">{saleCount}</span>
+                  <span className="text-teal-100/60">{t('marketplace.forSale', 'For Sale')}</span>
+                </div>
+                <div className="flex items-center gap-2 border-l border-white/15 pl-6">
+                  <span className="text-2xl font-bold text-purple-300">{rentCount}</span>
+                  <span className="text-teal-100/60">{t('marketplace.forRent', 'For Rent')}</span>
+                </div>
+              </div>
             </div>
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="mt-2 h-10 rounded-full border-[#e6e0dc] bg-white text-sm text-[#2a2a2a] shadow-sm">
-                <SelectValue placeholder={t('marketplace.recent', 'Newest Arrivals')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="recent">{t('marketplace.recent', 'Newest Arrivals')}</SelectItem>
-                <SelectItem value="price-low">{t('marketplace.priceLow', 'Price: Low to High')}</SelectItem>
-                <SelectItem value="price-high">{t('marketplace.priceHigh', 'Price: High to Low')}</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="min-w-[200px]">
+              <div className="text-xs font-semibold uppercase tracking-[0.15em] text-teal-300/80">
+                {t('marketplace.sortBy', 'Sort by')}
+              </div>
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="mt-2 h-10 rounded-xl border-white/20 bg-white/10 text-sm text-white backdrop-blur-sm">
+                  <SelectValue placeholder={t('marketplace.recent', 'Newest Arrivals')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="recent">{t('marketplace.recent', 'Newest Arrivals')}</SelectItem>
+                  <SelectItem value="price-low">{t('marketplace.priceLow', 'Price: Low to High')}</SelectItem>
+                  <SelectItem value="price-high">{t('marketplace.priceHigh', 'Price: High to Low')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </section>
 
-        <section className="rounded-3xl border border-[#eee8e4] bg-white p-4 shadow-sm">
+        {/* ── Filters ───────────────────────────────────────────── */}
+        <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
           <div className="flex flex-col gap-3 lg:flex-row lg:flex-nowrap lg:items-center">
             <div className="relative flex-1">
-              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8c8c8c]" />
+              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <Input
                 type="text"
                 placeholder={t('marketplace.searchPlaceholder', 'Search by item name, category or campus...')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-12 w-full rounded-full border-[#ece6e2] bg-[#fbfaf9] pl-11 text-sm text-[#2c2c2c] shadow-sm"
+                className="h-11 w-full rounded-xl border-gray-200 bg-gray-50 pl-11 text-sm text-gray-800 focus:border-teal-400 focus:ring-teal-100"
               />
             </div>
-
-            <div className="flex w-full flex-col gap-3 sm:flex-row lg:w-auto lg:flex-nowrap">
+            <div className="flex w-full flex-col gap-2.5 sm:flex-row lg:w-auto lg:flex-nowrap">
               <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger className="h-10 min-w-[180px] rounded-full border-[#ece6e2] bg-[#fbfaf9] text-xs font-semibold text-[#3a3a3a] shadow-sm">
-                  <Filter className="mr-2 h-4 w-4 text-[#6f6f6f]" />
+                <SelectTrigger className="h-10 min-w-[160px] rounded-xl border-gray-200 bg-gray-50 text-xs font-semibold text-gray-700">
+                  <Filter className="mr-2 h-3.5 w-3.5 text-teal-500" />
                   <SelectValue placeholder={t('marketplace.category', 'Category')} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{t('marketplace.allCategories', 'All Categories')}</SelectItem>
-                  {categoriesList.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </SelectItem>
-                  ))}
+                  {categoriesList.map((cat) => <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>)}
                 </SelectContent>
               </Select>
-
               <Select value={selectedPriceRange} onValueChange={setSelectedPriceRange}>
-                <SelectTrigger className="h-10 min-w-[180px] rounded-full border-[#ece6e2] bg-[#fbfaf9] text-xs font-semibold text-[#3a3a3a] shadow-sm">
+                <SelectTrigger className="h-10 min-w-[160px] rounded-xl border-gray-200 bg-gray-50 text-xs font-semibold text-gray-700">
                   <SelectValue placeholder={t('marketplace.priceRange', 'Price Range')} />
                 </SelectTrigger>
                 <SelectContent>
-                  {PRICE_RANGE_OPTIONS.map((range) => (
-                    <SelectItem key={range.id} value={range.id}>
-                      {range.label}
-                    </SelectItem>
-                  ))}
+                  {PRICE_RANGE_OPTIONS.map((range) => <SelectItem key={range.id} value={range.id}>{range.label}</SelectItem>)}
                 </SelectContent>
               </Select>
-
               <Select value={selectedUniversity} onValueChange={setSelectedUniversity}>
-                <SelectTrigger className="h-10 min-w-[180px] rounded-full border-[#ece6e2] bg-[#fbfaf9] text-xs font-semibold text-[#3a3a3a] shadow-sm">
+                <SelectTrigger className="h-10 min-w-[160px] rounded-xl border-gray-200 bg-gray-50 text-xs font-semibold text-gray-700">
                   <SelectValue placeholder={t('marketplace.university', 'University')} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{t('marketplace.allUniversities', 'All Universities')}</SelectItem>
-                  {universitiesList.map((university) => (
-                    <SelectItem key={university.id} value={university.id}>
-                      {university.name}
-                    </SelectItem>
-                  ))}
+                  {universitiesList.map((u) => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
           </div>
 
-          <div className="mt-4 flex flex-wrap items-center gap-2">
+          {/* Active filter badges */}
+          <div className="mt-3 flex flex-wrap items-center gap-2">
             {selectedCategory !== 'all' && (
-              <Badge className="rounded-full bg-[#e5f6f0] px-3 py-1 text-xs font-medium text-[#1e7b5a]">
+              <Badge className="rounded-full border border-teal-200 bg-teal-50 px-3 py-1 text-xs font-medium text-teal-700">
                 {resolveCategoryLabel(selectedCategory)}
-                <button
-                  className="ml-2 rounded-full p-0.5 hover:bg-white/60"
-                  onClick={() => setSelectedCategory('all')}
-                  aria-label="Clear category"
-                >
-                  <X className="h-3 w-3" />
-                </button>
+                <button title="Clear category" className="ml-1.5 hover:text-teal-900" onClick={() => setSelectedCategory('all')}><X className="h-3 w-3" /></button>
               </Badge>
             )}
             {selectedUniversity !== 'all' && (
-              <Badge className="rounded-full bg-[#e5f6f0] px-3 py-1 text-xs font-medium text-[#1e7b5a]">
+              <Badge className="rounded-full border border-teal-200 bg-teal-50 px-3 py-1 text-xs font-medium text-teal-700">
                 {universitiesById[selectedUniversity.toLowerCase()] || selectedUniversity}
-                <button
-                  className="ml-2 rounded-full p-0.5 hover:bg-white/60"
-                  onClick={() => setSelectedUniversity('all')}
-                  aria-label="Clear university"
-                >
-                  <X className="h-3 w-3" />
-                </button>
+                <button title="Clear university" className="ml-1.5 hover:text-teal-900" onClick={() => setSelectedUniversity('all')}><X className="h-3 w-3" /></button>
               </Badge>
             )}
             {selectedPriceRange !== 'all' && (
-              <Badge className="rounded-full bg-[#e5f6f0] px-3 py-1 text-xs font-medium text-[#1e7b5a]">
-                {PRICE_RANGE_OPTIONS.find((range) => range.id === selectedPriceRange)?.label || selectedPriceRange}
-                <button
-                  className="ml-2 rounded-full p-0.5 hover:bg-white/60"
-                  onClick={() => setSelectedPriceRange('all')}
-                  aria-label="Clear price range"
-                >
-                  <X className="h-3 w-3" />
-                </button>
+              <Badge className="rounded-full border border-teal-200 bg-teal-50 px-3 py-1 text-xs font-medium text-teal-700">
+                {PRICE_RANGE_OPTIONS.find((r) => r.id === selectedPriceRange)?.label}
+                <button title="Clear price range" className="ml-1.5 hover:text-teal-900" onClick={() => setSelectedPriceRange('all')}><X className="h-3 w-3" /></button>
               </Badge>
             )}
             {searchQuery && (
-              <Badge className="rounded-full bg-[#e5f6f0] px-3 py-1 text-xs font-medium text-[#1e7b5a]">
-                {t('marketplace.searchLabel', 'Search')}: {searchQuery}
-                <button
-                  className="ml-2 rounded-full p-0.5 hover:bg-white/60"
-                  onClick={() => setSearchQuery('')}
-                  aria-label="Clear search"
-                >
-                  <X className="h-3 w-3" />
-                </button>
+              <Badge className="rounded-full border border-teal-200 bg-teal-50 px-3 py-1 text-xs font-medium text-teal-700">
+                "{searchQuery}"
+                <button title="Clear search" className="ml-1.5 hover:text-teal-900" onClick={() => setSearchQuery('')}><X className="h-3 w-3" /></button>
               </Badge>
             )}
             {hasActiveFilters && (
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => {
-                  setSearchQuery('');
-                  setSelectedCategory('all');
-                  setSelectedPriceRange('all');
-                  setSelectedUniversity('all');
-                  setSelectedType('all');
-                  setSortBy('recent');
-                }}
-                className="h-7 rounded-full px-3 text-xs font-semibold text-[#1e7b5a] hover:bg-[#e5f6f0]"
-              >
+              <Button size="sm" variant="ghost" onClick={() => { setSearchQuery(''); setSelectedCategory('all'); setSelectedPriceRange('all'); setSelectedUniversity('all'); setSelectedType('all'); setSortBy('recent'); }}
+                className="h-7 rounded-full px-3 text-xs font-semibold text-teal-600 hover:bg-teal-50">
                 {t('marketplace.clearAll', 'Clear all')}
               </Button>
             )}
           </div>
         </section>
 
-        <div className="mt-6 flex items-center justify-between text-xs font-semibold uppercase tracking-[0.2em] text-[#8a8a8a]">
-          <span>{t('marketplace.itemsFound', '{{count}} item(s) found', { count: filteredItems.length })}</span>
-          <div className="hidden items-center gap-4 text-[11px] text-[#9a9a9a] lg:flex">
-            <span>{t('marketplace.forSale', 'For Sale')}: {saleCount}</span>
-            <span>{t('marketplace.forRent', 'For Rent')}: {rentCount}</span>
-            <span>{t('marketplace.likes', 'Likes')}: {totalVisibleLikes}</span>
+        <div className="mb-5 flex items-center justify-between">
+          <p className="text-sm font-semibold text-gray-700">
+            <span className="text-teal-600">{filteredItems.length}</span> {t('marketplace.itemsFound', 'items found')}
+          </p>
+          <div className="hidden items-center gap-4 text-xs text-gray-400 lg:flex">
+            <span>❤ {totalVisibleLikes} likes</span>
           </div>
         </div>
 
         {filteredItems.length > 0 ? (
-          <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {filteredItems.map((item) => {
               const seller = item.seller || null;
               const isSaved = savedItems.has(item.id);
@@ -632,97 +607,107 @@ export function Marketplace() {
               return (
                 <Card
                   key={item.id}
-                  className="group flex h-full cursor-pointer flex-col overflow-hidden rounded-3xl border border-[#efe7e1] bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+                  className="card-hover group flex h-full cursor-pointer flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm"
                   onClick={() => navigate(`/item/${item.id}`)}
                 >
-                  <div className="relative aspect-[4/3] overflow-hidden bg-[#f0ebe8]">
+                  {/* Image area */}
+                  <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
                     {primaryImage ? (
                       <ResilientImage
                         src={primaryImage}
                         alt={item.title}
-                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-                        fallback={
-                          <div className="flex h-full items-center justify-center text-xs text-[#8a8a8a]">
-                            No image available
-                          </div>
-                        }
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                        fallback={<div className="flex h-full items-center justify-center bg-gradient-to-br from-teal-50 to-gray-100 text-xs text-gray-400">📷 No image</div>}
                       />
                     ) : (
-                      <div className="flex h-full items-center justify-center text-xs text-[#8a8a8a]">
-                        No image available
-                      </div>
+                      <div className="flex h-full items-center justify-center bg-gradient-to-br from-teal-50 to-gray-100 text-xs text-gray-400">📷 No image</div>
                     )}
+
+                    {/* Gradient overlay on hover */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+
+                    {/* Type badge */}
+                    <div className={`absolute left-3 top-3 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider shadow-sm ${item.type === 'rent' ? 'badge-rent' : 'badge-sell'}`}>
+                      {item.type === 'rent' ? '🔄 Rent' : '🏷️ Sale'}
+                    </div>
+
+                    {/* Like button */}
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleSaveItem(item.id);
-                      }}
-                      className="absolute right-3 top-3 rounded-full bg-white/90 p-2 shadow-sm transition-colors hover:bg-[#ffe7ec]"
+                      onClick={(e) => { e.stopPropagation(); handleSaveItem(item.id); }}
+                      className="absolute right-3 top-3 rounded-full bg-white/95 p-2 shadow-md backdrop-blur-sm transition-all duration-200 hover:scale-110"
                       aria-label={isSaved ? 'Remove from favorites' : 'Save item'}
                     >
-                      <Heart className={`h-4 w-4 ${isSaved ? 'fill-[#e35166] text-[#e35166]' : 'text-[#8a8a8a]'}`} />
+                      <Heart className={`h-4 w-4 transition-colors ${isSaved ? 'fill-rose-500 text-rose-500' : 'text-gray-400'}`} />
                     </button>
-                    {item.seller?.university && (
-                      <Badge className="absolute left-3 bottom-3 rounded-full bg-[#111111] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-white">
-                        {t('marketplace.verifiedStudent', 'Verified Student')}
-                      </Badge>
-                    )}
+
+                    {/* View on hover */}
+                    <div className="absolute inset-x-0 bottom-0 flex translate-y-full items-center justify-center pb-3 transition-transform duration-300 group-hover:translate-y-0">
+                      <span className="rounded-full bg-white/90 px-4 py-1.5 text-xs font-semibold text-gray-800 shadow-sm backdrop-blur-sm">
+                        View Details →
+                      </span>
+                    </div>
                   </div>
 
-                  <CardContent className="flex-1 space-y-3 p-4">
-                    <h3 className="line-clamp-1 text-sm font-semibold text-[#1f1f1f]">{item.title}</h3>
-                    <p className="line-clamp-2 text-xs text-[#777777]">
+                  {/* Content */}
+                  <CardContent className="flex flex-1 flex-col gap-2 p-4">
+                    <h3 className="line-clamp-1 text-sm font-bold text-gray-900">{item.title}</h3>
+                    <p className="line-clamp-2 text-xs leading-relaxed text-gray-500">
                       {item.description || t('marketplace.noDescription', 'No description provided.')}
                     </p>
-                    <p className="text-lg font-semibold text-[#111111]">{formatCurrency(item.price)}</p>
-                    <div className="flex items-center gap-2 text-xs text-[#8a8a8a]">
-                      <span className="inline-flex items-center gap-1">
-                        <MapPin className="h-3 w-3" />
-                        {resolveLocationLabel(item)}
-                      </span>
+
+                    <div className="mt-auto flex items-end justify-between pt-2">
+                      <div>
+                        <p className="text-lg font-extrabold text-gray-900">{formatCurrency(item.price)}</p>
+                        <p className="flex items-center gap-1 text-xs text-gray-400">
+                          <MapPin className="h-3 w-3 text-teal-500" />
+                          {resolveLocationLabel(item)}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-gray-400">
+                        <Heart className="h-3 w-3 text-rose-400" />
+                        <span>{toCount(item.likesCount)}</span>
+                      </div>
                     </div>
                   </CardContent>
 
-                  <CardFooter className="flex items-center justify-between p-4 pt-0 text-xs text-[#7a7a7a]">
-                    <span className="truncate">{seller?.name || t('marketplace.unknownSeller', 'Unknown Seller')}</span>
-                    <button
-                      className="text-xs font-semibold text-[#1e7b5a] hover:text-[#155c44]"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/item/${item.id}`);
-                      }}
-                    >
-                      {t('marketplace.viewDetails', 'View Details')}
-                    </button>
+                  {/* Footer */}
+                  <CardFooter className="border-t border-gray-50 px-4 py-3">
+                    <div className="flex w-full items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-teal-500 to-teal-600 text-[10px] font-bold text-white shadow-sm">
+                          {(seller?.name || 'U').charAt(0).toUpperCase()}
+                        </div>
+                        <span className="max-w-[100px] truncate text-xs font-medium text-gray-600">
+                          {seller?.name || t('marketplace.unknownSeller', 'Unknown')}
+                        </span>
+                      </div>
+                      {seller?.rating && Number(seller.rating) > 0 ? (
+                        <span className="text-xs font-semibold text-amber-500">★ {Number(seller.rating).toFixed(1)}</span>
+                      ) : null}
+                    </div>
                   </CardFooter>
                 </Card>
               );
             })}
           </div>
         ) : (
-          <Card className="mt-6 rounded-3xl border border-[#efe7e1] bg-white shadow-sm">
-            <CardContent className="py-12 text-center">
-              <Filter className="mx-auto mb-4 h-10 w-10 text-[#9a9a9a]" />
-              <h3 className="mb-2 text-lg font-semibold text-[#1f1f1f]">{t('marketplace.noItems', 'No items found')}</h3>
-              <p className="mx-auto mb-6 max-w-md text-sm text-[#7a7a7a]">
-                {t('marketplace.tryFilters', 'Try adjusting your search or filters')}
-              </p>
-              {hasActiveFilters && (
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setSearchQuery('');
-                    setSelectedCategory('all');
-                    setSelectedType('all');
-                    setSortBy('recent');
-                  }}
-                  className="rounded-full border-[#e6e0dc] text-[#1e7b5a] hover:bg-[#e5f6f0]"
-                >
-                  {t('marketplace.clearFilters', 'Clear Filters')}
-                </Button>
-              )}
-            </CardContent>
-          </Card>
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-gray-100 bg-white py-20 text-center shadow-sm">
+            <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-teal-50">
+              <Filter className="h-9 w-9 text-teal-400" />
+            </div>
+            <h3 className="mb-2 text-xl font-bold text-gray-900">{t('marketplace.noItems', 'No items found')}</h3>
+            <p className="mx-auto mb-6 max-w-sm text-sm text-gray-500">
+              {t('marketplace.tryFilters', 'Try adjusting your search or filters to find what you need.')}
+            </p>
+            {hasActiveFilters && (
+              <Button
+                onClick={() => { setSearchQuery(''); setSelectedCategory('all'); setSelectedType('all'); setSortBy('recent'); }}
+                className="rounded-xl bg-gradient-to-r from-teal-500 to-teal-600 px-6 text-white shadow-md hover:opacity-90"
+              >
+                {t('marketplace.clearFilters', 'Clear Filters')}
+              </Button>
+            )}
+          </div>
         )}
       </div>
     </div>
