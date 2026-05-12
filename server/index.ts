@@ -168,6 +168,9 @@ const requireEmailConfirmation = /^(1|true|yes|on)$/i.test(
   (Deno.env.get("AUTH_REQUIRE_EMAIL_CONFIRMATION") || "false").trim(),
 );
 const MAX_UPLOAD_SIZE_BYTES = 5 * 1024 * 1024;
+const NOTCHPAY_PUBLIC_KEY = (Deno.env.get("NOTCHPAY_PUBLIC_KEY") || "").trim();
+const NOTCHPAY_HASH_KEY   = (Deno.env.get("NOTCHPAY_HASH_KEY")   || "").trim();
+const NOTCHPAY_API_URL    = "https://api.notchpay.co";
 const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp", "image/jfif", "image/pjpeg"]);
 const FILE_ROUTE_PREFIX = "/make-server-50b25a4f/files";
 const OPENAI_API_KEY = (Deno.env.get("OPENAI_API_KEY") || "").trim();
@@ -5297,6 +5300,104 @@ app.get("/make-server-50b25a4f/payment-meta", async (c) => {
       },
     },
   });
+});
+
+// ── NotchPay Mobile Money Push Payment ───────────────────────────────────────
+// Sends a payment push request directly to the user's phone.
+// On MTN MoMo / Orange Money the user gets a popup asking for their PIN only.
+app.post("/make-server-50b25a4f/payment/notchpay/charge", async (c) => {
+  const user = await verifyAuth(c.req.header("Authorization"));
+  if (!user) {
+    return c.json({ error: "Authentication required" }, 401);
+  }
+
+  if (!NOTCHPAY_PUBLIC_KEY || !NOTCHPAY_HASH_KEY) {
+    return c.json({ error: "Payment provider not configured" }, 503);
+  }
+
+  let body: any;
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: "Invalid request body" }, 400);
+  }
+
+  const amount    = Math.round(Number(body?.amount || 0));
+  const phone     = String(body?.phone || "").replace(/[^\d]/g, "");
+  const method    = String(body?.paymentMethod || "mtn-momo");
+  const itemTitle = normalizeAiText(body?.itemTitle, 120) || "Marketplace Purchase";
+  const email     = String(body?.email || user.email || "buyer@unitrade.cm").trim();
+  const reference = `UNIORD-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+
+  if (amount < 100) return c.json({ error: "Amount too low" }, 400);
+  if (phone.length < 9) return c.json({ error: "Invalid phone number" }, 400);
+
+  // Normalise phone to international format (Cameroon +237)
+  const internationalPhone = phone.startsWith("237") ? phone : `237${phone}`;
+
+  // Map payment method to NotchPay channel
+  const channel = method === "orange-money" ? "cm.orange" : "cm.mtn";
+
+  const notchHeaders = {
+    "Content-Type": "application/json",
+    "Authorization": NOTCHPAY_PUBLIC_KEY,
+    "X-Grant": NOTCHPAY_HASH_KEY,
+  };
+
+  try {
+    // Step 1: Initialize the payment
+    const initRes = await fetch(`${NOTCHPAY_API_URL}/payments`, {
+      method: "POST",
+      headers: notchHeaders,
+      body: JSON.stringify({
+        email,
+        amount,
+        currency: "XAF",
+        description: itemTitle,
+        reference,
+        callback: "https://campus-market-yz1h.onrender.com/make-server-50b25a4f/payment/notchpay/callback",
+      }),
+    });
+
+    const initData = await initRes.json().catch(() => ({}));
+    if (!initRes.ok) {
+      const msg = normalizeAiText(initData?.message || initData?.error, 200) || "Payment initialization failed";
+      return c.json({ error: msg }, 400);
+    }
+
+    const txRef = initData?.transaction?.reference || reference;
+
+    // Step 2: Charge — sends the push payment request to the user's phone
+    const chargeRes = await fetch(`${NOTCHPAY_API_URL}/payments/${encodeURIComponent(txRef)}/charge`, {
+      method: "POST",
+      headers: notchHeaders,
+      body: JSON.stringify({ channel, data: { phone: internationalPhone } }),
+    });
+
+    const chargeData = await chargeRes.json().catch(() => ({}));
+    if (!chargeRes.ok) {
+      const msg = normalizeAiText(chargeData?.message || chargeData?.error, 200) || "Failed to send payment request to phone";
+      return c.json({ error: msg }, 400);
+    }
+
+    return c.json({
+      success: true,
+      reference: txRef,
+      status: chargeData?.transaction?.status || "pending",
+      message: "Payment request sent to your phone. Enter your PIN to confirm.",
+    });
+  } catch (error) {
+    console.error("NotchPay charge error:", error);
+    return c.json({ error: "Could not reach payment provider. Try again." }, 500);
+  }
+});
+
+// NotchPay webhook callback
+app.post("/make-server-50b25a4f/payment/notchpay/callback", async (c) => {
+  // Payment status update from NotchPay — log and acknowledge
+  const body = await c.req.json().catch(() => ({}));
+  console.log("NotchPay callback:", JSON.stringify(body).slice(0, 500));
+  return c.json({ received: true });
 });
 
 // Public pickup points for campus/public meetup flow

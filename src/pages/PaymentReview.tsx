@@ -38,6 +38,7 @@ export function PaymentReview() {
   const [ussdStarted, setUssdStarted] = useState(false);
   const [showDesktopModal, setShowDesktopModal] = useState(false);
   const [codeCopied, setCodeCopied] = useState(false);
+  const [pushSent, setPushSent] = useState(false);
   const [paymentMeta, setPaymentMeta] = useState({
     merchantName: 'nkinyampraisesncha',
     merchantNumber: '671562474',
@@ -155,21 +156,59 @@ export function PaymentReview() {
       return;
     }
 
-    if (state.paymentMethod === 'mtn-momo' && !ussdStarted) {
-      if (isMobileDevice()) {
-        // On mobile: open the phone dialer directly with the USSD code pre-filled.
-        // The user just presses Call and enters their PIN — no manual typing needed.
-        setUssdStarted(true);
-        try {
-          window.location.href = `tel:${ussdCode.replace('#', '%23')}`;
-        } catch (_error) {
-          // Dialer launch failed — fall through to process order anyway.
+    // ── NotchPay push payment ─────────────────────────────────────────────────
+    // For MTN MoMo / Orange Money: call the backend which tells NotchPay to
+    // send a payment popup directly to the user's phone. The user just enters
+    // their PIN — no USSD code, no dialer, no manual steps.
+    if ((state.paymentMethod === 'mtn-momo' || state.paymentMethod === 'orange-money') && !pushSent) {
+      const phone = state.fromPhone || state.payload?.phoneNumber || state.payload?.buyerPhoneNumber || '';
+      if (!phone) {
+        toast.error('Phone number missing. Please go back and enter your mobile number.');
+        return;
+      }
+
+      setSubmitting(true);
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/make-server-50b25a4f/payment/notchpay/charge`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+          body: JSON.stringify({
+            amount: totalAmount,
+            phone,
+            paymentMethod: state.paymentMethod,
+            itemTitle: state.title,
+            email: state.payload?.buyerEmail || '',
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+
+        if (res.ok && data.success) {
+          setPushSent(true);
+          setSubmitting(false);
+          toast.success('✅ Payment request sent to your phone! Enter your PIN to confirm.');
+          return; // Wait — user must enter PIN on their phone, then click again to finalise.
         }
-        toast.info('Phone dialer opened. Enter your MTN MoMo PIN to complete payment.');
-      } else {
-        // On desktop: show the USSD code in a modal so the user can dial from their phone.
-        setShowDesktopModal(true);
-        return; // Wait for user to confirm they've paid via the modal.
+
+        // NotchPay failed — fall back to USSD approach
+        const errMsg = data?.error || 'Could not send payment to phone. Using USSD code instead.';
+        toast.warning(errMsg);
+        // Fall through to USSD fallback below
+      } catch (_err) {
+        toast.warning('Could not reach payment provider. Using USSD fallback.');
+      } finally {
+        setSubmitting(false);
+      }
+
+      // USSD fallback if NotchPay fails
+      if (!pushSent) {
+        if (isMobileDevice()) {
+          setUssdStarted(true);
+          try { window.location.href = `tel:${ussdCode.replace('#', '%23')}`; } catch (_e) { /* ignore */ }
+          toast.info('Phone dialer opened. Enter your MTN MoMo PIN.');
+        } else {
+          setShowDesktopModal(true);
+          return;
+        }
       }
     }
 
@@ -298,7 +337,11 @@ export function PaymentReview() {
   const receiverLabel = state.context === 'subscription' ? 'Platform Account' : 'Verified Seller';
   const itemImage = state.payload?.itemImage || state.payload?.imageUrl || '/placeholder.svg';
   const paymentMethodLabel = state.paymentMethod === 'mtn-momo' ? 'MTN Mobile Money' : 'Orange Money';
-  const confirmButtonText = submitting ? 'Processing...' : 'Confirm Payment';
+  const confirmButtonText = submitting
+    ? 'Sending to your phone...'
+    : pushSent
+      ? '✅ I\'ve entered my PIN — Finalise Order'
+      : 'Confirm Payment';
 
   return (
     <div className="min-h-screen bg-[#f5f7f6] py-7">
