@@ -3,8 +3,12 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/app/components/ui/button';
 import { Card, CardContent } from '@/app/components/ui/card';
-import { ArrowLeft, ArrowRight, Headset, Loader2, Lock, ShieldCheck, Smartphone, Zap } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Copy, CheckCircle2, Headset, Loader2, Lock, Phone, ShieldCheck, Smartphone, Zap } from 'lucide-react';
 import { toast } from 'sonner';
+
+const isMobileDevice = () =>
+  /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+  (navigator.maxTouchPoints > 0 && window.innerWidth <= 1024);
 
 import { API_URL } from '@/lib/api';
 
@@ -32,6 +36,8 @@ export function PaymentReview() {
 
   const [submitting, setSubmitting] = useState(false);
   const [ussdStarted, setUssdStarted] = useState(false);
+  const [showDesktopModal, setShowDesktopModal] = useState(false);
+  const [codeCopied, setCodeCopied] = useState(false);
   const [paymentMeta, setPaymentMeta] = useState({
     merchantName: 'nkinyampraisesncha',
     merchantNumber: '671562474',
@@ -135,6 +141,14 @@ export function PaymentReview() {
     return makeRequest(refreshedToken);
   };
 
+  const handleCopyCode = () => {
+    navigator.clipboard.writeText(ussdCode).then(() => {
+      setCodeCopied(true);
+      toast.success('USSD code copied!');
+      setTimeout(() => setCodeCopied(false), 3000);
+    });
+  };
+
   const handleConfirm = async () => {
     if (!state || !accessToken) {
       toast.error('Missing payment session');
@@ -142,14 +156,21 @@ export function PaymentReview() {
     }
 
     if (state.paymentMethod === 'mtn-momo' && !ussdStarted) {
-      setUssdStarted(true);
-      try {
-        const telTarget = `tel:${ussdCode.replace('#', '%23')}`;
-        window.location.href = telTarget;
-      } catch (_error) {
-        // Keep flow available even if dialer launch fails.
+      if (isMobileDevice()) {
+        // On mobile: open the phone dialer directly with the USSD code pre-filled.
+        // The user just presses Call and enters their PIN — no manual typing needed.
+        setUssdStarted(true);
+        try {
+          window.location.href = `tel:${ussdCode.replace('#', '%23')}`;
+        } catch (_error) {
+          // Dialer launch failed — fall through to process order anyway.
+        }
+        toast.info('Phone dialer opened. Enter your MTN MoMo PIN to complete payment.');
+      } else {
+        // On desktop: show the USSD code in a modal so the user can dial from their phone.
+        setShowDesktopModal(true);
+        return; // Wait for user to confirm they've paid via the modal.
       }
-      toast.info('Mobile Money opened. Finalizing your subscription on the platform...');
     }
 
     setSubmitting(true);
@@ -216,6 +237,60 @@ export function PaymentReview() {
     return null;
   }
 
+  // Desktop modal — shown when user is on a non-mobile device and clicks Confirm Payment.
+  const DesktopPayModal = showDesktopModal ? (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+      <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
+        <div className="mb-4 flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#e8f9f5]">
+            <Phone className="h-6 w-6 text-[#1FAF9A]" />
+          </div>
+          <div>
+            <h3 className="text-lg font-extrabold text-[#082d26]">Pay from your phone</h3>
+            <p className="text-xs text-[#5f7e75]">You are on a computer — dial from your mobile phone</p>
+          </div>
+        </div>
+
+        <p className="mb-3 text-sm text-[#4f6b62]">
+          Open your phone's dialer and call this USSD code to pay <strong className="text-[#082d26]">{formatMoney(totalAmount)} FCFA</strong>:
+        </p>
+
+        <div className="mb-4 flex items-center gap-2 rounded-2xl border-2 border-[#1FAF9A] bg-[#f0fdf8] px-4 py-3">
+          <code className="flex-1 text-lg font-black tracking-wider text-[#0d6e5c]">{ussdCode}</code>
+          <button
+            type="button"
+            onClick={handleCopyCode}
+            className="flex items-center gap-1.5 rounded-xl bg-[#1FAF9A] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#27b9a6]"
+          >
+            {codeCopied ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+            {codeCopied ? 'Copied!' : 'Copy'}
+          </button>
+        </div>
+
+        <ol className="mb-5 space-y-2 text-sm text-[#4f6b62]">
+          <li className="flex gap-2"><span className="font-bold text-[#1FAF9A]">1.</span> Open your phone → Dialer</li>
+          <li className="flex gap-2"><span className="font-bold text-[#1FAF9A]">2.</span> Dial the code above and press <strong>Call</strong></li>
+          <li className="flex gap-2"><span className="font-bold text-[#1FAF9A]">3.</span> Enter your <strong>MTN MoMo PIN</strong> when prompted</li>
+          <li className="flex gap-2"><span className="font-bold text-[#1FAF9A]">4.</span> Come back here and click <strong>"I've Paid"</strong></li>
+        </ol>
+
+        <div className="flex flex-col gap-2">
+          <Button
+            className="h-12 w-full rounded-xl bg-[#1FAF9A] text-base font-bold text-white hover:bg-[#27b9a6]"
+            onClick={() => { setUssdStarted(true); setShowDesktopModal(false); handleConfirm(); }}
+            disabled={submitting}
+          >
+            {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
+            I've Paid — Confirm Order
+          </Button>
+          <Button variant="ghost" className="w-full text-[#476f65]" onClick={() => setShowDesktopModal(false)}>
+            Cancel
+          </Button>
+        </div>
+      </div>
+    </div>
+  ) : null;
+
   const receiverName = state.context === 'subscription'
     ? paymentMeta.merchantName || 'UNITRADE'
     : state.payload?.sellerName || 'Seller';
@@ -223,14 +298,11 @@ export function PaymentReview() {
   const receiverLabel = state.context === 'subscription' ? 'Platform Account' : 'Verified Seller';
   const itemImage = state.payload?.itemImage || state.payload?.imageUrl || '/placeholder.svg';
   const paymentMethodLabel = state.paymentMethod === 'mtn-momo' ? 'MTN Mobile Money' : 'Orange Money';
-  const confirmButtonText = submitting
-    ? 'Processing...'
-    : state.paymentMethod === 'mtn-momo' && !ussdStarted
-      ? 'Open Mobile Money'
-      : 'Confirm & Pay';
+  const confirmButtonText = submitting ? 'Processing...' : 'Confirm Payment';
 
   return (
     <div className="min-h-screen bg-[#f5f7f6] py-7">
+      {DesktopPayModal}
       <div className="w-full px-4 lg:px-8 xl:px-12">
         <Button variant="ghost" onClick={() => navigate(-1)} className="mb-3 text-[#2e5950] hover:bg-[#e8f4ee]">
           <ArrowLeft className="mr-2 h-4 w-4" />
@@ -270,7 +342,11 @@ export function PaymentReview() {
                       <img
                         src={itemImage}
                         alt={state.title}
-                        className="h-16 w-16 rounded-xl object-cover"
+                        className="h-20 w-20 flex-shrink-0 rounded-xl object-cover shadow-sm"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src =
+                            `https://placehold.co/80x80/e8f4ee/0d6e5c?text=${encodeURIComponent(state.title.charAt(0).toUpperCase())}`;
+                        }}
                       />
                       <div className="min-w-0 flex-1">
                         <h3 className="line-clamp-2 text-base font-extrabold leading-tight text-[#0f3a31]">{state.title}</h3>
