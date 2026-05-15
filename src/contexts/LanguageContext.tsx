@@ -1,4 +1,5 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { translateText } from '@/lib/translate';
 
 export type AppLanguage = 'en' | 'fr';
 
@@ -481,13 +482,32 @@ const interpolate = (template: string, values?: TranslationValues) => {
   );
 };
 
+const AUTO_TR_CACHE_KEY = 'unitrade-auto-tr-v2';
+
+const loadAutoCache = (): Record<string, string> => {
+  try {
+    const raw = typeof window !== 'undefined' ? window.localStorage.getItem(AUTO_TR_CACHE_KEY) : null;
+    return raw ? JSON.parse(raw) : {};
+  } catch { return {}; }
+};
+
+const saveAutoCache = (cache: Record<string, string>) => {
+  try { window.localStorage.setItem(AUTO_TR_CACHE_KEY, JSON.stringify(cache)); } catch {}
+};
+
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguage] = useState<AppLanguage>(() => resolveInitialLanguage());
+
+  // Auto-translated strings cached from MyMemory API
+  const [autoTr, setAutoTr] = useState<Record<string, string>>(loadAutoCache);
+  const pending = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
     window.localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
     document.documentElement.lang = language;
+    // Clear pending queue when language changes
+    pending.current.clear();
   }, [language]);
 
   const toggleLanguage = useCallback(() => {
@@ -496,11 +516,42 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   const t = useCallback(
     (key: string, fallback?: string, values?: TranslationValues) => {
-      const translated = language === 'fr' ? FR_TRANSLATIONS[key] : undefined;
-      const source = translated || fallback || key;
-      return interpolate(source, values);
+      // English — always return fallback immediately
+      if (language !== 'fr') {
+        return interpolate(fallback || key, values);
+      }
+
+      // French — check hardcoded translations first (instant)
+      const hardcoded = FR_TRANSLATIONS[key];
+      if (hardcoded) return interpolate(hardcoded, values);
+
+      const text = (fallback || key).trim();
+
+      // Skip very short strings, numbers, URLs, punctuation-only
+      const isTranslatable = text.length > 2 && /[a-zA-Z]/.test(text) && !text.startsWith('http');
+
+      // Check auto-translation cache (instant if previously translated)
+      const cached = autoTr[text];
+      if (cached) return interpolate(cached, values);
+
+      // Queue async translation — show English while it loads
+      if (isTranslatable && !pending.current.has(text)) {
+        pending.current.add(text);
+        translateText(text, 'en', 'fr').then((translated) => {
+          pending.current.delete(text);
+          if (translated && translated !== text) {
+            setAutoTr((prev) => {
+              const next = { ...prev, [text]: translated };
+              saveAutoCache(next);
+              return next;
+            });
+          }
+        });
+      }
+
+      return interpolate(text, values); // English while translating
     },
-    [language],
+    [language, autoTr],
   );
 
   const value = useMemo(
