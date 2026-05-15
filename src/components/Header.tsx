@@ -78,19 +78,21 @@ export function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-[#DDE3E2] bg-[#FFFFFF] text-[#111111] shadow-sm">
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[3px] bg-gradient-to-r from-transparent via-[#05B43D] to-transparent" />
-      <div className="container mx-auto px-3 py-1.5 sm:px-4 sm:py-3">
-        <div className="flex items-center justify-between gap-2 lg:gap-4">
-          <Link to="/" className="group flex items-center gap-2.5 transition-transform hover:scale-[1.01]">
-            <span className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border-2 border-[#05B43D] bg-[#e6f9ee] shadow-sm sm:h-12 sm:w-12">
-              <img src={appLogo} alt="UNITRADE logo" className="relative h-8 w-8 rounded-full object-cover sm:h-10 sm:w-10" />
+      <div className="w-full px-3 py-1.5 sm:px-4 sm:py-2">
+        <div className="flex items-center gap-2 lg:gap-4">
+          {/* Logo flush to the left edge */}
+          <Link to="/" className="flex shrink-0 items-center gap-2 transition-transform hover:scale-[1.01]">
+            <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border-2 border-[#05B43D] bg-[#e6f9ee] shadow-sm sm:h-11 sm:w-11">
+              <img src={appLogo} alt="UNITRADE" className="h-8 w-8 rounded-full object-cover sm:h-10 sm:w-10" />
             </span>
-            <div className="hidden md:block">
-              <h1 className="text-[1.5rem] font-extrabold leading-none tracking-tight text-[#05B43D]">UNITRADE</h1>
-              <p className="text-xs font-medium text-[#8A8A8A]">{t('brand.universities', 'Cameroon Universities')}</p>
+            <div className="hidden sm:block">
+              <p className="text-[1.35rem] font-extrabold leading-none tracking-tight text-[#05B43D]">UNITRADE</p>
+              <p className="text-[11px] font-medium text-[#8A8A8A]">{t('brand.universities', 'Cameroon Universities')}</p>
             </div>
           </Link>
 
-          <nav className="flex items-center justify-end gap-1 sm:gap-1.5 lg:gap-2">
+          {/* Nav items pushed to the right */}
+          <nav className="ml-auto flex items-center gap-1 sm:gap-1.5 lg:gap-2">
             <Button
               variant="ghost"
               size="sm"
