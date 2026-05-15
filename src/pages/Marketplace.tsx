@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { normalizeImageUrl } from '@/lib/images';
 import { ResilientImage } from '@/components/ResilientImage';
+import { useAutoTranslate } from '@/hooks/useAutoTranslate';
 
 import { API_URL } from '@/lib/api';
 
@@ -67,6 +68,91 @@ const PRICE_RANGE_OPTIONS = [
   { id: '500-1000', label: '500,000 - 1,000,000 FCFA', min: 500000, max: 1000000 },
   { id: '1000', label: '1,000,000+ FCFA', min: 1000000, max: Infinity },
 ];
+
+// ── ProductCard ─────────────────────────────────────────────────────────────
+// Renders a single marketplace card. Auto-translates title and description
+// into French when the app language is set to FR (via Google MyMemory API).
+function ProductCard({
+  item, isSaved, onSave, onNavigate, t, formatCurrency, resolveLocationLabel,
+}: {
+  item: any;
+  isSaved: boolean;
+  onSave: (id: string) => void;
+  onNavigate: () => void;
+  t: (key: string, fallback?: string) => string;
+  formatCurrency: (n: number) => string;
+  resolveLocationLabel: (item: any) => string;
+}) {
+  const { translated, isTranslating } = useAutoTranslate([
+    item.title || '',
+    item.description || '',
+  ]);
+  const [translatedTitle, translatedDesc] = translated;
+  const primaryImage = normalizeImageUrl(item.images?.[0]);
+  const seller = item.seller || null;
+
+  return (
+    <Card
+      className="group flex h-full cursor-pointer flex-col overflow-hidden rounded-3xl border border-[#efe7e1] bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+      onClick={onNavigate}
+    >
+      <div className="relative aspect-[4/3] overflow-hidden bg-[#f0ebe8]">
+        {primaryImage ? (
+          <ResilientImage
+            src={primaryImage}
+            alt={item.title}
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+            fallback={<div className="flex h-full items-center justify-center text-xs text-[#8a8a8a]">No image available</div>}
+          />
+        ) : (
+          <div className="flex h-full items-center justify-center text-xs text-[#8a8a8a]">No image available</div>
+        )}
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onSave(item.id); }}
+          className="absolute right-3 top-3 rounded-full bg-white/90 p-2 shadow-sm transition-colors hover:bg-[#ffe7ec]"
+          aria-label={isSaved ? 'Remove from favorites' : 'Save item'}
+        >
+          <Heart className={`h-4 w-4 ${isSaved ? 'fill-[#e35166] text-[#e35166]' : 'text-[#8a8a8a]'}`} />
+        </button>
+        {item.seller?.university && (
+          <Badge className="absolute bottom-3 left-3 rounded-full border-0 bg-black px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.15em] text-white">
+            {t('marketplace.verifiedStudent', 'Verified Student')}
+          </Badge>
+        )}
+      </div>
+
+      <CardContent className="flex-1 space-y-3 p-4">
+        <h3 className={`line-clamp-1 text-base font-bold text-[#111111] ${isTranslating ? 'opacity-60' : ''}`}>
+          {translatedTitle || item.title}
+        </h3>
+        <p className={`line-clamp-2 text-sm font-semibold text-[#4A4A4A] ${isTranslating ? 'opacity-60' : ''}`}>
+          {translatedDesc || item.description || t('marketplace.noDescription', 'No description provided.')}
+        </p>
+        <p className="text-xl font-extrabold text-[#111111]">{formatCurrency(item.price)}</p>
+        <div className="flex items-center gap-2 text-sm font-semibold text-[#8A8A8A]">
+          <span className="inline-flex items-center gap-1">
+            <MapPin className="h-3.5 w-3.5" />
+            {resolveLocationLabel(item)}
+          </span>
+        </div>
+      </CardContent>
+
+      <CardFooter className="flex items-center justify-between p-4 pt-0">
+        <span className="truncate text-sm font-semibold text-[#4A4A4A]">
+          {seller?.name || t('marketplace.unknownSeller', 'Unknown Seller')}
+        </span>
+        <button
+          type="button"
+          className="text-sm font-bold text-[#05B43D] hover:text-[#018F2D]"
+          onClick={(e) => { e.stopPropagation(); onNavigate(); }}
+        >
+          {t('marketplace.viewDetails', 'View Details')}
+        </button>
+      </CardFooter>
+    </Card>
+  );
+}
 
 export function Marketplace() {
   const navigate = useNavigate();
@@ -624,80 +710,18 @@ export function Marketplace() {
 
         {filteredItems.length > 0 ? (
           <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {filteredItems.map((item) => {
-              const seller = item.seller || null;
-              const isSaved = savedItems.has(item.id);
-              const primaryImage = normalizeImageUrl(item.images?.[0]);
-
-              return (
-                <Card
-                  key={item.id}
-                  className="group flex h-full cursor-pointer flex-col overflow-hidden rounded-3xl border border-[#efe7e1] bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
-                  onClick={() => navigate(`/item/${item.id}`)}
-                >
-                  <div className="relative aspect-[4/3] overflow-hidden bg-[#f0ebe8]">
-                    {primaryImage ? (
-                      <ResilientImage
-                        src={primaryImage}
-                        alt={item.title}
-                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-                        fallback={
-                          <div className="flex h-full items-center justify-center text-xs text-[#8a8a8a]">
-                            No image available
-                          </div>
-                        }
-                      />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-xs text-[#8a8a8a]">
-                        No image available
-                      </div>
-                    )}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleSaveItem(item.id);
-                      }}
-                      className="absolute right-3 top-3 rounded-full bg-white/90 p-2 shadow-sm transition-colors hover:bg-[#ffe7ec]"
-                      aria-label={isSaved ? 'Remove from favorites' : 'Save item'}
-                    >
-                      <Heart className={`h-4 w-4 ${isSaved ? 'fill-[#e35166] text-[#e35166]' : 'text-[#8a8a8a]'}`} />
-                    </button>
-                    {item.seller?.university && (
-                      <Badge className="absolute bottom-3 left-3 rounded-full border-0 bg-black px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.15em] text-white opacity-100">
-                        {t('marketplace.verifiedStudent', 'Verified Student')}
-                      </Badge>
-                    )}
-                  </div>
-
-                  <CardContent className="flex-1 space-y-3 p-4">
-                    <h3 className="line-clamp-1 text-base font-bold text-[#111111]">{item.title}</h3>
-                    <p className="line-clamp-2 text-sm font-semibold text-[#4A4A4A]">
-                      {item.description || t('marketplace.noDescription', 'No description provided.')}
-                    </p>
-                    <p className="text-xl font-extrabold text-[#111111]">{formatCurrency(item.price)}</p>
-                    <div className="flex items-center gap-2 text-sm font-semibold text-[#8A8A8A]">
-                      <span className="inline-flex items-center gap-1">
-                        <MapPin className="h-3.5 w-3.5" />
-                        {resolveLocationLabel(item)}
-                      </span>
-                    </div>
-                  </CardContent>
-
-                  <CardFooter className="flex items-center justify-between p-4 pt-0">
-                    <span className="truncate text-sm font-semibold text-[#4A4A4A]">{seller?.name || t('marketplace.unknownSeller', 'Unknown Seller')}</span>
-                    <button
-                      className="text-sm font-bold text-[#05B43D] hover:text-[#018F2D]"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/item/${item.id}`);
-                      }}
-                    >
-                      {t('marketplace.viewDetails', 'View Details')}
-                    </button>
-                  </CardFooter>
-                </Card>
-              );
-            })}
+            {filteredItems.map((item) => (
+              <ProductCard
+                key={item.id}
+                item={item}
+                isSaved={savedItems.has(item.id)}
+                onSave={handleSaveItem}
+                onNavigate={() => navigate(`/item/${item.id}`)}
+                t={t}
+                formatCurrency={formatCurrency}
+                resolveLocationLabel={resolveLocationLabel}
+              />
+            ))}
           </div>
         ) : (
           <Card className="mt-6 rounded-3xl border border-[#efe7e1] bg-white shadow-sm">
