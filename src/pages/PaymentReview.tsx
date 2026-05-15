@@ -349,7 +349,7 @@ export function PaymentReview() {
                 <div className="rounded-2xl border border-[#DDE3E2] bg-[#F3F5F4] p-4">
                   <div className="grid items-center gap-3 sm:grid-cols-[1fr_auto_1fr]">
                     <div className="rounded-2xl border border-[#dbe8e1] bg-white p-3">
-                      <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A8A8A]">Sender</p>
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A8A8A]">{t("payment.sender", "Sender")}</p>
                       <p className="mt-1 text-sm font-extrabold text-[#111111]">{state.fromName}</p>
                       <p className="text-xs text-[#8A8A8A]">{senderLabel}</p>
                     </div>
@@ -359,7 +359,7 @@ export function PaymentReview() {
                     </div>
 
                     <div className="rounded-2xl border border-[#dbe8e1] bg-white p-3">
-                      <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A8A8A]">Receiver</p>
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A8A8A]">{t("payment.receiver", "Receiver")}</p>
                       <p className="mt-1 text-sm font-extrabold text-[#111111]">{receiverName}</p>
                       <p className="text-xs text-[#8A8A8A]">{receiverLabel}</p>
                     </div>
@@ -414,11 +414,11 @@ export function PaymentReview() {
 
           <Card className="h-fit rounded-3xl border border-[#DDE3E2] bg-white shadow-sm">
             <CardContent className="space-y-4 p-5 sm:p-6">
-              <h2 className="text-2xl font-bold text-[#111111]">Payment Summary</h2>
+              <h2 className="text-2xl font-bold text-[#111111]">{t("payment.summary", "Payment Summary")}</h2>
 
               <div className="space-y-2.5 text-sm">
                 <div className="flex items-center justify-between text-[#8A8A8A]">
-                  <span>Item Price</span>
+                  <span>{t("payment.itemPrice", "Item Price")}</span>
                   <span>{formatMoney(state.amount)} FCFA</span>
                 </div>
                 <div className="flex items-center justify-between text-[#8A8A8A]">
@@ -426,7 +426,7 @@ export function PaymentReview() {
                   <span>{formatMoney(feeAmount)} FCFA</span>
                 </div>
                 <div className="flex items-center justify-between text-[#8A8A8A]">
-                  <span>Escrow Protection</span>
+                  <span>{t("payment.escrowProtection", "Escrow Protection")}</span>
                   <span className="font-semibold text-[#05B43D]">FREE</span>
                 </div>
               </div>
@@ -434,7 +434,7 @@ export function PaymentReview() {
               <div className="border-t border-[#DDE3E2] pt-3">
                 <div className="flex items-end justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold text-[#4A4A4A]">Total Payable</p>
+                    <p className="text-sm font-semibold text-[#4A4A4A]">{t("payment.totalPayable", "Total Payable")}</p>
                     <p className="text-[10px] font-semibold uppercase tracking-wide text-[#8A8A8A]">Incl. VAT where applicable</p>
                   </div>
                   <p className="text-[2rem] font-black leading-none text-[#018F2D]">{formatMoney(totalAmount)} FCFA</p>

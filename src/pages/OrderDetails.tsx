@@ -241,7 +241,7 @@ export function OrderDetails() {
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-4xl font-extrabold tracking-tight text-[#111111]">Order <span className="text-[#05B43D]">Details</span></h1>
-            <p className="mt-1 text-sm text-[#8A8A8A]">Track escrow status, delivery proof, and confirmation steps.</p>
+            <p className="mt-1 text-sm text-[#8A8A8A]">{t("order.trackDesc", "Track escrow status, delivery proof, and confirmation steps.")}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Badge className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${orderStatusClass}`}>
@@ -328,7 +328,7 @@ export function OrderDetails() {
 
                 {order.pickupLocation ? (
                   <div className="space-y-2">
-                    <Label className="text-sm text-[#355f55]">Pickup Location Map</Label>
+                    <Label className="text-sm text-[#355f55]">{t("order.pickupMap", "Pickup Location Map")}</Label>
                     <MeetupMap
                       compact
                       locationName={order.pickupLocation}
@@ -416,7 +416,7 @@ export function OrderDetails() {
                           checked={receivedConfirmed}
                           onCheckedChange={(checked) => setReceivedConfirmed(Boolean(checked))}
                         />
-                        <Label htmlFor="received-check">I have received this product.</Label>
+                        <Label htmlFor="received-check">{t("order.receivedProduct", "I have received this product.")}</Label>
                       </div>
                       <div className="flex items-center gap-2">
                         <Checkbox
@@ -424,7 +424,7 @@ export function OrderDetails() {
                           checked={satisfactionConfirmed}
                           onCheckedChange={(checked) => setSatisfactionConfirmed(Boolean(checked))}
                         />
-                        <Label htmlFor="satisfied-check">I am satisfied with this product.</Label>
+                        <Label htmlFor="satisfied-check">{t("order.satisfied", "I am satisfied with this product.")}</Label>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="issue-reason">Issue / Refund reason (if not satisfied)</Label>

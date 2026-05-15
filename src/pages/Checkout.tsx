@@ -384,7 +384,7 @@ export function Checkout() {
         <div className="grid gap-6 lg:grid-cols-[0.95fr_1.35fr]">
           <Card className="h-fit rounded-2xl border border-[#d3e2db] bg-white shadow-sm">
             <CardHeader className="pb-2">
-              <CardTitle className="text-xl font-bold text-[#123c33]">Order Summary</CardTitle>
+              <CardTitle className="text-xl font-bold text-[#123c33]">{t("checkout.orderSummary", "Order Summary")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-5">
               <div className="rounded-xl border border-[#deebe5] bg-[#F3F5F4] p-3">
@@ -412,7 +412,7 @@ export function Checkout() {
                   <span>{subtotal.toLocaleString()} XAF</span>
                 </div>
                 <div className="flex items-center justify-between text-[#8A8A8A]">
-                  <span>Platform Fee</span>
+                  <span>{t("checkout.platformFee", "Platform Fee")}</span>
                   <span>{platformFee.toLocaleString()} XAF</span>
                 </div>
 
@@ -460,8 +460,8 @@ export function Checkout() {
                           MTN
                         </span>
                         <span>
-                          <span className="block text-sm font-semibold text-[#0f3b32]">MTN Mobile Money</span>
-                          <span className="block text-xs text-[#6f8f85]">Instant processing</span>
+                          <span className="block text-sm font-semibold text-[#0f3b32]">{t("checkout.mtnMomo", "MTN Mobile Money")}</span>
+                          <span className="block text-xs text-[#6f8f85]">{t("checkout.instantProcessing", "Instant processing")}</span>
                         </span>
                       </div>
                       <span className="h-4 w-4 rounded-full border border-[#8db2a4] peer-data-[state=checked]:border-[5px] peer-data-[state=checked]:border-[#018F2D]" />
@@ -479,8 +479,8 @@ export function Checkout() {
                           ORG
                         </span>
                         <span>
-                          <span className="block text-sm font-semibold text-[#0f3b32]">Orange Money</span>
-                          <span className="block text-xs text-[#6f8f85]">Instant processing</span>
+                          <span className="block text-sm font-semibold text-[#0f3b32]">{t("checkout.orangeMoney", "Orange Money")}</span>
+                          <span className="block text-xs text-[#6f8f85]">{t("checkout.instantProcessing", "Instant processing")}</span>
                         </span>
                       </div>
                       <span className="h-4 w-4 rounded-full border border-[#8db2a4] peer-data-[state=checked]:border-[5px] peer-data-[state=checked]:border-[#018F2D]" />
@@ -516,7 +516,7 @@ export function Checkout() {
               <CardContent className="space-y-5">
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="pickup-date" className="text-sm text-[#274e45]">Preferred Date</Label>
+                    <Label htmlFor="pickup-date" className="text-sm text-[#274e45]">{t("checkout.preferredDate", "Preferred Date")}</Label>
                     <Input
                       id="pickup-date"
                       type="date"
@@ -526,7 +526,7 @@ export function Checkout() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="pickup-time" className="text-sm text-[#274e45]">Preferred Time</Label>
+                    <Label htmlFor="pickup-time" className="text-sm text-[#274e45]">{t("checkout.preferredTime", "Preferred Time")}</Label>
                     <Input
                       id="pickup-time"
                       type="time"

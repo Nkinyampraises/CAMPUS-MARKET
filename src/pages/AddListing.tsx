@@ -233,8 +233,8 @@ export function AddListing() {
           <div className="space-y-6">
             <Card className="rounded-2xl border border-[#DDE3E2] bg-white shadow-sm">
               <CardHeader>
-                <CardTitle className="text-2xl font-semibold text-[#0b1f1a]">Basic Details</CardTitle>
-                <CardDescription>Tell students what you are listing and why it is worth buying.</CardDescription>
+                <CardTitle className="text-2xl font-semibold text-[#0b1f1a]">{t("listing.basicDetails", "Basic Details")}</CardTitle>
+                <CardDescription>{t("listing.basicHint", "Tell students what you are listing and why it is worth buying.")}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
@@ -267,8 +267,8 @@ export function AddListing() {
 
             <Card className="rounded-2xl border border-[#DDE3E2] bg-white shadow-sm">
               <CardHeader>
-                <CardTitle className="text-2xl font-semibold text-[#0b1f1a]">Listing Setup</CardTitle>
-                <CardDescription>Set category, location, condition, and the best pricing model.</CardDescription>
+                <CardTitle className="text-2xl font-semibold text-[#0b1f1a]">{t("listing.setup", "Listing Setup")}</CardTitle>
+                <CardDescription>{t("listing.setupHint", "Set category, location, condition, and the best pricing model.")}</CardDescription>
               </CardHeader>
               <CardContent className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
@@ -349,11 +349,11 @@ export function AddListing() {
                   >
                     <Label htmlFor="sell" className="flex cursor-pointer items-center gap-3 rounded-xl border border-[#cfe0d8] bg-[#f7fcfa] p-3">
                       <RadioGroupItem value="sell" id="sell" />
-                      <span className="font-medium text-[#0f2c24]">For Sale</span>
+                      <span className="font-medium text-[#0f2c24]">{t("listing.forSale", "For Sale")}</span>
                     </Label>
                     <Label htmlFor="rent" className="flex cursor-pointer items-center gap-3 rounded-xl border border-[#cfe0d8] bg-[#f7fcfa] p-3">
                       <RadioGroupItem value="rent" id="rent" />
-                      <span className="font-medium text-[#0f2c24]">For Rent</span>
+                      <span className="font-medium text-[#0f2c24]">{t("listing.forRent", "For Rent")}</span>
                     </Label>
                   </RadioGroup>
                 </div>
@@ -378,8 +378,8 @@ export function AddListing() {
 
             <Card className="rounded-2xl border border-[#DDE3E2] bg-white shadow-sm">
               <CardHeader>
-                <CardTitle className="text-2xl font-semibold text-[#0b1f1a]">Photos</CardTitle>
-                <CardDescription>Upload up to five clear images from different angles.</CardDescription>
+                <CardTitle className="text-2xl font-semibold text-[#0b1f1a]">{t("listing.photos", "Photos")}</CardTitle>
+                <CardDescription>{t("listing.photoHint", "Upload up to five clear images from different angles.")}</CardDescription>
               </CardHeader>
               <CardContent>
                 <ImageUploader images={formData.images} onChange={handleImagesChange} maxImages={5} type="listing" />
@@ -412,7 +412,7 @@ export function AddListing() {
           <aside className="space-y-6 xl:sticky xl:top-24 xl:self-start">
             <Card className="rounded-2xl border border-[#DDE3E2] bg-white shadow-sm">
               <CardHeader>
-                <CardTitle className="text-lg font-semibold text-[#0b1f1a]">Completion</CardTitle>
+                <CardTitle className="text-lg font-semibold text-[#0b1f1a]">{t("listing.completion", "Completion")}</CardTitle>
                 <CardDescription>{completedCount} of {completionItems.length} steps complete</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -436,8 +436,8 @@ export function AddListing() {
 
             <Card className="rounded-2xl border border-[#DDE3E2] bg-white shadow-sm">
               <CardHeader>
-                <CardTitle className="text-lg font-semibold text-[#0b1f1a]">Listing Preview</CardTitle>
-                <CardDescription>Quick summary before publishing.</CardDescription>
+                <CardTitle className="text-lg font-semibold text-[#0b1f1a]">{t("listing.preview", "Listing Preview")}</CardTitle>
+                <CardDescription>{t("listing.quickSummary", "Quick summary before publishing.")}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-2 text-sm text-[#4A4A4A]">
                 <p><span className="font-medium text-[#0f2c24]">Title:</span> {formData.title || 'Not set'}</p>

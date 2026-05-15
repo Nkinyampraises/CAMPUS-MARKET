@@ -254,7 +254,7 @@ export function SellerDashboard() {
       <div className="bg-background min-h-screen py-8">
         <div className="container mx-auto px-4">
           <Card>
-            <CardContent className="p-8 text-center text-muted-foreground">Loading dashboard...</CardContent>
+            <CardContent className="p-8 text-center text-muted-foreground">{t("common.loading", "Loading...")}</CardContent>
           </Card>
         </div>
       </div>
@@ -284,7 +284,7 @@ export function SellerDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Listings</CardTitle>
+              <CardTitle className="text-sm font-medium">{t("seller.totalListings", "Listings")}</CardTitle>
               <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -295,7 +295,7 @@ export function SellerDashboard() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Pending Escrow</CardTitle>
+              <CardTitle className="text-sm font-medium">{t("seller.pendingOrders", "Pending Escrow")}</CardTitle>
               <ShoppingBag className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -306,7 +306,7 @@ export function SellerDashboard() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Released Orders</CardTitle>
+              <CardTitle className="text-sm font-medium">{t("order.confirmed", "Released Orders")}</CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -317,7 +317,7 @@ export function SellerDashboard() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Pending Balance</CardTitle>
+              <CardTitle className="text-sm font-medium">{t("payment.summary", "Pending Balance")}</CardTitle>
               <Wallet className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -328,7 +328,7 @@ export function SellerDashboard() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Available Balance</CardTitle>
+              <CardTitle className="text-sm font-medium">{t("seller.totalEarnings", "Available Balance")}</CardTitle>
               <Heart className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -456,11 +456,11 @@ export function SellerDashboard() {
           <div className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="border rounded-lg p-3">
-                <p className="text-sm text-muted-foreground">Pending Balance</p>
+                <p className="text-sm text-muted-foreground">{t("payment.summary", "Pending Balance")}</p>
                 <p className="text-xl font-semibold text-orange-600">{formatMoney(wallet.pendingBalance || 0)}</p>
               </div>
               <div className="border rounded-lg p-3">
-                <p className="text-sm text-muted-foreground">Available Balance</p>
+                <p className="text-sm text-muted-foreground">{t("seller.totalEarnings", "Available Balance")}</p>
                 <p className="text-xl font-semibold text-green-600">{formatMoney(wallet.availableBalance || 0)}</p>
               </div>
             </div>

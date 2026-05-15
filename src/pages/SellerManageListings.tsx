@@ -213,7 +213,7 @@ export function SellerManageListings() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Manage Listings</CardTitle>
+          <CardTitle>{t("nav.manageListings", "Manage Listings")}</CardTitle>
           <CardDescription>Table view of all seller listings with filters and actions.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -266,7 +266,7 @@ export function SellerManageListings() {
           </div>
 
           {loading ? (
-            <p className="text-sm text-muted-foreground">Loading listings...</p>
+            <p className="text-sm text-muted-foreground">{t("common.loading", "Loading listings...")}</p>
           ) : filteredListings.length === 0 ? (
             <p className="text-sm text-muted-foreground">No listings found for current filters.</p>
           ) : (
@@ -299,8 +299,8 @@ export function SellerManageListings() {
                       <td className="p-3">
                         <div className="flex flex-wrap gap-2">
                           <Button size="sm" variant="outline" onClick={() => navigate(`/item/${listing.id}`)}>View</Button>
-                          <Button size="sm" variant="outline" onClick={() => navigate(`/seller/edit-listing/${listing.id}`)}>Edit</Button>
-                          <Button size="sm" variant="outline" onClick={() => deleteListing(listing.id)}>Delete</Button>
+                          <Button size="sm" variant="outline" onClick={() => navigate(`/seller/edit-listing/${listing.id}`)}>{t("common.edit", "Edit")}</Button>
+                          <Button size="sm" variant="outline" onClick={() => deleteListing(listing.id)}>{t("common.delete", "Delete")}</Button>
                           <Button size="sm" variant="outline" onClick={() => updateStatus(listing.id, 'sold')}>Mark Sold</Button>
                           <Button size="sm" variant="outline" onClick={() => updateStatus(listing.id, 'rented')}>Mark Rented</Button>
                         </div>

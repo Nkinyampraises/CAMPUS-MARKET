@@ -128,7 +128,7 @@ export function BuyerDashboard() {
       <div className="bg-background min-h-screen py-8">
         <div className="container mx-auto px-4">
           <Card>
-            <CardContent className="p-8 text-center text-muted-foreground">Loading your dashboard...</CardContent>
+            <CardContent className="p-8 text-center text-muted-foreground">{t("common.loading", "Loading...")}</CardContent>
           </Card>
         </div>
       </div>
@@ -148,7 +148,7 @@ export function BuyerDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
+              <CardTitle className="text-sm font-medium">{t("buyer.totalOrders", "Total Orders")}</CardTitle>
               <ShoppingBag className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -159,7 +159,7 @@ export function BuyerDashboard() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Pending Delivery</CardTitle>
+              <CardTitle className="text-sm font-medium">{t("buyer.pendingDelivery", "Pending Delivery")}</CardTitle>
               <PackageCheck className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -170,7 +170,7 @@ export function BuyerDashboard() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Total Spent</CardTitle>
+              <CardTitle className="text-sm font-medium">{t("buyer.totalSpent", "Total Spent")}</CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -181,7 +181,7 @@ export function BuyerDashboard() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Saved Items</CardTitle>
+              <CardTitle className="text-sm font-medium">{t("buyer.savedItems", "Saved Items")}</CardTitle>
               <Heart className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
