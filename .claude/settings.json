@@ -12,7 +12,8 @@
       "Bash(python tmp/ai/gen_dataset4.py)",
       "Bash(python tmp/ai/merge_datasets.py)",
       "Bash(git add *)",
-      "Bash(python tmp/apply_T_component.py)"
+      "Bash(python tmp/apply_T_component.py)",
+      "Bash(python tmp/pretranslate.py)"
     ]
   }
 }
