@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/app/components/ui/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 type BuyerSectionLayoutProps = {
   children: ReactNode;
@@ -36,6 +37,7 @@ export function BuyerSectionLayout({ children }: BuyerSectionLayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { logout } = useAuth();
+  const { t } = useLanguage();
   const currentPath = location.pathname;
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -46,77 +48,77 @@ export function BuyerSectionLayout({ children }: BuyerSectionLayoutProps) {
   const buyerItems: SidebarItem[] = [
     {
       id: 'dashboard',
-      label: 'My Dashboard',
+      label: t('nav.dashboard', 'My Dashboard'),
       icon: LayoutDashboard,
       onClick: () => navigate('/buyer/dashboard'),
       active: currentPath === '/buyer/dashboard' || currentPath === '/dashboard',
     },
     {
       id: 'profile',
-      label: 'My Profile',
+      label: t('nav.profile', 'My Profile'),
       icon: UserRound,
       onClick: () => navigate('/buyer/profile'),
       active: currentPath === '/buyer/profile' || currentPath.startsWith('/profile/'),
     },
     {
       id: 'orders',
-      label: 'My Orders',
+      label: t('nav.orders', 'My Orders'),
       icon: ReceiptText,
       onClick: () => navigate('/buyer/orders'),
       active: currentPath.startsWith('/buyer/orders'),
     },
     {
       id: 'rentals',
-      label: 'My Rentals',
+      label: t('nav.rentals', 'My Rentals'),
       icon: Package,
       onClick: () => navigate('/buyer/rentals'),
       active: currentPath.startsWith('/buyer/rentals') || currentPath.startsWith('/buyer/rental-details'),
     },
     {
       id: 'payments',
-      label: 'Payment History',
+      label: t('nav.paymentHistory', 'Payment History'),
       icon: CreditCard,
       onClick: () => navigate('/buyer/payments'),
       active: currentPath.startsWith('/buyer/payments') || currentPath.startsWith('/buyer/receipt'),
     },
     {
       id: 'notifications',
-      label: 'Notifications',
+      label: t('nav.notifications', 'Notifications'),
       icon: Bell,
       onClick: () => navigate('/buyer/notifications'),
       active: currentPath.startsWith('/buyer/notifications'),
     },
     {
       id: 'recently-viewed',
-      label: 'Recently Viewed',
+      label: t('nav.recentlyViewed', 'Recently Viewed'),
       icon: Eye,
       onClick: () => navigate('/buyer/recently-viewed'),
       active: currentPath.startsWith('/buyer/recently-viewed'),
     },
     {
       id: 'disputes',
-      label: 'Dispute Center',
+      label: t('nav.disputes', 'Dispute Center'),
       icon: ShieldAlert,
       onClick: () => navigate('/buyer/disputes'),
       active: currentPath.startsWith('/buyer/disputes'),
     },
     {
       id: 'report',
-      label: 'Report Problem',
+      label: t('nav.reportProblem', 'Report Problem'),
       icon: Flag,
       onClick: () => navigate('/buyer/report'),
       active: currentPath.startsWith('/buyer/report'),
     },
     {
       id: 'settings',
-      label: 'Settings',
+      label: t('nav.settings', 'Settings'),
       icon: Settings,
       onClick: () => navigate('/buyer/settings'),
       active: currentPath.startsWith('/buyer/settings'),
     },
     {
       id: 'help',
-      label: 'Help & Support',
+      label: t('nav.help', 'Help & Support'),
       icon: CircleHelp,
       onClick: () => navigate('/buyer/help'),
       active: currentPath.startsWith('/buyer/help'),
@@ -126,7 +128,7 @@ export function BuyerSectionLayout({ children }: BuyerSectionLayoutProps) {
   const accountItems: SidebarItem[] = [
     {
       id: 'logout',
-      label: 'Logout',
+      label: t('nav.logout', 'Logout'),
       icon: LogOut,
       onClick: () => {
         logout();

@@ -141,7 +141,7 @@ export function BuyerDashboard() {
         <div className="mb-8 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-4xl font-extrabold text-[#111111]"><span className="text-[#05B43D]">Buyer</span> Dashboard</h1>
-            <p className="text-muted-foreground">Escrow-protected purchases for {currentUser.name}</p>
+            <p className="text-muted-foreground">Achats protégés par dépôt fiduciaire pour {currentUser.name}</p>
           </div>
         </div>
 
@@ -153,7 +153,7 @@ export function BuyerDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{orders.length}</div>
-              <p className="text-xs text-muted-foreground">Escrow transactions</p>
+              <p className="text-xs text-muted-foreground">Transactions en dépôt</p>
             </CardContent>
           </Card>
 
@@ -164,7 +164,7 @@ export function BuyerDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.pending}</div>
-              <p className="text-xs text-muted-foreground">Awaiting seller proof/confirmation</p>
+              <p className="text-xs text-muted-foreground">En attente de confirmation vendeur</p>
             </CardContent>
           </Card>
 
@@ -175,7 +175,7 @@ export function BuyerDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-blue-600">{formatMoney(stats.totalSpent)}</div>
-              <p className="text-xs text-muted-foreground">Across all order states</p>
+              <p className="text-xs text-muted-foreground">Sur toutes les commandes</p>
             </CardContent>
           </Card>
 
@@ -186,14 +186,14 @@ export function BuyerDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-red-600">{favoriteItems.length}</div>
-              <p className="text-xs text-muted-foreground">Wishlist items</p>
+              <p className="text-xs text-muted-foreground">Articles en liste de souhaits</p>
             </CardContent>
           </Card>
         </div>
 
         <Tabs defaultValue="orders" className="space-y-4">
             <TabsList>
-              <TabsTrigger value="orders">My Orders</TabsTrigger>
+              <TabsTrigger value="orders">Mes commandes</TabsTrigger>
               <TabsTrigger value="favorites">Saved Items ({safeFavoriteItems.length})</TabsTrigger>
               <TabsTrigger value="messages">Messages</TabsTrigger>
             </TabsList>
@@ -202,8 +202,8 @@ export function BuyerDashboard() {
             {orders.length > 0 ? (
               <Card>
                 <CardHeader>
-                  <CardTitle>Escrow Orders</CardTitle>
-                  <CardDescription>Payment status and delivery confirmation flow.</CardDescription>
+                  <CardTitle>Commandes en dépôt fiduciaire</CardTitle>
+                  <CardDescription>Statut de paiement et flux de confirmation de livraison.</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">

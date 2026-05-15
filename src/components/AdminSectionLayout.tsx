@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/app/components/ui/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 type AdminSectionLayoutProps = {
   children: ReactNode;
@@ -45,7 +46,7 @@ export function AdminSectionLayout({ children }: AdminSectionLayoutProps) {
   const adminItems: SidebarItem[] = [
     {
       id: 'dashboard',
-      label: 'Dashboard',
+      label: t('nav.dashboard', 'Dashboard'),
       icon: LayoutDashboard,
       onClick: () => navigate('/admin'),
       active: currentPath === '/admin',
@@ -59,7 +60,7 @@ export function AdminSectionLayout({ children }: AdminSectionLayoutProps) {
     },
     {
       id: 'account-approvals',
-      label: 'Account Approvals',
+      label: t('nav.accountApprovals', 'Account Approvals'),
       icon: Clock3,
       onClick: () => navigate('/admin-approvals'),
       active: currentPath.startsWith('/admin-approvals'),
@@ -73,35 +74,35 @@ export function AdminSectionLayout({ children }: AdminSectionLayoutProps) {
     },
     {
       id: 'inbox',
-      label: 'Inbox',
+      label: t('nav.inbox', 'Inbox'),
       icon: Bell,
       onClick: () => navigate('/admin/inbox'),
       active: currentPath.startsWith('/admin/inbox'),
     },
     {
       id: 'reviews',
-      label: 'Reviews',
+      label: t('nav.reviews', 'Reviews'),
       icon: Star,
       onClick: () => navigate('/admin/reviews'),
       active: currentPath.startsWith('/admin/reviews'),
     },
     {
       id: 'universities',
-      label: 'Universities',
+      label: t('nav.universities', 'Universities'),
       icon: Building2,
       onClick: () => navigate('/admin/universities'),
       active: currentPath.startsWith('/admin/universities'),
     },
     {
       id: 'categories',
-      label: 'Categories',
+      label: t('nav.categories', 'Categories'),
       icon: ListChecks,
       onClick: () => navigate('/admin/categories'),
       active: currentPath.startsWith('/admin/categories'),
     },
     {
       id: 'analytics',
-      label: 'Analytics',
+      label: t('nav.analytics', 'Analytics'),
       icon: BarChart3,
       onClick: () => navigate('/admin/analytics'),
       active: currentPath.startsWith('/admin/analytics'),
@@ -111,7 +112,7 @@ export function AdminSectionLayout({ children }: AdminSectionLayoutProps) {
   const accountItems: SidebarItem[] = [
     {
       id: 'logout',
-      label: 'Logout',
+      label: t('nav.logout', 'Logout'),
       icon: LogOut,
       onClick: () => {
         logout();

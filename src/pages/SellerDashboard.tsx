@@ -267,7 +267,7 @@ export function SellerDashboard() {
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-4xl font-extrabold text-[#111111]"><span className="text-[#05B43D]">Seller</span> Dashboard</h1>
-            <p className="text-muted-foreground">Manage listings, delivery proofs, and escrow releases.</p>
+            <p className="text-muted-foreground">Gérer les annonces, preuves de livraison et libérations de dépôt fiduciaire.</p>
           </div>
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
             <Button variant="outline" className="w-full sm:w-auto" onClick={() => setShowWithdrawDialog(true)}>
@@ -300,7 +300,7 @@ export function SellerDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.pendingEscrowOrders}</div>
-              <p className="text-xs text-muted-foreground">Awaiting buyer confirmation</p>
+              <p className="text-xs text-muted-foreground">En attente de confirmation acheteur</p>
             </CardContent>
           </Card>
 
@@ -311,7 +311,7 @@ export function SellerDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.releasedOrders}</div>
-              <p className="text-xs text-muted-foreground">Escrow released</p>
+              <p className="text-xs text-muted-foreground">Dépôt fiduciaire libéré</p>
             </CardContent>
           </Card>
 
@@ -322,7 +322,7 @@ export function SellerDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-orange-600">{formatMoney(wallet.pendingBalance || 0)}</div>
-              <p className="text-xs text-muted-foreground">Locked in escrow</p>
+              <p className="text-xs text-muted-foreground">Bloqué en dépôt fiduciaire</p>
             </CardContent>
           </Card>
 
@@ -333,7 +333,7 @@ export function SellerDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">{formatMoney(wallet.availableBalance || 0)}</div>
-              <p className="text-xs text-muted-foreground">Ready for withdrawal</p>
+              <p className="text-xs text-muted-foreground">Prêt pour retrait</p>
             </CardContent>
           </Card>
         </div>
@@ -383,8 +383,8 @@ export function SellerDashboard() {
               <Card>
                 <CardContent className="p-12 text-center">
                   <ShoppingBag className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No sales yet</h3>
-                  <p className="text-muted-foreground">Your buyer orders will appear here.</p>
+                  <h3 className="text-lg font-semibold mb-2">Aucune vente pour l'instant</h3>
+                  <p className="text-muted-foreground">Vos commandes acheteurs apparaîtront ici.</p>
                 </CardContent>
               </Card>
             )}
@@ -450,7 +450,7 @@ export function SellerDashboard() {
       <Dialog open={showWithdrawDialog} onOpenChange={setShowWithdrawDialog}>
         <DialogContent className="max-w-xl">
           <DialogHeader>
-            <DialogTitle>Withdraw Funds</DialogTitle>
+            <DialogTitle>Retirer les fonds</DialogTitle>
             <DialogDescription>Only available balance can be withdrawn to mobile money.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">

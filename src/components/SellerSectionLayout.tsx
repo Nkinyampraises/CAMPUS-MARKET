@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/app/components/ui/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 type SellerSectionLayoutProps = {
   children: ReactNode;
@@ -34,6 +35,7 @@ export function SellerSectionLayout({ children }: SellerSectionLayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { logout } = useAuth();
+  const { t } = useLanguage();
   const currentPath = location.pathname;
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -44,70 +46,70 @@ export function SellerSectionLayout({ children }: SellerSectionLayoutProps) {
   const sellerItems: SidebarItem[] = [
     {
       id: 'dashboard',
-      label: 'My Dashboard',
+      label: t('nav.dashboard', 'My Dashboard'),
       icon: LayoutDashboard,
       onClick: () => navigate('/seller/dashboard'),
       active: currentPath === '/seller/dashboard' || currentPath === '/dashboard',
     },
     {
       id: 'profile',
-      label: 'My Profile',
+      label: t('nav.profile', 'My Profile'),
       icon: UserRound,
       onClick: () => navigate('/seller/profile'),
       active: currentPath.startsWith('/seller/profile') || currentPath.startsWith('/profile/'),
     },
     {
       id: 'manage-listings',
-      label: 'Manage Listings',
+      label: t('nav.manageListings', 'Manage Listings'),
       icon: Package,
       onClick: () => navigate('/seller/manage-listings'),
       active: currentPath.startsWith('/seller/manage-listings') || currentPath.startsWith('/seller/edit-listing'),
     },
     {
       id: 'orders',
-      label: 'Orders',
+      label: t('nav.orders', 'Orders'),
       icon: ReceiptText,
       onClick: () => navigate('/seller/orders'),
       active: currentPath.startsWith('/seller/orders') || currentPath.startsWith('/seller/order-details'),
     },
     {
       id: 'rentals',
-      label: 'Rentals',
+      label: t('nav.rentals', 'Rentals'),
       icon: Package,
       onClick: () => navigate('/seller/rentals'),
       active: currentPath.startsWith('/seller/rentals'),
     },
     {
       id: 'notifications',
-      label: 'Notifications',
+      label: t('nav.notifications', 'Notifications'),
       icon: Bell,
       onClick: () => navigate('/seller/notifications'),
       active: currentPath.startsWith('/seller/notifications'),
     },
     {
       id: 'settings',
-      label: 'Settings',
+      label: t('nav.settings', 'Settings'),
       icon: Settings,
       onClick: () => navigate('/seller/settings'),
       active: currentPath.startsWith('/seller/settings'),
     },
     {
       id: 'help',
-      label: 'Help & Support',
+      label: t('nav.help', 'Help & Support'),
       icon: CircleHelp,
       onClick: () => navigate('/seller/help'),
       active: currentPath.startsWith('/seller/help'),
     },
     {
       id: 'report',
-      label: 'Report Problem',
+      label: t('nav.reportProblem', 'Report Problem'),
       icon: Flag,
       onClick: () => navigate('/seller/reports'),
       active: currentPath.startsWith('/seller/reports'),
     },
     {
       id: 'disputes',
-      label: 'Disputes',
+      label: t('nav.disputes', 'Disputes'),
       icon: ShieldAlert,
       onClick: () => navigate('/seller/disputes'),
       active: currentPath.startsWith('/seller/disputes'),
@@ -117,7 +119,7 @@ export function SellerSectionLayout({ children }: SellerSectionLayoutProps) {
   const accountItems: SidebarItem[] = [
     {
       id: 'logout',
-      label: 'Logout',
+      label: t('nav.logout', 'Logout'),
       icon: LogOut,
       onClick: () => {
         logout();
