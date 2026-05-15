@@ -433,7 +433,7 @@ export function SellerEditListing() {
                 <Button type="button" variant="outline" className="flex-1" onClick={() => navigate('/seller/manage-listings')} disabled={saving}>
                   Cancel
                 </Button>
-                <Button type="submit" className="flex-1 bg-[#1FAF9A] hover:bg-[#27b9a6]" disabled={saving}>
+                <Button type="submit" className="flex-1 bg-[#05B43D] hover:bg-[#018F2D]" disabled={saving}>
                   {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
                   {saving ? 'Saving...' : 'Update Listing'}
                 </Button>

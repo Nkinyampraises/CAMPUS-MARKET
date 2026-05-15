@@ -96,7 +96,7 @@ export function ConfirmEmail() {
           </Alert>
         </CardContent>
         <CardFooter className="flex flex-col gap-2">
-          <Button asChild className="w-full bg-[#1FAF9A] hover:bg-[#27b9a6]">
+          <Button asChild className="w-full bg-[#05B43D] hover:bg-[#018F2D]">
             <Link to="/login">Go to login</Link>
           </Button>
         </CardFooter>

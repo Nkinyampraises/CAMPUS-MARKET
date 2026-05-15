@@ -130,7 +130,7 @@ export function SellerSettings() {
               onChange={(e) => setConfirmPassword(e.target.value)}
             />
           </div>
-          <Button className="bg-[#1FAF9A] hover:bg-[#27b9a6]" onClick={handleChangePassword} disabled={changingPassword}>
+          <Button className="bg-[#05B43D] hover:bg-[#018F2D]" onClick={handleChangePassword} disabled={changingPassword}>
             {changingPassword ? 'Updating...' : 'Update Password'}
           </Button>
         </CardContent>
@@ -171,7 +171,7 @@ export function SellerSettings() {
               }
             />
           </div>
-          <Button className="bg-[#1FAF9A] hover:bg-[#27b9a6]" onClick={handleSavePreferences} disabled={savingPreferences}>
+          <Button className="bg-[#05B43D] hover:bg-[#018F2D]" onClick={handleSavePreferences} disabled={savingPreferences}>
             {savingPreferences ? 'Saving...' : 'Save Preferences'}
           </Button>
         </CardContent>

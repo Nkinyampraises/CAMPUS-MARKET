@@ -296,7 +296,7 @@ export function AiAssistantLauncher() {
             </button>
           </div>
 
-          <div className="mb-2 max-h-48 space-y-2 overflow-y-auto rounded-xl bg-[#f7f3fb] p-2">
+          <div className="mb-2 max-h-48 space-y-2 overflow-y-auto rounded-xl bg-[#F3F5F4] p-2">
             {isLoadingHistory ? (
               <p className="inline-flex items-center text-xs text-[#737373]">
                 <Loader2 className="mr-1 h-3 w-3 animate-spin" />
@@ -308,7 +308,7 @@ export function AiAssistantLauncher() {
                   key={message.id}
                   className={`rounded-lg px-2 py-1.5 text-xs ${
                     message.role === 'user'
-                      ? 'ml-6 bg-[#e8f4ef] text-[#1e7b5a]'
+                      ? 'ml-6 bg-[#e6f9ee] text-[#05B43D]'
                       : 'mr-6 bg-white text-[#363636]'
                   }`}
                 >

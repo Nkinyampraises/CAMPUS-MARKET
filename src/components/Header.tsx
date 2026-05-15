@@ -72,21 +72,21 @@ export function Header() {
       : currentUser?.userType === 'buyer'
         ? '/buyer/profile'
         : '/seller/profile';
-  const activeHeaderClass = 'bg-[#1FAF9A] text-white hover:bg-[#27b9a6]';
-  const inactiveHeaderClass = 'text-[#def0f5] hover:bg-[#0b3f3f] hover:text-white';
+  const activeHeaderClass = 'bg-[#05B43D] text-white hover:bg-[#018F2D]';
+  const inactiveHeaderClass = 'text-[#4A4A4A] hover:bg-[#018F2D] hover:text-white';
 
   return (
-    <header className="sticky top-0 z-40 border-b border-[#0b3f3f] bg-[#0F4C4C] text-white">
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[2px] bg-gradient-to-r from-transparent via-[#12bfd5] to-transparent" />
+    <header className="sticky top-0 z-40 border-b border-[#018F2D] bg-[#FFFFFF] text-white">
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[2px] bg-gradient-to-r from-transparent via-[#05B43D] to-transparent" />
       <div className="container mx-auto px-3 py-1.5 sm:px-4 sm:py-3">
         <div className="flex items-center justify-between gap-2 lg:gap-4">
           <Link to="/" className="group flex items-center gap-2.5 transition-transform hover:scale-[1.01]">
-            <span className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-[#5ea8be] bg-[#042737] shadow-sm sm:h-12 sm:w-12">
+            <span className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-[#DDE3E2] bg-[#F3F5F4] shadow-sm sm:h-12 sm:w-12">
               <img src={appLogo} alt="UNITRADE logo" className="relative h-8 w-8 rounded-full object-cover sm:h-10 sm:w-10" />
             </span>
             <div className="hidden md:block">
               <h1 className="text-[2rem] font-bold leading-none tracking-tight text-white">UNITRADE</h1>
-              <p className="text-sm text-[#a2c3cf]">{t('brand.universities', 'Cameroon Universities')}</p>
+              <p className="text-sm text-[#8A8A8A]">{t('brand.universities', 'Cameroon Universities')}</p>
             </div>
           </Link>
 
@@ -145,7 +145,7 @@ export function Header() {
                     onClick={() => navigate('/add-listing')}
                     className={cn(
                       'hidden md:flex',
-                      isActive('/add-listing') ? activeHeaderClass : 'text-[#def0f5] hover:bg-[#0f4d62] hover:text-white',
+                      isActive('/add-listing') ? activeHeaderClass : 'text-[#4A4A4A] hover:bg-[#0f4d62] hover:text-white',
                     )}
                   >
                     <Plus className="h-4 w-4 mr-2" />
@@ -160,7 +160,7 @@ export function Header() {
                     onClick={() => navigate('/favorites')}
                     className={cn(
                       'hidden md:flex',
-                      isActive('/favorites') ? activeHeaderClass : 'text-[#def0f5] hover:bg-[#0f4d62] hover:text-white',
+                      isActive('/favorites') ? activeHeaderClass : 'text-[#4A4A4A] hover:bg-[#0f4d62] hover:text-white',
                     )}
                   >
                     <Heart className="h-4 w-4 mr-2" />
@@ -176,7 +176,7 @@ export function Header() {
                     'relative h-8 w-8 rounded-full p-0 sm:h-9 sm:w-9',
                     isActive('/messages')
                       ? activeHeaderClass
-                      : 'text-[#def0f5] hover:bg-[#0f4d62] hover:text-white',
+                      : 'text-[#4A4A4A] hover:bg-[#0f4d62] hover:text-white',
                   )}
                 >
                   <MessageSquare className="h-4 w-4" />
@@ -187,8 +187,8 @@ export function Header() {
                     type="button"
                     onClick={() => navigate(profilePath)}
                     className={cn(
-                      'flex items-center gap-1.5 rounded-full border border-[#3f7286] px-1.5 py-1 text-white transition-colors',
-                      isActive(profilePath) ? activeHeaderClass : 'hover:bg-[#0b3f3f] hover:text-white',
+                      'flex items-center gap-1.5 rounded-full border border-[#DDE3E2] px-1.5 py-1 text-white transition-colors',
+                      isActive(profilePath) ? activeHeaderClass : 'hover:bg-[#018F2D] hover:text-white',
                     )}
                     title={t('nav.profile', 'My Profile')}
                   >
@@ -209,10 +209,10 @@ export function Header() {
                         variant="ghost"
                         size="sm"
                         className={cn(
-                          'h-8 rounded-full border border-[#3f7286] px-1.5 sm:h-9 sm:px-2',
+                          'h-8 rounded-full border border-[#DDE3E2] px-1.5 sm:h-9 sm:px-2',
                           isActive(profilePath)
                             ? activeHeaderClass
-                            : 'text-[#def0f5] hover:bg-[#0f4d62] hover:text-white',
+                            : 'text-[#4A4A4A] hover:bg-[#0f4d62] hover:text-white',
                         )}
                       >
                         <Avatar className="h-6 w-6 sm:h-7 sm:w-7">
@@ -325,7 +325,7 @@ export function Header() {
                   variant="ghost"
                   size="sm"
                   onClick={handleLogout}
-                  className="hidden text-[#def0f5] hover:bg-[#0b3f3f] hover:text-white md:flex"
+                  className="hidden text-[#4A4A4A] hover:bg-[#018F2D] hover:text-white md:flex"
                 >
                   <LogOut className="h-4 w-4 mr-2" />
                   {t('nav.logout', 'Logout')}
@@ -338,7 +338,7 @@ export function Header() {
                   size="sm"
                   className={cn(
                     'px-2 sm:px-3',
-                    isActive('/login') ? activeHeaderClass : 'text-[#def0f5] hover:bg-[#0b3f3f] hover:text-white',
+                    isActive('/login') ? activeHeaderClass : 'text-[#4A4A4A] hover:bg-[#018F2D] hover:text-white',
                   )}
                   onClick={() => navigate('/login')}
                 >
@@ -348,7 +348,7 @@ export function Header() {
                   size="sm"
                   className={cn(
                     'rounded-full px-2 sm:px-4',
-                    isActive('/register') ? activeHeaderClass : 'bg-[#1FAF9A] text-white hover:bg-[#27b9a6]',
+                    isActive('/register') ? activeHeaderClass : 'bg-[#05B43D] text-white hover:bg-[#018F2D]',
                   )}
                   onClick={() => navigate('/register')}
                 >
@@ -362,7 +362,7 @@ export function Header() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-8 w-8 rounded-full p-0 text-[#def0f5] hover:bg-[#0b3f3f] hover:text-white max-[420px]:hidden sm:h-9 sm:w-auto sm:gap-1.5 sm:px-2"
+                  className="h-8 w-8 rounded-full p-0 text-[#4A4A4A] hover:bg-[#018F2D] hover:text-white max-[420px]:hidden sm:h-9 sm:w-auto sm:gap-1.5 sm:px-2"
                   title={t('language.select', 'Select language')}
                 >
                   <Languages className="h-4 w-4" />

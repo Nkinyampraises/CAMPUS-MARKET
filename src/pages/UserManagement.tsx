@@ -297,7 +297,7 @@ export function UserManagement() {
           <button
             type="button"
             onClick={applyFilters}
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[#013f3a] bg-[#1FAF9A] px-4 text-sm font-semibold text-white transition hover:bg-[#27b9a6]"
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[#013f3a] bg-[#05B43D] px-4 text-sm font-semibold text-white transition hover:bg-[#018F2D]"
           >
             <Filter className="h-3.5 w-3.5" />
             Apply Filters

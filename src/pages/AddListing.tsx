@@ -185,11 +185,11 @@ export function AddListing() {
 
   if (isAdmin) {
     return (
-      <div className="min-h-screen bg-[#f5f7f6] px-4 py-12">
-        <div className="mx-auto max-w-xl rounded-2xl border border-[#d3e3dc] bg-white p-8 text-center shadow-sm">
+      <div className="min-h-screen bg-[#FFFFFF] px-4 py-12">
+        <div className="mx-auto max-w-xl rounded-2xl border border-[#DDE3E2] bg-white p-8 text-center shadow-sm">
           <h1 className="text-2xl font-semibold text-[#0b1f1a]">Access Denied</h1>
-          <p className="mt-3 text-[#4f6b62]">Administrators cannot create listings.</p>
-          <Button className="mt-6 bg-[#1FAF9A] text-white hover:bg-[#27b9a6]" onClick={() => navigate('/admin')}>
+          <p className="mt-3 text-[#4A4A4A]">Administrators cannot create listings.</p>
+          <Button className="mt-6 bg-[#05B43D] text-white hover:bg-[#018F2D]" onClick={() => navigate('/admin')}>
             Go to Admin Dashboard
           </Button>
         </div>
@@ -198,9 +198,9 @@ export function AddListing() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f7f6] py-8">
+    <div className="min-h-screen bg-[#FFFFFF] py-8">
       <div className="w-full px-4 lg:px-8 xl:px-12">
-        <section className="mb-6 rounded-2xl border border-[#d3e3dc] bg-white p-6 shadow-sm sm:p-7">
+        <section className="mb-6 rounded-2xl border border-[#DDE3E2] bg-white p-6 shadow-sm sm:p-7">
           <div className="inline-flex items-center gap-2 rounded-full bg-[#e8f5ef] px-3 py-1 text-xs font-semibold uppercase tracking-[0.15em] text-[#0f6f58]">
             <Sparkles className="h-3.5 w-3.5" />
             Seller Studio
@@ -208,7 +208,7 @@ export function AddListing() {
           <div className="mt-3 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <h1 className="text-3xl font-semibold text-[#0b1f1a] sm:text-4xl">Create a New Listing</h1>
-              <p className="mt-2 max-w-3xl text-sm text-[#4f6b62]">
+              <p className="mt-2 max-w-3xl text-sm text-[#4A4A4A]">
                 Add clear details, good photos, and accurate pricing to attract serious buyers faster.
               </p>
             </div>
@@ -231,7 +231,7 @@ export function AddListing() {
 
         <form onSubmit={handleSubmit} className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_300px]">
           <div className="space-y-6">
-            <Card className="rounded-2xl border border-[#d3e3dc] bg-white shadow-sm">
+            <Card className="rounded-2xl border border-[#DDE3E2] bg-white shadow-sm">
               <CardHeader>
                 <CardTitle className="text-2xl font-semibold text-[#0b1f1a]">Basic Details</CardTitle>
                 <CardDescription>Tell students what you are listing and why it is worth buying.</CardDescription>
@@ -265,7 +265,7 @@ export function AddListing() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-2xl border border-[#d3e3dc] bg-white shadow-sm">
+            <Card className="rounded-2xl border border-[#DDE3E2] bg-white shadow-sm">
               <CardHeader>
                 <CardTitle className="text-2xl font-semibold text-[#0b1f1a]">Listing Setup</CardTitle>
                 <CardDescription>Set category, location, condition, and the best pricing model.</CardDescription>
@@ -376,7 +376,7 @@ export function AddListing() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-2xl border border-[#d3e3dc] bg-white shadow-sm">
+            <Card className="rounded-2xl border border-[#DDE3E2] bg-white shadow-sm">
               <CardHeader>
                 <CardTitle className="text-2xl font-semibold text-[#0b1f1a]">Photos</CardTitle>
                 <CardDescription>Upload up to five clear images from different angles.</CardDescription>
@@ -396,7 +396,7 @@ export function AddListing() {
               >
                 Cancel
               </Button>
-              <Button type="submit" className="flex-1 bg-[#1FAF9A] text-white hover:bg-[#27b9a6]" disabled={loading}>
+              <Button type="submit" className="flex-1 bg-[#05B43D] text-white hover:bg-[#018F2D]" disabled={loading}>
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -410,14 +410,14 @@ export function AddListing() {
           </div>
 
           <aside className="space-y-6 xl:sticky xl:top-24 xl:self-start">
-            <Card className="rounded-2xl border border-[#d3e3dc] bg-white shadow-sm">
+            <Card className="rounded-2xl border border-[#DDE3E2] bg-white shadow-sm">
               <CardHeader>
                 <CardTitle className="text-lg font-semibold text-[#0b1f1a]">Completion</CardTitle>
                 <CardDescription>{completedCount} of {completionItems.length} steps complete</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="h-2 rounded-full bg-[#e5efeb]">
-                  <div className="h-2 rounded-full bg-[#1FAF9A]" style={{ width: `${completionPercent}%` }} />
+                  <div className="h-2 rounded-full bg-[#05B43D]" style={{ width: `${completionPercent}%` }} />
                 </div>
                 <div className="space-y-2">
                   {completionItems.map((item) => (
@@ -434,12 +434,12 @@ export function AddListing() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-2xl border border-[#d3e3dc] bg-white shadow-sm">
+            <Card className="rounded-2xl border border-[#DDE3E2] bg-white shadow-sm">
               <CardHeader>
                 <CardTitle className="text-lg font-semibold text-[#0b1f1a]">Listing Preview</CardTitle>
                 <CardDescription>Quick summary before publishing.</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-2 text-sm text-[#4f6b62]">
+              <CardContent className="space-y-2 text-sm text-[#4A4A4A]">
                 <p><span className="font-medium text-[#0f2c24]">Title:</span> {formData.title || 'Not set'}</p>
                 <p><span className="font-medium text-[#0f2c24]">Type:</span> {formData.type === 'rent' ? 'For Rent' : 'For Sale'}</p>
                 <p><span className="font-medium text-[#0f2c24]">Category:</span> {categoryLabel}</p>

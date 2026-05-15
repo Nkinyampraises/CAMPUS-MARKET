@@ -205,7 +205,7 @@ export function SellerManageListings() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       <div className="mb-4 flex justify-end">
-        <Button className="bg-[#1FAF9A] hover:bg-[#27b9a6]" onClick={() => navigate('/add-listing')}>
+        <Button className="bg-[#05B43D] hover:bg-[#018F2D]" onClick={() => navigate('/add-listing')}>
           <Plus className="h-4 w-4 mr-2" />
           Add Listing
         </Button>

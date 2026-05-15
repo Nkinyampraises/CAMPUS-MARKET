@@ -200,7 +200,7 @@ export function RentalDetails() {
               placeholder="Why do you need a rental extension?"
             />
           </div>
-          <Button className="bg-[#1FAF9A] hover:bg-[#27b9a6]" disabled={submitting || loading || !order} onClick={requestExtension}>
+          <Button className="bg-[#05B43D] hover:bg-[#018F2D]" disabled={submitting || loading || !order} onClick={requestExtension}>
             {submitting ? 'Submitting...' : 'Request Extension'}
           </Button>
         </CardContent>

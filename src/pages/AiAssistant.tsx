@@ -776,7 +776,7 @@ export function AiAssistant() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8f4f2] py-8">
+    <div className="min-h-screen bg-[#FFFFFF] py-8">
       <div className="mx-auto max-w-7xl px-4 lg:px-6">
         <section className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -808,7 +808,7 @@ export function AiAssistant() {
               {t('assistant.clearCurrent', 'Clear current chat')}
             </Button>
             <Button
-              className="rounded-full bg-[#1e7b5a] text-white hover:bg-[#166146]"
+              className="rounded-full bg-[#05B43D] text-white hover:bg-[#166146]"
               onClick={() => navigate('/marketplace')}
             >
               {t('assistant.backMarketplace', 'Back to marketplace')}
@@ -819,7 +819,7 @@ export function AiAssistant() {
         <Sheet open={isSidebarMenuOpen} onOpenChange={setIsSidebarMenuOpen}>
           <SheetContent
             side="left"
-            className="w-[88vw] max-w-sm border-r border-[#ece4df] bg-[#f8f4f2] p-4 sm:max-w-sm lg:hidden"
+            className="w-[88vw] max-w-sm border-r border-[#ece4df] bg-[#FFFFFF] p-4 sm:max-w-sm lg:hidden"
           >
             <SheetHeader className="sr-only p-0">
               <SheetTitle>{t('assistant.chatsMenu', 'Chats menu')}</SheetTitle>
@@ -828,7 +828,7 @@ export function AiAssistant() {
               <CardHeader className="space-y-4 border-b border-[#f1ebe7]">
                 <Button
                   type="button"
-                  className="w-full rounded-xl bg-[#1e7b5a] text-white hover:bg-[#166146]"
+                  className="w-full rounded-xl bg-[#05B43D] text-white hover:bg-[#166146]"
                   onClick={() => {
                     startNewChat();
                     setIsSidebarMenuOpen(false);
@@ -863,7 +863,7 @@ export function AiAssistant() {
                           }}
                           className={`w-full rounded-xl px-3 py-2 text-left transition-colors ${
                             activeThread?.id === thread.id
-                              ? 'bg-[#e8f4ef] text-[#195c43]'
+                              ? 'bg-[#e6f9ee] text-[#195c43]'
                               : 'text-[#333333] hover:bg-[#f7f2ef]'
                           }`}
                         >
@@ -888,7 +888,7 @@ export function AiAssistant() {
             <CardHeader className="space-y-4 border-b border-[#f1ebe7]">
               <Button
                 type="button"
-                className="w-full rounded-xl bg-[#1e7b5a] text-white hover:bg-[#166146]"
+                className="w-full rounded-xl bg-[#05B43D] text-white hover:bg-[#166146]"
                 onClick={startNewChat}
               >
                 <Plus className="mr-2 h-4 w-4" />
@@ -917,7 +917,7 @@ export function AiAssistant() {
                         onClick={() => setActiveThreadId(thread.id)}
                         className={`w-full rounded-xl px-3 py-2 text-left transition-colors ${
                           activeThread?.id === thread.id
-                            ? 'bg-[#e8f4ef] text-[#195c43]'
+                            ? 'bg-[#e6f9ee] text-[#195c43]'
                             : 'text-[#333333] hover:bg-[#f7f2ef]'
                         }`}
                       >
@@ -938,7 +938,7 @@ export function AiAssistant() {
           <Card className="flex min-h-[70vh] flex-col rounded-3xl border border-[#ece4df] bg-white shadow-sm">
             <CardHeader className="border-b border-[#f1ebe7] pb-4">
               <div className="flex items-center gap-3">
-                <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#e8f4ef] text-[#1e7b5a]">
+                <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#e6f9ee] text-[#05B43D]">
                   <Bot className="h-5 w-5" />
                 </div>
                 <div>
@@ -965,7 +965,7 @@ export function AiAssistant() {
                       key={message.id}
                       className={`max-w-[90%] rounded-2xl px-4 py-3 ${
                         message.role === 'user'
-                          ? 'ml-auto bg-[#1e7b5a] text-white'
+                          ? 'ml-auto bg-[#05B43D] text-white'
                           : 'bg-[#f4efec] text-[#232323]'
                       }`}
                     >
@@ -1004,7 +1004,7 @@ export function AiAssistant() {
                                 />
                               ) : null}
                               <p className="line-clamp-1 text-xs font-semibold text-[#202020]">{item.title}</p>
-                              <p className="mt-1 text-xs font-semibold text-[#1e7b5a]">{formatCurrency(item.price)}</p>
+                              <p className="mt-1 text-xs font-semibold text-[#05B43D]">{formatCurrency(item.price)}</p>
                               {isNonEmptyString(item.reason) ? (
                                 <p className="mt-1 line-clamp-2 text-[11px] text-[#6e6e6e]">{item.reason}</p>
                               ) : null}
@@ -1032,7 +1032,7 @@ export function AiAssistant() {
                 </div>
               ) : (
                 <div className="flex h-full flex-col items-center justify-center px-3 text-center">
-                  <div className="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-full bg-[#e8f4ef] text-[#1e7b5a]">
+                  <div className="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-full bg-[#e6f9ee] text-[#05B43D]">
                     <Bot className="h-6 w-6" />
                   </div>
                   <p className="max-w-lg text-sm text-[#646464]">
@@ -1116,7 +1116,7 @@ export function AiAssistant() {
 
                   <Button
                     type="button"
-                    className="h-10 rounded-full bg-[#1e7b5a] px-4 text-white hover:bg-[#166146]"
+                    className="h-10 rounded-full bg-[#05B43D] px-4 text-white hover:bg-[#166146]"
                     onClick={() => void sendMessage()}
                     disabled={isSending || isTranscribing || isDailyLimitReached}
                   >

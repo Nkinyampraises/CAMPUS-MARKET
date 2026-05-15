@@ -367,9 +367,9 @@ export function Checkout() {
   const paymentPhoneLabel = paymentMethod === 'mtn-momo' ? 'MTN' : 'Orange';
 
   return (
-    <div className="min-h-screen bg-[#f3f6f4] py-8">
+    <div className="min-h-screen bg-[#FFFFFF] py-8">
       <div className="w-full px-4 lg:px-8 xl:px-12">
-        <Button variant="ghost" onClick={() => navigate(-1)} className="mb-3 text-[#2e5950] hover:bg-[#e7f3ed]">
+        <Button variant="ghost" onClick={() => navigate(-1)} className="mb-3 text-[#4A4A4A] hover:bg-[#e7f3ed]">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back
         </Button>
@@ -387,7 +387,7 @@ export function Checkout() {
               <CardTitle className="text-xl font-bold text-[#123c33]">Order Summary</CardTitle>
             </CardHeader>
             <CardContent className="space-y-5">
-              <div className="rounded-xl border border-[#deebe5] bg-[#f9fcfa] p-3">
+              <div className="rounded-xl border border-[#deebe5] bg-[#F3F5F4] p-3">
                 <div className="flex items-start gap-3">
                   <img
                     src={item.images?.[0] || 'https://placehold.co/200x200?text=Item'}
@@ -407,17 +407,17 @@ export function Checkout() {
               </div>
 
               <div className="space-y-2 text-sm">
-                <div className="flex items-center justify-between text-[#58796f]">
+                <div className="flex items-center justify-between text-[#8A8A8A]">
                   <span>Subtotal</span>
                   <span>{subtotal.toLocaleString()} XAF</span>
                 </div>
-                <div className="flex items-center justify-between text-[#58796f]">
+                <div className="flex items-center justify-between text-[#8A8A8A]">
                   <span>Platform Fee</span>
                   <span>{platformFee.toLocaleString()} XAF</span>
                 </div>
 
-                <div className="mt-2 border-t border-[#dbe7e1] pt-2">
-                  <div className="flex items-center justify-between text-xl font-black text-[#014a3d]">
+                <div className="mt-2 border-t border-[#DDE3E2] pt-2">
+                  <div className="flex items-center justify-between text-xl font-black text-[#018F2D]">
                     <span>Total</span>
                     <span>{checkoutTotal.toLocaleString()} XAF</span>
                   </div>
@@ -438,7 +438,7 @@ export function Checkout() {
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-xl font-bold text-[#123c33]">
                   <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-[#e9f4ef]">
-                    <CreditCard className="h-4 w-4 text-[#0b6a5a]" />
+                    <CreditCard className="h-4 w-4 text-[#018F2D]" />
                   </span>
                   Payment Method
                 </CardTitle>
@@ -453,7 +453,7 @@ export function Checkout() {
                     <RadioGroupItem value="mtn-momo" id="mtn" className="peer sr-only" />
                     <Label
                       htmlFor="mtn"
-                      className="flex cursor-pointer items-center justify-between rounded-xl border border-[#c6dcd1] bg-[#fcfffd] p-3.5 transition-colors hover:bg-[#f5fbf8] peer-data-[state=checked]:border-[#0c6a5a] peer-data-[state=checked]:bg-[#eefaf4]"
+                      className="flex cursor-pointer items-center justify-between rounded-xl border border-[#c6dcd1] bg-[#fcfffd] p-3.5 transition-colors hover:bg-[#f5fbf8] peer-data-[state=checked]:border-[#018F2D] peer-data-[state=checked]:bg-[#eefaf4]"
                     >
                       <div className="flex items-start gap-3">
                         <span className="inline-flex h-8 w-8 items-center justify-center rounded bg-[#fdd816] text-[10px] font-black text-[#0d3b31]">
@@ -464,7 +464,7 @@ export function Checkout() {
                           <span className="block text-xs text-[#6f8f85]">Instant processing</span>
                         </span>
                       </div>
-                      <span className="h-4 w-4 rounded-full border border-[#8db2a4] peer-data-[state=checked]:border-[5px] peer-data-[state=checked]:border-[#0c6a5a]" />
+                      <span className="h-4 w-4 rounded-full border border-[#8db2a4] peer-data-[state=checked]:border-[5px] peer-data-[state=checked]:border-[#018F2D]" />
                     </Label>
                   </div>
 
@@ -472,7 +472,7 @@ export function Checkout() {
                     <RadioGroupItem value="orange-money" id="orange" className="peer sr-only" />
                     <Label
                       htmlFor="orange"
-                      className="flex cursor-pointer items-center justify-between rounded-xl border border-[#c6dcd1] bg-[#fcfffd] p-3.5 transition-colors hover:bg-[#f5fbf8] peer-data-[state=checked]:border-[#0c6a5a] peer-data-[state=checked]:bg-[#eefaf4]"
+                      className="flex cursor-pointer items-center justify-between rounded-xl border border-[#c6dcd1] bg-[#fcfffd] p-3.5 transition-colors hover:bg-[#f5fbf8] peer-data-[state=checked]:border-[#018F2D] peer-data-[state=checked]:bg-[#eefaf4]"
                     >
                       <div className="flex items-start gap-3">
                         <span className="inline-flex h-8 w-8 items-center justify-center rounded bg-[#ff7b00] text-[10px] font-black text-white">
@@ -483,7 +483,7 @@ export function Checkout() {
                           <span className="block text-xs text-[#6f8f85]">Instant processing</span>
                         </span>
                       </div>
-                      <span className="h-4 w-4 rounded-full border border-[#8db2a4] peer-data-[state=checked]:border-[5px] peer-data-[state=checked]:border-[#0c6a5a]" />
+                      <span className="h-4 w-4 rounded-full border border-[#8db2a4] peer-data-[state=checked]:border-[5px] peer-data-[state=checked]:border-[#018F2D]" />
                     </Label>
                   </div>
                 </RadioGroup>
@@ -540,7 +540,7 @@ export function Checkout() {
                 <div className="space-y-2">
                   <Label htmlFor="pickup-location" className="text-sm text-[#274e45]">
                     <span className="inline-flex items-center gap-1.5">
-                      <MapPin className="h-4 w-4 text-[#0c6a5a]" />
+                      <MapPin className="h-4 w-4 text-[#018F2D]" />
                       Meeting Location
                     </span>
                   </Label>
@@ -596,7 +596,7 @@ export function Checkout() {
 
                 <Button
                   onClick={handleReviewPayment}
-                  className="h-12 w-full rounded-xl bg-[#1FAF9A] text-base font-semibold text-white hover:bg-[#27b9a6]"
+                  className="h-12 w-full rounded-xl bg-[#05B43D] text-base font-semibold text-white hover:bg-[#018F2D]"
                 >
                   Review Payment
                 </Button>

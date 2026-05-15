@@ -108,7 +108,7 @@ export function ForgotPassword() {
               />
             </div>
 
-            <Button type="submit" className="w-full bg-[#1FAF9A] hover:bg-[#27b9a6]" disabled={loading}>
+            <Button type="submit" className="w-full bg-[#05B43D] hover:bg-[#018F2D]" disabled={loading}>
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

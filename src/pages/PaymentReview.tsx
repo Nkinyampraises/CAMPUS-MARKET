@@ -257,42 +257,42 @@ export function PaymentReview() {
         {/* Header */}
         <div className="mb-5 text-center">
           <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#e8f9f5]">
-            <Smartphone className="h-7 w-7 text-[#1FAF9A]" />
+            <Smartphone className="h-7 w-7 text-[#05B43D]" />
           </div>
-          <h3 className="text-xl font-extrabold text-[#082d26]">Scan to Pay</h3>
-          <p className="mt-1 text-sm text-[#5f7e75]">
+          <h3 className="text-xl font-extrabold text-[#111111]">Scan to Pay</h3>
+          <p className="mt-1 text-sm text-[#8A8A8A]">
             Point your phone camera at the QR code below
           </p>
         </div>
 
         {/* QR Code */}
-        <div className="mx-auto mb-5 flex w-fit flex-col items-center rounded-2xl border-2 border-[#1FAF9A] bg-[#f0fdf8] p-3">
+        <div className="mx-auto mb-5 flex w-fit flex-col items-center rounded-2xl border-2 border-[#05B43D] bg-[#f0fdf8] p-3">
           <img
             src={qrCodeUrl}
             alt="Scan to open MTN MoMo payment"
             className="h-52 w-52 rounded-xl"
           />
-          <p className="mt-2 text-[11px] font-semibold text-[#0d6e5c]">
+          <p className="mt-2 text-[11px] font-semibold text-[#018F2D]">
             {formatMoney(totalAmount)} FCFA — MTN MoMo
           </p>
         </div>
 
         {/* Steps */}
-        <ol className="mb-5 space-y-2.5 text-sm text-[#4f6b62]">
+        <ol className="mb-5 space-y-2.5 text-sm text-[#4A4A4A]">
           <li className="flex items-center gap-3">
-            <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#1FAF9A] text-xs font-bold text-white">1</span>
+            <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#05B43D] text-xs font-bold text-white">1</span>
             Open your phone camera and scan the QR code
           </li>
           <li className="flex items-center gap-3">
-            <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#1FAF9A] text-xs font-bold text-white">2</span>
+            <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#05B43D] text-xs font-bold text-white">2</span>
             Tap the link that appears — your dialer opens
           </li>
           <li className="flex items-center gap-3">
-            <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#1FAF9A] text-xs font-bold text-white">3</span>
+            <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#05B43D] text-xs font-bold text-white">3</span>
             Tap <strong>Call</strong> then enter your <strong>MTN MoMo PIN</strong>
           </li>
           <li className="flex items-center gap-3">
-            <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#0d6e5c] text-xs font-bold text-white">4</span>
+            <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#018F2D] text-xs font-bold text-white">4</span>
             Come back here and click <strong>"I've Paid"</strong>
           </li>
         </ol>
@@ -300,13 +300,13 @@ export function PaymentReview() {
         {/* Buttons */}
         <div className="flex flex-col gap-2">
           <Button
-            className="h-12 w-full rounded-xl bg-[#1FAF9A] text-base font-bold text-white hover:bg-[#27b9a6]"
+            className="h-12 w-full rounded-xl bg-[#05B43D] text-base font-bold text-white hover:bg-[#018F2D]"
             onClick={() => { setUssdStarted(true); setShowDesktopModal(false); }}
           >
             <CheckCircle2 className="mr-2 h-5 w-5" />
             I've Paid — Confirm Order
           </Button>
-          <Button variant="ghost" className="w-full text-[#476f65] hover:bg-[#edf6f2]" onClick={() => setShowDesktopModal(false)}>
+          <Button variant="ghost" className="w-full text-[#4A4A4A] hover:bg-[#e6f9ee]" onClick={() => setShowDesktopModal(false)}>
             Cancel
           </Button>
         </div>
@@ -329,39 +329,39 @@ export function PaymentReview() {
       : 'Confirm Payment';
 
   return (
-    <div className="min-h-screen bg-[#f5f7f6] py-7">
+    <div className="min-h-screen bg-[#FFFFFF] py-7">
       {DesktopPayModal}
       <div className="w-full px-4 lg:px-8 xl:px-12">
-        <Button variant="ghost" onClick={() => navigate(-1)} className="mb-3 text-[#2e5950] hover:bg-[#e8f4ee]">
+        <Button variant="ghost" onClick={() => navigate(-1)} className="mb-3 text-[#4A4A4A] hover:bg-[#e6f9ee]">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back
         </Button>
 
-        <h1 className="text-[2.1rem] font-black tracking-tight text-[#082d26]">Review your payment</h1>
-        <p className="mt-1 max-w-2xl text-sm text-[#5f7e75]">
+        <h1 className="text-[2.1rem] font-black tracking-tight text-[#111111]">Review your payment</h1>
+        <p className="mt-1 max-w-2xl text-sm text-[#8A8A8A]">
           Verify the transaction details below before confirming. Funds will be held in escrow until item collection.
         </p>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[1.35fr_0.92fr]">
           <div className="space-y-5">
-            <Card className="rounded-3xl border border-[#d6e4dd] bg-white shadow-sm">
+            <Card className="rounded-3xl border border-[#DDE3E2] bg-white shadow-sm">
               <CardContent className="space-y-5 p-5 sm:p-6">
-                <div className="rounded-2xl border border-[#dfeae5] bg-[#f9fcfa] p-4">
+                <div className="rounded-2xl border border-[#DDE3E2] bg-[#F3F5F4] p-4">
                   <div className="grid items-center gap-3 sm:grid-cols-[1fr_auto_1fr]">
                     <div className="rounded-2xl border border-[#dbe8e1] bg-white p-3">
-                      <p className="text-[10px] font-bold uppercase tracking-wide text-[#7c958c]">Sender</p>
-                      <p className="mt-1 text-sm font-extrabold text-[#123a31]">{state.fromName}</p>
-                      <p className="text-xs text-[#6f8b82]">{senderLabel}</p>
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A8A8A]">Sender</p>
+                      <p className="mt-1 text-sm font-extrabold text-[#111111]">{state.fromName}</p>
+                      <p className="text-xs text-[#8A8A8A]">{senderLabel}</p>
                     </div>
 
-                    <div className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-[#1FAF9A]">
+                    <div className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-[#05B43D]">
                       <ArrowRight className="h-4 w-4 text-white" />
                     </div>
 
                     <div className="rounded-2xl border border-[#dbe8e1] bg-white p-3">
-                      <p className="text-[10px] font-bold uppercase tracking-wide text-[#7c958c]">Receiver</p>
-                      <p className="mt-1 text-sm font-extrabold text-[#123a31]">{receiverName}</p>
-                      <p className="text-xs text-[#6f8b82]">{receiverLabel}</p>
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A8A8A]">Receiver</p>
+                      <p className="mt-1 text-sm font-extrabold text-[#111111]">{receiverName}</p>
+                      <p className="text-xs text-[#8A8A8A]">{receiverLabel}</p>
                     </div>
                   </div>
 
@@ -377,8 +377,8 @@ export function PaymentReview() {
                         }}
                       />
                       <div className="min-w-0 flex-1">
-                        <h3 className="line-clamp-2 text-base font-extrabold leading-tight text-[#0f3a31]">{state.title}</h3>
-                        <p className="text-xs text-[#728e85]">{paymentMethodLabel} • Escrow protected</p>
+                        <h3 className="line-clamp-2 text-base font-extrabold leading-tight text-[#111111]">{state.title}</h3>
+                        <p className="text-xs text-[#8A8A8A]">{paymentMethodLabel} • Escrow protected</p>
                         <span className="mt-1 inline-flex items-center rounded-full bg-[#f4dcac] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#664600]">
                           Academic Authenticated
                         </span>
@@ -387,11 +387,11 @@ export function PaymentReview() {
                   </div>
                 </div>
 
-                <Card className="rounded-2xl border border-[#cde0d7] bg-[#f7fbf8] shadow-none">
+                <Card className="rounded-2xl border border-[#DDE3E2] bg-[#F3F5F4] shadow-none">
                   <CardContent className="space-y-3 p-4">
                     <h3 className="flex items-center gap-2 text-lg font-bold text-[#0f3b32]">
-                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[#dff0e8]">
-                        <Smartphone className="h-4 w-4 text-[#0b6a5a]" />
+                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[#e6f9ee]">
+                        <Smartphone className="h-4 w-4 text-[#018F2D]" />
                       </span>
                       Mobile Money Authorization
                     </h3>
@@ -399,10 +399,10 @@ export function PaymentReview() {
                       Please keep your phone ready. Fee example: {formatMoney(feeHintBaseAmount)} XAF + {formatMoney(feeHintAmount)} XAF.
                     </p>
                     <div className="grid gap-2 sm:grid-cols-2">
-                      <div className={`rounded-lg border px-3 py-2 text-xs font-semibold ${state.paymentMethod === 'mtn-momo' ? 'border-[#0c6a5a] bg-[#eaf8f2] text-[#0c6a5a]' : 'border-[#d5e4dd] bg-white text-[#355f55]'}`}>
+                      <div className={`rounded-lg border px-3 py-2 text-xs font-semibold ${state.paymentMethod === 'mtn-momo' ? 'border-[#018F2D] bg-[#e6f9ee] text-[#018F2D]' : 'border-[#d5e4dd] bg-white text-[#355f55]'}`}>
                         MTN MOMO: {ussdCode}
                       </div>
-                      <div className={`rounded-lg border px-3 py-2 text-xs font-semibold ${state.paymentMethod === 'orange-money' ? 'border-[#0c6a5a] bg-[#eaf8f2] text-[#0c6a5a]' : 'border-[#d5e4dd] bg-white text-[#355f55]'}`}>
+                      <div className={`rounded-lg border px-3 py-2 text-xs font-semibold ${state.paymentMethod === 'orange-money' ? 'border-[#018F2D] bg-[#e6f9ee] text-[#018F2D]' : 'border-[#d5e4dd] bg-white text-[#355f55]'}`}>
                         ORANGE MONEY: *150#
                       </div>
                     </div>
@@ -412,47 +412,47 @@ export function PaymentReview() {
             </Card>
           </div>
 
-          <Card className="h-fit rounded-3xl border border-[#d6e4dd] bg-white shadow-sm">
+          <Card className="h-fit rounded-3xl border border-[#DDE3E2] bg-white shadow-sm">
             <CardContent className="space-y-4 p-5 sm:p-6">
-              <h2 className="text-2xl font-bold text-[#123a31]">Payment Summary</h2>
+              <h2 className="text-2xl font-bold text-[#111111]">Payment Summary</h2>
 
               <div className="space-y-2.5 text-sm">
-                <div className="flex items-center justify-between text-[#5b7a71]">
+                <div className="flex items-center justify-between text-[#8A8A8A]">
                   <span>Item Price</span>
                   <span>{formatMoney(state.amount)} FCFA</span>
                 </div>
-                <div className="flex items-center justify-between text-[#5b7a71]">
+                <div className="flex items-center justify-between text-[#8A8A8A]">
                   <span>Platform Fee</span>
                   <span>{formatMoney(feeAmount)} FCFA</span>
                 </div>
-                <div className="flex items-center justify-between text-[#5b7a71]">
+                <div className="flex items-center justify-between text-[#8A8A8A]">
                   <span>Escrow Protection</span>
-                  <span className="font-semibold text-[#0d7a56]">FREE</span>
+                  <span className="font-semibold text-[#05B43D]">FREE</span>
                 </div>
               </div>
 
-              <div className="border-t border-[#d9e6df] pt-3">
+              <div className="border-t border-[#DDE3E2] pt-3">
                 <div className="flex items-end justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold text-[#2f584f]">Total Payable</p>
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[#839b93]">Incl. VAT where applicable</p>
+                    <p className="text-sm font-semibold text-[#4A4A4A]">Total Payable</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[#8A8A8A]">Incl. VAT where applicable</p>
                   </div>
-                  <p className="text-[2rem] font-black leading-none text-[#0a5a49]">{formatMoney(totalAmount)} FCFA</p>
+                  <p className="text-[2rem] font-black leading-none text-[#018F2D]">{formatMoney(totalAmount)} FCFA</p>
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-[#d8e7df] bg-[#f7fbf8] p-3">
-                <p className="flex items-center gap-2 text-sm font-semibold text-[#1f5649]">
-                  <ShieldCheck className="h-4 w-4 text-[#0f7a57]" />
+              <div className="rounded-2xl border border-[#DDE3E2] bg-[#F3F5F4] p-3">
+                <p className="flex items-center gap-2 text-sm font-semibold text-[#018F2D]">
+                  <ShieldCheck className="h-4 w-4 text-[#05B43D]" />
                   Buyer Protection Active.
                 </p>
-                <p className="mt-1 text-xs text-[#67837a]">
+                <p className="mt-1 text-xs text-[#8A8A8A]">
                   Your money is safe until you confirm receipt of the item.
                 </p>
               </div>
 
                 <Button
-                  className="h-12 w-full rounded-xl bg-[#1FAF9A] text-lg font-semibold text-white hover:bg-[#27b9a6]"
+                  className="h-12 w-full rounded-xl bg-[#05B43D] text-lg font-semibold text-white hover:bg-[#018F2D]"
                   onClick={handleConfirm}
                   disabled={submitting}
                 >
@@ -462,7 +462,7 @@ export function PaymentReview() {
 
               <Button
                 variant="ghost"
-                className="w-full text-[#476f65] hover:bg-[#edf6f2]"
+                className="w-full text-[#4A4A4A] hover:bg-[#e6f9ee]"
                 onClick={() => navigate(-1)}
                 disabled={submitting}
               >

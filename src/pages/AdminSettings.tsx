@@ -187,7 +187,7 @@ export function AdminSettings() {
           </div>
         </div>
 
-        <Button className="w-full bg-[#1FAF9A] hover:bg-[#27b9a6] sm:w-auto" onClick={handleSave} disabled={saving}>
+        <Button className="w-full bg-[#05B43D] hover:bg-[#018F2D] sm:w-auto" onClick={handleSave} disabled={saving}>
           {saving ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />

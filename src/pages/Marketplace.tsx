@@ -457,7 +457,7 @@ export function Marketplace() {
   );
 
   return (
-    <div className="min-h-screen bg-[#f8f4f2] py-10">
+    <div className="min-h-screen bg-[#FFFFFF] py-10">
       <div className="mx-auto w-full max-w-none px-4 lg:px-6">
         <section className="mb-6 flex flex-wrap items-start justify-between gap-6">
           <div className="max-w-xl">
@@ -546,7 +546,7 @@ export function Marketplace() {
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
             {selectedCategory !== 'all' && (
-              <Badge className="rounded-full bg-[#e5f6f0] px-3 py-1 text-xs font-medium text-[#1e7b5a]">
+              <Badge className="rounded-full bg-[#e6f9ee] px-3 py-1 text-xs font-medium text-[#05B43D]">
                 {resolveCategoryLabel(selectedCategory)}
                 <button
                   className="ml-2 rounded-full p-0.5 hover:bg-white/60"
@@ -558,7 +558,7 @@ export function Marketplace() {
               </Badge>
             )}
             {selectedUniversity !== 'all' && (
-              <Badge className="rounded-full bg-[#e5f6f0] px-3 py-1 text-xs font-medium text-[#1e7b5a]">
+              <Badge className="rounded-full bg-[#e6f9ee] px-3 py-1 text-xs font-medium text-[#05B43D]">
                 {universitiesById[selectedUniversity.toLowerCase()] || selectedUniversity}
                 <button
                   className="ml-2 rounded-full p-0.5 hover:bg-white/60"
@@ -570,7 +570,7 @@ export function Marketplace() {
               </Badge>
             )}
             {selectedPriceRange !== 'all' && (
-              <Badge className="rounded-full bg-[#e5f6f0] px-3 py-1 text-xs font-medium text-[#1e7b5a]">
+              <Badge className="rounded-full bg-[#e6f9ee] px-3 py-1 text-xs font-medium text-[#05B43D]">
                 {PRICE_RANGE_OPTIONS.find((range) => range.id === selectedPriceRange)?.label || selectedPriceRange}
                 <button
                   className="ml-2 rounded-full p-0.5 hover:bg-white/60"
@@ -582,7 +582,7 @@ export function Marketplace() {
               </Badge>
             )}
             {searchQuery && (
-              <Badge className="rounded-full bg-[#e5f6f0] px-3 py-1 text-xs font-medium text-[#1e7b5a]">
+              <Badge className="rounded-full bg-[#e6f9ee] px-3 py-1 text-xs font-medium text-[#05B43D]">
                 {t('marketplace.searchLabel', 'Search')}: {searchQuery}
                 <button
                   className="ml-2 rounded-full p-0.5 hover:bg-white/60"
@@ -605,7 +605,7 @@ export function Marketplace() {
                   setSelectedType('all');
                   setSortBy('recent');
                 }}
-                className="h-7 rounded-full px-3 text-xs font-semibold text-[#1e7b5a] hover:bg-[#e5f6f0]"
+                className="h-7 rounded-full px-3 text-xs font-semibold text-[#05B43D] hover:bg-[#e6f9ee]"
               >
                 {t('marketplace.clearAll', 'Clear all')}
               </Button>
@@ -686,7 +686,7 @@ export function Marketplace() {
                   <CardFooter className="flex items-center justify-between p-4 pt-0 text-xs text-[#7a7a7a]">
                     <span className="truncate">{seller?.name || t('marketplace.unknownSeller', 'Unknown Seller')}</span>
                     <button
-                      className="text-xs font-semibold text-[#1e7b5a] hover:text-[#155c44]"
+                      className="text-xs font-semibold text-[#05B43D] hover:text-[#018F2D]"
                       onClick={(e) => {
                         e.stopPropagation();
                         navigate(`/item/${item.id}`);
@@ -716,7 +716,7 @@ export function Marketplace() {
                     setSelectedType('all');
                     setSortBy('recent');
                   }}
-                  className="rounded-full border-[#e6e0dc] text-[#1e7b5a] hover:bg-[#e5f6f0]"
+                  className="rounded-full border-[#e6e0dc] text-[#05B43D] hover:bg-[#e6f9ee]"
                 >
                   {t('marketplace.clearFilters', 'Clear Filters')}
                 </Button>

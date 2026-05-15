@@ -133,9 +133,9 @@ export function Profile() {
 
   if (isLoadingProfile && !isOwnProfile) {
     return (
-      <div className="min-h-screen bg-[#f5f7f6] py-8">
+      <div className="min-h-screen bg-[#FFFFFF] py-8">
         <div className="w-full px-4 lg:px-8 xl:px-12">
-          <Card className="rounded-2xl border border-[#d3e3dc] bg-white p-8 text-center shadow-sm">
+          <Card className="rounded-2xl border border-[#DDE3E2] bg-white p-8 text-center shadow-sm">
             <div className="inline-flex items-center gap-2 text-[#0f6f58]">
               <Loader2 className="h-4 w-4 animate-spin" />
               Loading profile...
@@ -148,10 +148,10 @@ export function Profile() {
 
   if (!viewedUser) {
     return (
-      <div className="min-h-screen bg-[#f5f7f6] py-8">
+      <div className="min-h-screen bg-[#FFFFFF] py-8">
         <div className="w-full px-4 lg:px-8 xl:px-12">
-          <Card className="rounded-2xl border border-[#d3e3dc] bg-white p-8 text-center shadow-sm">
-            <p className="text-sm text-[#4f6b62]">Profile not available.</p>
+          <Card className="rounded-2xl border border-[#DDE3E2] bg-white p-8 text-center shadow-sm">
+            <p className="text-sm text-[#4A4A4A]">Profile not available.</p>
           </Card>
         </div>
       </div>
@@ -321,10 +321,10 @@ export function Profile() {
   const nextSteps = completionItems.filter((item) => !item.complete);
 
   return (
-    <div className="min-h-screen bg-[#f5f7f6] py-8">
+    <div className="min-h-screen bg-[#FFFFFF] py-8">
       <div className="mx-auto flex w-full max-w-[1220px] flex-col gap-6 px-4 lg:px-6">
         <section className="space-y-4">
-          <div className="overflow-hidden rounded-2xl border border-[#d3e3dc] bg-white p-6 shadow-sm sm:p-8">
+          <div className="overflow-hidden rounded-2xl border border-[#DDE3E2] bg-white p-6 shadow-sm sm:p-8">
               <div className="flex flex-col gap-8">
                 <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
                   <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
@@ -349,7 +349,7 @@ export function Profile() {
                         <h1 className="text-3xl font-semibold leading-tight text-[#0b1f1a] sm:text-4xl">
                           {displayName}
                         </h1>
-                        <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-[#4f6b62]">
+                        <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-[#4A4A4A]">
                           <span className="inline-flex items-center gap-2">
                             <MapPin className="h-4 w-4 text-[#0f6f58]" />
                             {universityName}
@@ -385,7 +385,7 @@ export function Profile() {
                         className={
                           isEditing
                           ? 'rounded-full border-[#bdd8cd] bg-white px-5 text-[#124a3b] hover:bg-[#f3faf7]'
-                          : 'rounded-full bg-[#1FAF9A] px-5 text-white hover:bg-[#27b9a6]'
+                          : 'rounded-full bg-[#05B43D] px-5 text-white hover:bg-[#018F2D]'
                         }
                         onClick={() => {
                           if (isEditing) {
@@ -408,9 +408,9 @@ export function Profile() {
                   {heroMeta.map((item) => (
                     <div
                       key={item.label}
-                      className="rounded-2xl border border-[#d3e3dc] bg-[#f9fcfb] p-4 shadow-sm"
+                      className="rounded-2xl border border-[#DDE3E2] bg-[#f9fcfb] p-4 shadow-sm"
                     >
-                      <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-[#1FAF9A] text-white">
+                      <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-[#05B43D] text-white">
                         <item.icon className="h-4 w-4" />
                       </div>
                       <p className="mt-3 text-xs font-semibold uppercase tracking-[0.15em] text-[#5f7a71]">
@@ -429,7 +429,7 @@ export function Profile() {
             {summaryCards.map((card) => (
               <div
                 key={card.label}
-                className="rounded-2xl border border-[#d3e3dc] bg-white p-5 shadow-sm"
+                className="rounded-2xl border border-[#DDE3E2] bg-white p-5 shadow-sm"
               >
                 <div className={`inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br ${card.accent} text-white shadow-lg`}>
                   <card.icon className="h-5 w-5" />
@@ -438,11 +438,11 @@ export function Profile() {
                   {card.label}
                 </p>
                 <p className="mt-1 text-2xl font-semibold text-[#0f2c24]">{card.value}</p>
-                <p className="mt-1 text-sm text-[#4f6b62]">{card.caption}</p>
+                <p className="mt-1 text-sm text-[#4A4A4A]">{card.caption}</p>
               </div>
             ))}
 
-            <div className="rounded-2xl border border-[#1FAF9A] bg-[#1FAF9A] p-5 text-white shadow-sm">
+            <div className="rounded-2xl border border-[#05B43D] bg-[#05B43D] p-5 text-white shadow-sm">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[#bde9db]">
@@ -477,13 +477,13 @@ export function Profile() {
             <h2 className="mt-2 text-2xl font-semibold text-[#0b1f1a] sm:text-3xl">
               Profile details
             </h2>
-            <p className="mt-2 max-w-2xl text-sm text-[#4f6b62]">
+            <p className="mt-2 max-w-2xl text-sm text-[#4A4A4A]">
               Keep your profile sharp, trustworthy, and easy for other students to understand at a glance.
             </p>
           </div>
 
           <div className="grid gap-6 xl:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)]">
-              <Card className="rounded-2xl border border-[#d3e3dc] bg-white shadow-sm">
+              <Card className="rounded-2xl border border-[#DDE3E2] bg-white shadow-sm">
                 <CardHeader className="space-y-3">
                   <div className="inline-flex w-fit items-center gap-2 rounded-full bg-[#e8f5ef] px-3 py-1 text-xs font-semibold uppercase tracking-[0.15em] text-[#0f6f58]">
                     <User className="h-3.5 w-3.5" />
@@ -492,7 +492,7 @@ export function Profile() {
                   <CardTitle className="text-2xl font-semibold text-[#0b1f1a]">
                     {isEditing ? 'Polish your public profile' : 'The details students will see first'}
                   </CardTitle>
-                  <CardDescription className="max-w-2xl text-sm text-[#4f6b62]">
+                  <CardDescription className="max-w-2xl text-sm text-[#4A4A4A]">
                     {isEditing
                       ? 'Update the essentials that make you look credible, clear, and easy to trust.'
                       : 'These details shape how buyers and sellers experience your account across the marketplace.'}
@@ -582,7 +582,7 @@ export function Profile() {
                         <Button
                           onClick={handleSaveProfile}
                           disabled={uploadingProfilePicture}
-                          className="flex-1 rounded-full bg-[#1FAF9A] text-white hover:bg-[#27b9a6]"
+                          className="flex-1 rounded-full bg-[#05B43D] text-white hover:bg-[#018F2D]"
                         >
                           Save changes
                         </Button>
@@ -603,7 +603,7 @@ export function Profile() {
                       {detailCards.map((item) => (
                         <div
                           key={item.label}
-                          className="rounded-2xl border border-[#d3e3dc] bg-[#f9fcfb] p-4"
+                          className="rounded-2xl border border-[#DDE3E2] bg-[#f9fcfb] p-4"
                         >
                           <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-[#0f6f58] shadow-sm">
                             <item.icon className="h-4 w-4" />

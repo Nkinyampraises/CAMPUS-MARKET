@@ -230,7 +230,7 @@ export function AdminApprovals() {
                       <div className="grid w-full grid-cols-2 gap-2 md:w-auto md:grid-cols-1">
                         <Button
                           size="sm"
-                          className="w-full bg-[#1FAF9A] hover:bg-[#27b9a6]"
+                          className="w-full bg-[#05B43D] hover:bg-[#018F2D]"
                           onClick={() => handleApproveUser(user.id)}
                           disabled={actionLoading === user.id}
                         >

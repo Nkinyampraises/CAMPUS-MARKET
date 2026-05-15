@@ -211,7 +211,7 @@ export function AdminUniversities() {
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
             />
-            <Button className="w-full bg-[#1FAF9A] hover:bg-[#27b9a6] sm:w-auto" onClick={addUniversity} disabled={saving}>
+            <Button className="w-full bg-[#05B43D] hover:bg-[#018F2D] sm:w-auto" onClick={addUniversity} disabled={saving}>
               Add
             </Button>
           </div>

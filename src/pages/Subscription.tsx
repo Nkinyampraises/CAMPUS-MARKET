@@ -157,7 +157,7 @@ export function Subscription() {
                 </CardContent>
               </Card>
 
-              <Button className="w-full bg-[#1FAF9A] hover:bg-[#27b9a6]" size="lg" onClick={handleContinue}>
+              <Button className="w-full bg-[#05B43D] hover:bg-[#018F2D]" size="lg" onClick={handleContinue}>
                 <Check className="mr-2 h-4 w-4" />
                 <Smartphone className="mr-2 h-4 w-4" />
                 Continue to Payment Review

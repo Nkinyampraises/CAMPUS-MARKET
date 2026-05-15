@@ -274,7 +274,7 @@ export function SellerDashboard() {
               <Wallet className="mr-2 h-4 w-4" />
               Withdraw Funds
             </Button>
-            <Button className="w-full bg-[#1FAF9A] hover:bg-[#27b9a6] sm:w-auto" onClick={() => navigate('/add-listing')}>
+            <Button className="w-full bg-[#05B43D] hover:bg-[#018F2D] sm:w-auto" onClick={() => navigate('/add-listing')}>
               <Plus className="mr-2 h-4 w-4" />
               Add New Listing
             </Button>
@@ -421,7 +421,7 @@ export function SellerDashboard() {
                 <CardContent className="p-12 text-center">
                   <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-semibold mb-2">No listings yet</h3>
-                  <Button className="bg-[#1FAF9A] hover:bg-[#27b9a6]" onClick={() => navigate('/add-listing')}>
+                  <Button className="bg-[#05B43D] hover:bg-[#018F2D]" onClick={() => navigate('/add-listing')}>
                     <Plus className="mr-2 h-4 w-4" />
                     Add Listing
                   </Button>
@@ -437,7 +437,7 @@ export function SellerDashboard() {
                 <CardDescription>Chat with buyers.</CardDescription>
               </CardHeader>
               <CardContent>
-                <Button className="bg-[#1FAF9A] hover:bg-[#27b9a6] w-full" onClick={() => navigate('/messages')}>
+                <Button className="bg-[#05B43D] hover:bg-[#018F2D] w-full" onClick={() => navigate('/messages')}>
                   <MessageSquare className="mr-2 h-4 w-4" />
                   Open Messages
                 </Button>
@@ -489,7 +489,7 @@ export function SellerDashboard() {
               <Button variant="outline" onClick={() => setShowWithdrawDialog(false)}>
                 Cancel
               </Button>
-              <Button className="bg-[#1FAF9A] hover:bg-[#27b9a6]" disabled={withdrawing} onClick={handleWithdraw}>
+              <Button className="bg-[#05B43D] hover:bg-[#018F2D]" disabled={withdrawing} onClick={handleWithdraw}>
                 {withdrawing ? 'Processing...' : 'Withdraw to Mobile Money'}
               </Button>
             </div>

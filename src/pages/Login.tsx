@@ -92,7 +92,7 @@ export function Login() {
             </div>
 
             <h2 className="max-w-sm text-6xl font-bold leading-[1.03]">
-              Academic Commerce <span className="text-[#1FAF9A]">Redefined.</span>
+              Academic Commerce <span className="text-[#05B43D]">Redefined.</span>
             </h2>
             <p className="mt-8 max-w-[35rem] text-[1.95rem] leading-[1.45] text-emerald-50/90">
               The exclusive marketplace for Cameroon&apos;s academic community. Buy, sell, and trade with verified peers
@@ -160,7 +160,7 @@ export function Login() {
                   <Label htmlFor="password" className="text-[1.04rem] font-medium text-[#212121]">
                     Password
                   </Label>
-                  <Link to="/forgot-password" className="text-sm font-medium text-[#0b5d46] hover:underline">
+                  <Link to="/forgot-password" className="text-sm font-medium text-[#018F2D] hover:underline">
                     Forgot Password?
                   </Link>
                 </div>
@@ -182,7 +182,7 @@ export function Login() {
                   id="remember-device"
                   checked={rememberDevice}
                   onCheckedChange={(checked) => setRememberDevice(checked === true)}
-                  className="h-5 w-5 rounded-md border-[#c9d0cb] data-[state=checked]:border-[#1FAF9A] data-[state=checked]:bg-[#1FAF9A]"
+                  className="h-5 w-5 rounded-md border-[#c9d0cb] data-[state=checked]:border-[#05B43D] data-[state=checked]:bg-[#05B43D]"
                 />
                 <Label htmlFor="remember-device" className="cursor-pointer text-[1.02rem] font-normal text-[#404040]">
                   Remember me on this device
@@ -191,7 +191,7 @@ export function Login() {
 
               <Button
                 type="submit"
-                className="h-14 w-full rounded-xl bg-[#1FAF9A] text-[1.05rem] font-semibold text-white shadow-[0_20px_28px_-20px_rgba(31,175,154,0.6)] hover:bg-[#27b9a6]"
+                className="h-14 w-full rounded-xl bg-[#05B43D] text-[1.05rem] font-semibold text-white shadow-[0_20px_28px_-20px_rgba(31,175,154,0.6)] hover:bg-[#018F2D]"
                 disabled={loading}
               >
                 {loading ? (
@@ -220,7 +220,7 @@ export function Login() {
               </Button>
 
               {confirmationMessage && (
-                <Alert className="border-emerald-200/70 bg-emerald-50 text-[#0a5b44]">
+                <Alert className="border-emerald-200/70 bg-emerald-50 text-[#018F2D]">
                   <AlertDescription>
                     {confirmationMessage}{' '}
                     {confirmationLink && (
@@ -238,7 +238,7 @@ export function Login() {
                   type="button"
                   onClick={handleResendConfirmation}
                   disabled={resendingConfirmation}
-                  className="font-semibold text-[#0b5d46] underline-offset-2 hover:underline disabled:opacity-60"
+                  className="font-semibold text-[#018F2D] underline-offset-2 hover:underline disabled:opacity-60"
                 >
                   {resendingConfirmation ? 'Sending...' : 'Resend Confirmation'}
                 </button>

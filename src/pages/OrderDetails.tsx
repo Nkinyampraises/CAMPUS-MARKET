@@ -236,12 +236,12 @@ export function OrderDetails() {
   })();
 
   return (
-    <div className="min-h-screen bg-[#f5f7f6] py-8">
+    <div className="min-h-screen bg-[#FFFFFF] py-8">
       <div className="w-full px-4 lg:px-8 xl:px-12">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-3xl font-black tracking-tight text-[#082f28]">Order Details</h1>
-            <p className="mt-1 text-sm text-[#5f7e75]">Track escrow status, delivery proof, and confirmation steps.</p>
+            <p className="mt-1 text-sm text-[#8A8A8A]">Track escrow status, delivery proof, and confirmation steps.</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Badge className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${orderStatusClass}`}>
@@ -255,7 +255,7 @@ export function OrderDetails() {
 
         <div className="grid gap-6 lg:grid-cols-[1.35fr_0.95fr]">
           <div className="space-y-6">
-            <Card className="rounded-2xl border border-[#d3e3dc] bg-white shadow-sm">
+            <Card className="rounded-2xl border border-[#DDE3E2] bg-white shadow-sm">
               <CardContent className="p-5 sm:p-6">
                 <div className="grid gap-5 sm:grid-cols-[220px_minmax(0,1fr)]">
                   <div className="overflow-hidden rounded-2xl border border-[#dae7e1] bg-[#edf3f0]">
@@ -282,11 +282,11 @@ export function OrderDetails() {
                     </div>
 
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      <div className="rounded-xl border border-[#d8e6df] bg-[#f9fcfa] p-3">
+                      <div className="rounded-xl border border-[#d8e6df] bg-[#F3F5F4] p-3">
                         <p className="text-[11px] uppercase tracking-wide text-[#7f988f]">Amount</p>
                         <p className="mt-1 text-lg font-black text-[#0b5d4c]">{formatMoney(order.amount)}</p>
                       </div>
-                      <div className="rounded-xl border border-[#d8e6df] bg-[#f9fcfa] p-3">
+                      <div className="rounded-xl border border-[#d8e6df] bg-[#F3F5F4] p-3">
                         <p className="text-[11px] uppercase tracking-wide text-[#7f988f]">Created</p>
                         <p className="mt-1 text-sm font-semibold text-[#1b4a3f]">
                           {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : '-'}
@@ -298,7 +298,7 @@ export function OrderDetails() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-2xl border border-[#d3e3dc] bg-white shadow-sm">
+            <Card className="rounded-2xl border border-[#DDE3E2] bg-white shadow-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-xl text-[#103a31]">
                   <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-[#fff4de]">
@@ -309,16 +309,16 @@ export function OrderDetails() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div className="rounded-xl border border-[#d8e6df] bg-[#f9fcfa] p-3">
+                  <div className="rounded-xl border border-[#d8e6df] bg-[#F3F5F4] p-3">
                     <p className="text-[11px] uppercase tracking-wide text-[#7f988f]">Pickup Date</p>
                     <p className="mt-1 text-sm font-semibold text-[#1b4a3f]">{order.pickupDate || '-'}</p>
                   </div>
-                  <div className="rounded-xl border border-[#d8e6df] bg-[#f9fcfa] p-3">
+                  <div className="rounded-xl border border-[#d8e6df] bg-[#F3F5F4] p-3">
                     <p className="text-[11px] uppercase tracking-wide text-[#7f988f]">Pickup Time</p>
                     <p className="mt-1 text-sm font-semibold text-[#1b4a3f]">{order.pickupTime || '-'}</p>
                   </div>
                 </div>
-                <div className="rounded-xl border border-[#d8e6df] bg-[#f9fcfa] p-3">
+                <div className="rounded-xl border border-[#d8e6df] bg-[#F3F5F4] p-3">
                   <p className="inline-flex items-center gap-1 text-[11px] uppercase tracking-wide text-[#7f988f]">
                     <MapPin className="h-3.5 w-3.5" />
                     Pickup Point
@@ -341,11 +341,11 @@ export function OrderDetails() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-2xl border border-[#d3e3dc] bg-white shadow-sm">
+            <Card className="rounded-2xl border border-[#DDE3E2] bg-white shadow-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-xl text-[#103a31]">
                   <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-[#e9f5ef]">
-                    <CreditCard className="h-4 w-4 text-[#0b6a5a]" />
+                    <CreditCard className="h-4 w-4 text-[#018F2D]" />
                   </span>
                   Delivery & Escrow Confirmation
                 </CardTitle>
@@ -365,17 +365,17 @@ export function OrderDetails() {
                     <img
                       src={proofImageUrl}
                       alt="Delivery proof"
-                      className="w-full max-w-md rounded-xl border border-[#d6e4de] object-cover"
+                      className="w-full max-w-md rounded-xl border border-[#DDE3E2] object-cover"
                     />
                   </div>
                 ) : (
-                  <div className="rounded-xl border border-dashed border-[#c9dcd3] bg-[#f9fcfa] p-4 text-sm text-[#66837a]">
+                  <div className="rounded-xl border border-dashed border-[#c9dcd3] bg-[#F3F5F4] p-4 text-sm text-[#66837a]">
                     No delivery proof uploaded yet.
                   </div>
                 )}
 
                 {permissions?.canSellerUploadProof ? (
-                  <Card className="rounded-xl border border-[#d6e4de] bg-[#fcfefd] shadow-none">
+                  <Card className="rounded-xl border border-[#DDE3E2] bg-[#fcfefd] shadow-none">
                     <CardHeader>
                       <CardTitle className="text-base text-[#134037]">Seller Delivery Confirmation</CardTitle>
                       <CardDescription>Upload buyer handover proof to enable buyer confirmation.</CardDescription>
@@ -390,7 +390,7 @@ export function OrderDetails() {
                       <Button
                         onClick={handleSellerSubmitProof}
                         disabled={!proofUrl || saving || proofUploading}
-                        className="h-10 rounded-lg bg-[#1FAF9A] text-white hover:bg-[#27b9a6]"
+                        className="h-10 rounded-lg bg-[#05B43D] text-white hover:bg-[#018F2D]"
                       >
                         {proofUploading || saving ? (
                           <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -404,7 +404,7 @@ export function OrderDetails() {
                 ) : null}
 
                 {permissions?.isBuyer && order.status === 'paid_pending_delivery' ? (
-                  <Card className="rounded-xl border border-[#d6e4de] bg-[#fcfefd] shadow-none">
+                  <Card className="rounded-xl border border-[#DDE3E2] bg-[#fcfefd] shadow-none">
                     <CardHeader>
                       <CardTitle className="text-base text-[#134037]">Buyer Confirmation</CardTitle>
                       <CardDescription>Confirm only if you have received the item and are satisfied.</CardDescription>
@@ -437,7 +437,7 @@ export function OrderDetails() {
                       </div>
                       <div className="flex flex-wrap gap-2">
                         <Button
-                          className="h-10 rounded-lg bg-[#1FAF9A] text-white hover:bg-[#27b9a6]"
+                          className="h-10 rounded-lg bg-[#05B43D] text-white hover:bg-[#018F2D]"
                           onClick={handleBuyerConfirm}
                           disabled={saving || !receivedConfirmed}
                         >
@@ -461,10 +461,10 @@ export function OrderDetails() {
           </div>
 
           <div className="space-y-6">
-            <Card className="rounded-2xl border border-[#d3e3dc] bg-white shadow-sm">
+            <Card className="rounded-2xl border border-[#DDE3E2] bg-white shadow-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base text-[#103a31]">
-                  <UserRound className="h-4 w-4 text-[#0c6a5a]" />
+                  <UserRound className="h-4 w-4 text-[#018F2D]" />
                   Buyer Information
                 </CardTitle>
               </CardHeader>
@@ -477,7 +477,7 @@ export function OrderDetails() {
                       className="h-12 w-12 rounded-full border border-[#cadcd3] object-cover"
                     />
                   ) : (
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#e8f4ee] text-[#0f6a5a]">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#e6f9ee] text-[#0f6a5a]">
                       <UserRound className="h-5 w-5" />
                     </div>
                   )}
@@ -489,10 +489,10 @@ export function OrderDetails() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-2xl border border-[#d3e3dc] bg-white shadow-sm">
+            <Card className="rounded-2xl border border-[#DDE3E2] bg-white shadow-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base text-[#103a31]">
-                  <UserRound className="h-4 w-4 text-[#0c6a5a]" />
+                  <UserRound className="h-4 w-4 text-[#018F2D]" />
                   Seller Information
                 </CardTitle>
               </CardHeader>
@@ -503,20 +503,20 @@ export function OrderDetails() {
             </Card>
 
             {permissions?.isSeller ? (
-              <Card className="rounded-2xl border border-[#d3e3dc] bg-white shadow-sm">
+              <Card className="rounded-2xl border border-[#DDE3E2] bg-white shadow-sm">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base text-[#103a31]">
-                    <Wallet className="h-4 w-4 text-[#0c6a5a]" />
+                    <Wallet className="h-4 w-4 text-[#018F2D]" />
                     Seller Wallet
                   </CardTitle>
                   <CardDescription>Pending funds cannot be withdrawn.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm">
-                  <div className="rounded-xl border border-[#d8e6df] bg-[#f9fcfa] p-3">
+                  <div className="rounded-xl border border-[#d8e6df] bg-[#F3F5F4] p-3">
                     <p className="text-[11px] uppercase tracking-wide text-[#7f988f]">Pending Balance</p>
                     <p className="mt-1 font-semibold text-[#133f35]">{formatMoney(sellerWallet?.pendingBalance || 0)}</p>
                   </div>
-                  <div className="rounded-xl border border-[#d8e6df] bg-[#f9fcfa] p-3">
+                  <div className="rounded-xl border border-[#d8e6df] bg-[#F3F5F4] p-3">
                     <p className="text-[11px] uppercase tracking-wide text-[#7f988f]">Available Balance</p>
                     <p className="mt-1 font-semibold text-[#133f35]">{formatMoney(sellerWallet?.availableBalance || 0)}</p>
                   </div>

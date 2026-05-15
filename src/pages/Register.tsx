@@ -169,13 +169,13 @@ export function Register() {
           </div>
         </aside>
 
-        <Card className="rounded-3xl border border-[#d3e3dc] bg-white shadow-sm">
+        <Card className="rounded-3xl border border-[#DDE3E2] bg-white shadow-sm">
           <CardHeader className="pb-2">
             <div className="inline-flex w-fit items-center gap-2 rounded-full bg-[#e8f5ef] px-3 py-1 text-xs font-semibold uppercase tracking-[0.15em] text-[#0f6f58]">
               Create Account
             </div>
             <CardTitle className="mt-3 text-3xl font-semibold text-[#0b1f1a] sm:text-4xl">Join UNITRADE</CardTitle>
-            <CardDescription className="text-sm text-[#4f6b62]">
+            <CardDescription className="text-sm text-[#4A4A4A]">
               Fill in your details to create a verified student marketplace account.
             </CardDescription>
           </CardHeader>
@@ -267,7 +267,7 @@ export function Register() {
                 </div>
               </div>
 
-              <div className="space-y-3 rounded-2xl border border-[#d3e3dc] bg-[#f9fcfb] p-4">
+              <div className="space-y-3 rounded-2xl border border-[#DDE3E2] bg-[#f9fcfb] p-4">
                 <Label>Profile Picture (Optional)</Label>
                 <div className="flex items-center gap-4">
                   <Avatar className="h-16 w-16 border border-[#cfe0d8]">
@@ -352,7 +352,7 @@ export function Register() {
 
               <Button
                 type="submit"
-                className="h-14 w-full rounded-xl bg-[#1FAF9A] text-[1.05rem] font-semibold text-white shadow-[0_20px_28px_-20px_rgba(31,175,154,0.6)] hover:bg-[#27b9a6]"
+                className="h-14 w-full rounded-xl bg-[#05B43D] text-[1.05rem] font-semibold text-white shadow-[0_20px_28px_-20px_rgba(31,175,154,0.6)] hover:bg-[#018F2D]"
                 disabled={loading}
               >
                 {loading ? (

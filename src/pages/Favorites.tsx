@@ -123,7 +123,7 @@ export function Favorites() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f3f8f5] py-8">
+    <div className="min-h-screen bg-[#FFFFFF] py-8">
       <div className="w-full px-4 lg:px-8 xl:px-12">
         <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
@@ -131,7 +131,7 @@ export function Favorites() {
             <p className="mt-1 text-sm text-[#55766b]">
               Your curated collection of home essentials, tech finds, and practical daily-use items.
             </p>
-            <p className="mt-2 text-sm font-semibold text-[#0c6a5a]">{favoriteItems.length} item(s) saved</p>
+            <p className="mt-2 text-sm font-semibold text-[#018F2D]">{favoriteItems.length} item(s) saved</p>
           </div>
 
           <div className="flex w-full flex-col gap-2 md:w-auto md:flex-row md:items-center">
@@ -149,7 +149,7 @@ export function Favorites() {
               <select
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value as 'all' | 'sell' | 'rent')}
-                className="h-10 min-w-[155px] rounded-xl border border-[#c7ddd2] bg-white pl-9 pr-8 text-sm text-[#173f36] outline-none transition-colors focus:border-[#0c6a5a]"
+                className="h-10 min-w-[155px] rounded-xl border border-[#c7ddd2] bg-white pl-9 pr-8 text-sm text-[#173f36] outline-none transition-colors focus:border-[#018F2D]"
               >
                 <option value="all">All Types</option>
                 <option value="sell">For Sale</option>
@@ -161,7 +161,7 @@ export function Favorites() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as 'recent' | 'price-low' | 'price-high')}
-                className="h-10 min-w-[165px] rounded-xl border border-[#c7ddd2] bg-white pl-9 pr-8 text-sm text-[#173f36] outline-none transition-colors focus:border-[#0c6a5a]"
+                className="h-10 min-w-[165px] rounded-xl border border-[#c7ddd2] bg-white pl-9 pr-8 text-sm text-[#173f36] outline-none transition-colors focus:border-[#018F2D]"
               >
                 <option value="recent">Recently Added</option>
                 <option value="price-low">Price: Low to High</option>
@@ -181,7 +181,7 @@ export function Favorites() {
               </p>
               <Button
                 onClick={() => navigate('/marketplace')}
-                className="rounded-xl bg-[#0c6a5a] px-6 text-white hover:bg-[#0a594c]"
+                className="rounded-xl bg-[#018F2D] px-6 text-white hover:bg-[#0a594c]"
               >
                 <ShoppingBag className="mr-2 h-4 w-4" />
                 Browse Marketplace
@@ -202,7 +202,7 @@ export function Favorites() {
                   setFilterType('all');
                   setSortBy('recent');
                 }}
-                className="rounded-xl border-[#b9d4c8] text-[#0c6a5a] hover:bg-[#edf7f2]"
+                className="rounded-xl border-[#b9d4c8] text-[#018F2D] hover:bg-[#edf7f2]"
               >
                 Clear Filters
               </Button>
@@ -255,7 +255,7 @@ export function Favorites() {
                           <p className="text-[10px] font-semibold uppercase tracking-wide text-[#6f9186]">
                             {categoryLabel}
                           </p>
-                          <h3 className="mt-1 line-clamp-2 text-base font-bold leading-tight text-[#0f3a31]">
+                          <h3 className="mt-1 line-clamp-2 text-base font-bold leading-tight text-[#111111]">
                             {item?.title || 'Saved Item'}
                           </h3>
                         </div>
@@ -273,7 +273,7 @@ export function Favorites() {
                         </Badge>
                       </div>
 
-                      <p className="line-clamp-2 text-sm text-[#5f7f75]">
+                      <p className="line-clamp-2 text-sm text-[#8A8A8A]">
                         {item?.description || 'No description provided.'}
                       </p>
 
@@ -292,7 +292,7 @@ export function Favorites() {
                       <Button
                         className={cn(
                           'w-full rounded-xl text-sm font-semibold text-white',
-                          isFeatured ? 'bg-[#0c6a5a] hover:bg-[#0a584b]' : 'bg-[#0f3a31] hover:bg-[#0c2f28]',
+                          isFeatured ? 'bg-[#018F2D] hover:bg-[#0a584b]' : 'bg-[#111111] hover:bg-[#0c2f28]',
                         )}
                         onClick={() => navigate(`/item/${item.id}`)}
                       >
@@ -304,17 +304,17 @@ export function Favorites() {
               })}
             </div>
 
-            <div className="mt-10 rounded-3xl border border-dashed border-[#c6d8cf] bg-[#f7fbf8] px-6 py-12 text-center">
+            <div className="mt-10 rounded-3xl border border-dashed border-[#c6d8cf] bg-[#F3F5F4] px-6 py-12 text-center">
               <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[#e6f3ec]">
-                <Heart className="h-5 w-5 text-[#0c6a5a]" />
+                <Heart className="h-5 w-5 text-[#018F2D]" />
               </div>
               <h3 className="text-2xl font-extrabold tracking-tight text-[#103d34]">Finding more items?</h3>
-              <p className="mx-auto mt-2 max-w-xl text-sm text-[#5f7f75]">
+              <p className="mx-auto mt-2 max-w-xl text-sm text-[#8A8A8A]">
                 Keep browsing your favorite home essentials and discover more trusted marketplace deals.
               </p>
               <Button
                 onClick={() => navigate('/marketplace')}
-                className="mt-5 rounded-xl bg-[#0c6a5a] px-6 text-white hover:bg-[#0a594c]"
+                className="mt-5 rounded-xl bg-[#018F2D] px-6 text-white hover:bg-[#0a594c]"
               >
                 Browse Marketplace
               </Button>

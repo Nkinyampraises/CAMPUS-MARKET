@@ -361,16 +361,16 @@ export function ItemDetails() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f6f8f7] py-7">
+    <div className="min-h-screen bg-[#FFFFFF] py-7">
       <div className="w-full px-4 lg:px-8 xl:px-12">
         <div className="mb-4 flex flex-wrap items-center gap-1.5 text-xs font-medium text-[#5d7b72]">
-          <button type="button" className="hover:text-[#0c6a5a]" onClick={() => navigate('/marketplace')}>
+          <button type="button" className="hover:text-[#018F2D]" onClick={() => navigate('/marketplace')}>
             Marketplace
           </button>
           <ChevronRight className="h-3.5 w-3.5 text-[#92aba3]" />
           <span>{categoryLabel}</span>
           <ChevronRight className="h-3.5 w-3.5 text-[#92aba3]" />
-          <span className="max-w-[240px] truncate text-[#0f3a31]">{item.title}</span>
+          <span className="max-w-[240px] truncate text-[#111111]">{item.title}</span>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1.42fr)_minmax(360px,1fr)]">
@@ -382,7 +382,7 @@ export function ItemDetails() {
                 ) : (
                   <div className="flex h-full items-center justify-center text-sm text-[#6f8d84]">No image available</div>
                 )}
-                <Badge className="absolute right-3 top-3 rounded-full bg-[#e8f8ef] px-3 py-1 text-[10px] uppercase tracking-wide text-[#0c6a5a] hover:bg-[#d9f3e5]">
+                <Badge className="absolute right-3 top-3 rounded-full bg-[#e8f8ef] px-3 py-1 text-[10px] uppercase tracking-wide text-[#018F2D] hover:bg-[#d9f3e5]">
                   {item.type === 'sell' ? t('item.forSale', 'For Sale') : t('item.forRent', 'For Rent')}
                 </Badge>
               </div>
@@ -397,8 +397,8 @@ export function ItemDetails() {
                     onClick={() => setSelectedImageIndex(index)}
                     className={`relative overflow-hidden rounded-lg border ${
                       index === selectedImageIndex
-                        ? 'border-[#0c6a5a] ring-2 ring-[#0c6a5a]/20'
-                        : 'border-[#d6e4dd]'
+                        ? 'border-[#018F2D] ring-2 ring-[#018F2D]/20'
+                        : 'border-[#DDE3E2]'
                     } h-20 w-20 sm:h-24 sm:w-24`}
                     aria-label={`View image ${index + 1}`}
                   >
@@ -411,7 +411,7 @@ export function ItemDetails() {
                   <button
                     type="button"
                     onClick={() => setSelectedImageIndex(4)}
-                    className="flex h-20 w-20 items-center justify-center rounded-lg border border-[#d6e4dd] bg-[#f0f5f2] text-sm font-semibold text-[#4c6d63] sm:h-24 sm:w-24"
+                    className="flex h-20 w-20 items-center justify-center rounded-lg border border-[#DDE3E2] bg-[#f0f5f2] text-sm font-semibold text-[#4c6d63] sm:h-24 sm:w-24"
                   >
                     +{remainingThumbnailCount}
                   </button>
@@ -424,27 +424,27 @@ export function ItemDetails() {
             <Card className="rounded-2xl border border-[#d7e6de] bg-white shadow-sm">
               <CardContent className="space-y-5 p-5">
                 <div className="space-y-2">
-                  <Badge variant="secondary" className="rounded-full bg-[#ebf5f1] px-2.5 py-1 text-[10px] uppercase tracking-wide text-[#37685b]">
+                  <Badge variant="secondary" className="rounded-full bg-[#ebf5f1] px-2.5 py-1 text-[10px] uppercase tracking-wide text-[#018F2D]">
                     {categoryLabel}
                   </Badge>
-                  <h1 className="text-3xl font-extrabold leading-tight text-[#072c25]">{item.title}</h1>
+                  <h1 className="text-3xl font-extrabold leading-tight text-[#111111]">{item.title}</h1>
                   <div className="flex flex-wrap items-baseline gap-3">
                     <p className="text-[2rem] font-black leading-none text-[#004f3f]">{formatCurrency(Number(item.price || 0))}</p>
                     {comparePrice > 0 && (
                       <p className="text-sm font-medium text-[#80988f] line-through">{formatCurrency(comparePrice)}</p>
                     )}
                   </div>
-                  <p className="text-sm leading-relaxed text-[#5f7f75]">
+                  <p className="text-sm leading-relaxed text-[#8A8A8A]">
                     {item.description || 'No description available for this listing yet.'}
                   </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2.5">
-                  <div className="rounded-xl border border-[#d5e5dd] bg-[#f9fcfa] p-3">
+                  <div className="rounded-xl border border-[#d5e5dd] bg-[#F3F5F4] p-3">
                     <p className="text-[11px] uppercase tracking-wide text-[#7d968d]">{t('item.condition', 'Condition')}</p>
                     <p className="mt-1 text-sm font-semibold capitalize text-[#123b32]">{item.condition || 'Used'}</p>
                   </div>
-                  <div className="rounded-xl border border-[#d5e5dd] bg-[#f9fcfa] p-3">
+                  <div className="rounded-xl border border-[#d5e5dd] bg-[#F3F5F4] p-3">
                     <p className="text-[11px] uppercase tracking-wide text-[#7d968d]">Posted</p>
                     <p className="mt-1 text-sm font-semibold text-[#123b32]">{postedLabel}</p>
                   </div>
@@ -467,7 +467,7 @@ export function ItemDetails() {
 
                 {currentUser?.id !== item.sellerId ? (
                   <div className="space-y-2.5">
-                    <Button className="h-11 w-full rounded-lg bg-[#0c6a5a] text-[15px] font-semibold text-white hover:bg-[#0a594c]" onClick={handleBuyNow}>
+                    <Button className="h-11 w-full rounded-lg bg-[#018F2D] text-[15px] font-semibold text-white hover:bg-[#0a594c]" onClick={handleBuyNow}>
                       <ShoppingCart className="mr-2 h-4 w-4" />
                       {item.type === 'sell' ? t('item.buyNow', 'Buy Now') : t('item.rentNow', 'Rent Now')}
                     </Button>
@@ -528,7 +528,7 @@ export function ItemDetails() {
                   </div>
                   {currentUser?.id !== item.sellerId && (
                     <Button
-                      className="h-9 w-full rounded-lg bg-[#0c6a5a] text-sm font-semibold text-white hover:bg-[#0a594c]"
+                      className="h-9 w-full rounded-lg bg-[#018F2D] text-sm font-semibold text-white hover:bg-[#0a594c]"
                       onClick={handleContactSeller}
                     >
                       <MessageSquare className="mr-2 h-4 w-4" />
@@ -548,7 +548,7 @@ export function ItemDetails() {
               <h2 className="text-2xl font-extrabold text-[#0e3d34]">Related Deals</h2>
               <p className="text-sm text-[#708a81]">Recommended for your search in {categoryLabel}.</p>
             </div>
-            <Button variant="ghost" size="sm" className="text-[#0c6a5a] hover:bg-[#ebf6f1]" onClick={() => navigate('/marketplace')}>
+            <Button variant="ghost" size="sm" className="text-[#018F2D] hover:bg-[#ebf6f1]" onClick={() => navigate('/marketplace')}>
               View All
               <ChevronRight className="ml-1 h-4 w-4" />
             </Button>

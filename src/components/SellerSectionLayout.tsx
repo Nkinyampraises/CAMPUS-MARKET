@@ -136,10 +136,10 @@ export function SellerSectionLayout({ children }: SellerSectionLayoutProps) {
       className={cn(
         'flex w-full items-center gap-3 rounded-md px-3.5 py-2.5 text-left text-[0.97rem] font-medium transition-colors duration-200',
         item.active
-          ? 'bg-[#1FAF9A] text-[#053f3b]'
+          ? 'bg-[#05B43D] text-[#053f3b]'
           : item.tone === 'danger'
-            ? 'text-[#ff8c98] hover:bg-[#0b3f3f] hover:text-[#ffd3d9]'
-            : 'text-[#b6ddd2] hover:bg-[#0b3f3f] hover:text-[#ebfff8]',
+            ? 'text-[#ff8c98] hover:bg-[#018F2D] hover:text-[#ffd3d9]'
+            : 'text-[#b6ddd2] hover:bg-[#018F2D] hover:text-[#ebfff8]',
       )}
     >
       <item.icon
@@ -159,7 +159,7 @@ export function SellerSectionLayout({ children }: SellerSectionLayoutProps) {
   return (
     <div className="min-h-screen bg-[#eef4f1]">
       <div className="flex min-h-screen w-full flex-col lg:flex-row">
-        <div className="flex items-center justify-between bg-[#0F4C4C] px-4 py-3 text-white lg:hidden">
+        <div className="flex items-center justify-between bg-[#FFFFFF] px-4 py-3 text-white lg:hidden">
           <button
             type="button"
             onClick={() => setSidebarOpen(true)}
@@ -189,11 +189,11 @@ export function SellerSectionLayout({ children }: SellerSectionLayoutProps) {
           />
           <nav
             className={cn(
-              'absolute left-0 top-0 h-full w-[260px] bg-[#0F4C4C] shadow-xl transition-transform',
+              'absolute left-0 top-0 h-full w-[260px] bg-[#FFFFFF] shadow-xl transition-transform',
               sidebarOpen ? 'translate-x-0' : '-translate-x-full',
             )}
           >
-            <div className="flex items-center justify-between border-b border-[#0b3f3f] px-4 py-3 text-white">
+            <div className="flex items-center justify-between border-b border-[#018F2D] px-4 py-3 text-white">
               <span className="text-sm font-semibold">Seller Menu</span>
               <button
                 type="button"
@@ -205,15 +205,15 @@ export function SellerSectionLayout({ children }: SellerSectionLayoutProps) {
               </button>
             </div>
             <div className="space-y-1.5 p-3">{sellerItems.map(renderItem)}</div>
-            <div className="border-t border-[#0b3f3f]" />
+            <div className="border-t border-[#018F2D]" />
             <div className="space-y-1.5 p-3">{accountItems.map(renderItem)}</div>
           </nav>
         </div>
 
         <aside className="hidden lg:block lg:w-[248px] lg:shrink-0">
-          <nav className="h-full bg-[#0F4C4C]">
+          <nav className="h-full bg-[#FFFFFF]">
             <div className="space-y-1.5 p-3">{sellerItems.map(renderItem)}</div>
-            <div className="border-t border-[#0b3f3f]" />
+            <div className="border-t border-[#018F2D]" />
             <div className="space-y-1.5 p-3">{accountItems.map(renderItem)}</div>
           </nav>
         </aside>

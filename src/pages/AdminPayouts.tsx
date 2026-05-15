@@ -356,7 +356,7 @@ export function AdminPayouts() {
               Current provider payout mode may be real (CamPay) or mock depending on backend configuration.
             </p>
             <Button
-              className="bg-[#1FAF9A] hover:bg-[#27b9a6]"
+              className="bg-[#05B43D] hover:bg-[#018F2D]"
               disabled={
                 loading ||
                 withdrawingPlatformRevenue ||
@@ -489,7 +489,7 @@ export function AdminPayouts() {
                   </div>
                   <Button
                     size="sm"
-                    className="w-full bg-[#1FAF9A] hover:bg-[#27b9a6] sm:w-auto"
+                    className="w-full bg-[#05B43D] hover:bg-[#018F2D] sm:w-auto"
                     disabled={processingId === payout.sellerId || payout.pendingAmount <= 0 || !payout.canBePaid}
                     onClick={() => handleMarkPaid(payout)}
                   >

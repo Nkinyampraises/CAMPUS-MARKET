@@ -113,7 +113,7 @@ export function BuyerReport() {
               placeholder="Explain what happened..."
             />
           </div>
-          <Button className="bg-[#1FAF9A] hover:bg-[#27b9a6]" onClick={submitReport} disabled={submitting}>
+          <Button className="bg-[#05B43D] hover:bg-[#018F2D]" onClick={submitReport} disabled={submitting}>
             {submitting ? 'Submitting...' : 'Submit Report'}
           </Button>
         </CardContent>

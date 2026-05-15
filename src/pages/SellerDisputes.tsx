@@ -145,7 +145,7 @@ export function SellerDisputes() {
               placeholder="Describe the dispute..."
             />
           </div>
-          <Button className="bg-[#1FAF9A] hover:bg-[#27b9a6]" disabled={submitting} onClick={openDispute}>
+          <Button className="bg-[#05B43D] hover:bg-[#018F2D]" disabled={submitting} onClick={openDispute}>
             {submitting ? 'Opening...' : 'Open Dispute'}
           </Button>
         </CardContent>
