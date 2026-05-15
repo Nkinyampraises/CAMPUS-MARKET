@@ -81,13 +81,13 @@ export function Header() {
       <div className="w-full px-3 py-1.5 sm:px-4 sm:py-2">
         <div className="flex items-center gap-2 lg:gap-4">
           {/* Logo flush to the left edge */}
-          <Link to="/" className="flex shrink-0 items-center gap-2 transition-transform hover:scale-[1.01]">
-            <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border-2 border-[#05B43D] bg-[#e6f9ee] shadow-sm sm:h-11 sm:w-11">
-              <img src={appLogo} alt="UNITRADE" className="h-8 w-8 rounded-full object-cover sm:h-10 sm:w-10" />
+          <Link to="/" className="flex shrink-0 items-center gap-3 transition-transform hover:scale-[1.01]">
+            <span className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border-2 border-[#05B43D] bg-[#e6f9ee] shadow-sm sm:h-14 sm:w-14">
+              <img src={appLogo} alt="UNITRADE" className="h-11 w-11 rounded-full object-cover sm:h-13 sm:w-13" />
             </span>
-            <div className="hidden sm:block">
-              <p className="text-[1.35rem] font-extrabold leading-tight text-[#05B43D]">UNITRADE</p>
-              <p className="mt-1.5 text-[11px] font-medium text-[#8A8A8A]">{t('brand.universities', 'Cameroon Universities')}</p>
+            <div className="hidden sm:flex sm:flex-col sm:gap-0.5">
+              <p className="text-[1.6rem] font-extrabold leading-tight text-[#05B43D]">UNITRADE</p>
+              <p className="text-[13px] font-semibold text-[#4A4A4A]">{t('brand.universities', 'Cameroon Universities')}</p>
             </div>
           </Link>
 
