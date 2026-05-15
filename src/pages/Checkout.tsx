@@ -375,7 +375,7 @@ export function Checkout() {
         </Button>
 
         <div className="mb-5">
-          <h1 className="text-4xl font-black tracking-tight text-[#033d34]">Secure Checkout</h1>
+          <h1 className="text-4xl font-extrabold tracking-tight text-[#111111]">Secure <span className="text-[#05B43D]">Checkout</span></h1>
           <p className="mt-1 text-sm text-[#5e7e75]">
             Complete your purchase from the University of Buea Marketplace.
           </p>

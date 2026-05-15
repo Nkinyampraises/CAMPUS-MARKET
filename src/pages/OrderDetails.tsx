@@ -240,7 +240,7 @@ export function OrderDetails() {
       <div className="w-full px-4 lg:px-8 xl:px-12">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-black tracking-tight text-[#082f28]">Order Details</h1>
+            <h1 className="text-4xl font-extrabold tracking-tight text-[#111111]">Order <span className="text-[#05B43D]">Details</span></h1>
             <p className="mt-1 text-sm text-[#8A8A8A]">Track escrow status, delivery proof, and confirmation steps.</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">

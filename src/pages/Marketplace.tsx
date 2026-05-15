@@ -461,12 +461,12 @@ export function Marketplace() {
       <div className="mx-auto w-full max-w-none px-4 lg:px-6">
         <section className="mb-6 flex flex-wrap items-start justify-between gap-6">
           <div className="max-w-xl">
-            <h1 className="text-3xl font-semibold text-[#1f1f1f]">{t('marketplace.title', 'Student Marketplace')}</h1>
-            <p className="mt-2 text-sm text-[#6a6a6a]">
-              {t(
-                'marketplace.subtitle',
-                'Find the best deals on campus. Verified student sellers from top universities in Cameroon.',
-              )}
+            <h1 className="text-4xl font-extrabold text-[#111111]">
+              {t('marketplace.title', 'Student')} <span className="text-[#05B43D]">Marketplace</span>
+            </h1>
+            <p className="mt-3 text-base font-semibold text-[#4A4A4A]">
+              Find the best deals on campus. Verified student sellers{' '}
+              <span className="text-[#05B43D]">from top universities</span> in Cameroon.
             </p>
           </div>
           <div className="min-w-[200px]">

@@ -207,7 +207,7 @@ export function AddListing() {
           </div>
           <div className="mt-3 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <h1 className="text-3xl font-semibold text-[#0b1f1a] sm:text-4xl">Create a New Listing</h1>
+              <h1 className="text-4xl font-extrabold text-[#111111] sm:text-5xl">Create a <span className="text-[#05B43D]">New Listing</span></h1>
               <p className="mt-2 max-w-3xl text-sm text-[#4A4A4A]">
                 Add clear details, good photos, and accurate pricing to attract serious buyers faster.
               </p>

@@ -337,7 +337,7 @@ export function PaymentReview() {
           Back
         </Button>
 
-        <h1 className="text-[2.1rem] font-black tracking-tight text-[#111111]">Review your payment</h1>
+        <h1 className="text-4xl font-extrabold tracking-tight text-[#111111]">Review your <span className="text-[#05B43D]">Payment</span></h1>
         <p className="mt-1 max-w-2xl text-sm text-[#8A8A8A]">
           Verify the transaction details below before confirming. Funds will be held in escrow until item collection.
         </p>

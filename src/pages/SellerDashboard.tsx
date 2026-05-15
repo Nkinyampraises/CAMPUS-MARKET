@@ -266,7 +266,7 @@ export function SellerDashboard() {
       <div className="container mx-auto px-4">
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Seller Dashboard</h1>
+            <h1 className="text-4xl font-extrabold text-[#111111]"><span className="text-[#05B43D]">Seller</span> Dashboard</h1>
             <p className="text-muted-foreground">Manage listings, delivery proofs, and escrow releases.</p>
           </div>
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">

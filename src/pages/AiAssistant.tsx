@@ -780,8 +780,10 @@ export function AiAssistant() {
       <div className="mx-auto max-w-7xl px-4 lg:px-6">
         <section className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-semibold text-[#1f1f1f]">{t('assistant.title', 'Sasha AI Assistant')}</h1>
-            <p className="mt-2 text-sm text-[#6a6a6a]">
+            <h1 className="text-4xl font-extrabold text-[#111111]">
+              <span className="text-[#05B43D]">Sasha</span> {t('assistant.title', 'AI Assistant')}
+            </h1>
+            <p className="mt-3 text-base font-semibold text-[#4A4A4A]">
               {t(
                 'assistant.subtitle',
                 'Chat with AI to discover products, room arrangement ideas, and kitchen essentials.',
