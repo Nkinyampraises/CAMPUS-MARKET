@@ -76,17 +76,17 @@ export function Header() {
   const inactiveHeaderClass = 'text-[#4A4A4A] hover:bg-[#018F2D] hover:text-white';
 
   return (
-    <header className="sticky top-0 z-40 border-b border-[#018F2D] bg-[#FFFFFF] text-white">
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[2px] bg-gradient-to-r from-transparent via-[#05B43D] to-transparent" />
+    <header className="sticky top-0 z-40 border-b border-[#DDE3E2] bg-[#FFFFFF] text-[#111111] shadow-sm">
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[3px] bg-gradient-to-r from-transparent via-[#05B43D] to-transparent" />
       <div className="container mx-auto px-3 py-1.5 sm:px-4 sm:py-3">
         <div className="flex items-center justify-between gap-2 lg:gap-4">
           <Link to="/" className="group flex items-center gap-2.5 transition-transform hover:scale-[1.01]">
-            <span className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-[#DDE3E2] bg-[#F3F5F4] shadow-sm sm:h-12 sm:w-12">
+            <span className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border-2 border-[#05B43D] bg-[#e6f9ee] shadow-sm sm:h-12 sm:w-12">
               <img src={appLogo} alt="UNITRADE logo" className="relative h-8 w-8 rounded-full object-cover sm:h-10 sm:w-10" />
             </span>
             <div className="hidden md:block">
-              <h1 className="text-[2rem] font-bold leading-none tracking-tight text-white">UNITRADE</h1>
-              <p className="text-sm text-[#8A8A8A]">{t('brand.universities', 'Cameroon Universities')}</p>
+              <h1 className="text-[1.5rem] font-extrabold leading-none tracking-tight text-[#05B43D]">UNITRADE</h1>
+              <p className="text-xs font-medium text-[#8A8A8A]">{t('brand.universities', 'Cameroon Universities')}</p>
             </div>
           </Link>
 
@@ -145,7 +145,7 @@ export function Header() {
                     onClick={() => navigate('/add-listing')}
                     className={cn(
                       'hidden md:flex',
-                      isActive('/add-listing') ? activeHeaderClass : 'text-[#4A4A4A] hover:bg-[#0f4d62] hover:text-white',
+                      isActive('/add-listing') ? activeHeaderClass : 'text-[#4A4A4A] hover:bg-[#e6f9ee] hover:text-[#05B43D]',
                     )}
                   >
                     <Plus className="h-4 w-4 mr-2" />
@@ -160,7 +160,7 @@ export function Header() {
                     onClick={() => navigate('/favorites')}
                     className={cn(
                       'hidden md:flex',
-                      isActive('/favorites') ? activeHeaderClass : 'text-[#4A4A4A] hover:bg-[#0f4d62] hover:text-white',
+                      isActive('/favorites') ? activeHeaderClass : 'text-[#4A4A4A] hover:bg-[#e6f9ee] hover:text-[#05B43D]',
                     )}
                   >
                     <Heart className="h-4 w-4 mr-2" />
@@ -176,7 +176,7 @@ export function Header() {
                     'relative h-8 w-8 rounded-full p-0 sm:h-9 sm:w-9',
                     isActive('/messages')
                       ? activeHeaderClass
-                      : 'text-[#4A4A4A] hover:bg-[#0f4d62] hover:text-white',
+                      : 'text-[#4A4A4A] hover:bg-[#e6f9ee] hover:text-[#05B43D]',
                   )}
                 >
                   <MessageSquare className="h-4 w-4" />
@@ -187,7 +187,7 @@ export function Header() {
                     type="button"
                     onClick={() => navigate(profilePath)}
                     className={cn(
-                      'flex items-center gap-1.5 rounded-full border border-[#DDE3E2] px-1.5 py-1 text-white transition-colors',
+                      'flex items-center gap-1.5 rounded-full border border-[#DDE3E2] px-1.5 py-1 text-[#111111] transition-colors hover:border-[#05B43D]',
                       isActive(profilePath) ? activeHeaderClass : 'hover:bg-[#018F2D] hover:text-white',
                     )}
                     title={t('nav.profile', 'My Profile')}
@@ -212,7 +212,7 @@ export function Header() {
                           'h-8 rounded-full border border-[#DDE3E2] px-1.5 sm:h-9 sm:px-2',
                           isActive(profilePath)
                             ? activeHeaderClass
-                            : 'text-[#4A4A4A] hover:bg-[#0f4d62] hover:text-white',
+                            : 'text-[#4A4A4A] hover:bg-[#e6f9ee] hover:text-[#05B43D]',
                         )}
                       >
                         <Avatar className="h-6 w-6 sm:h-7 sm:w-7">
