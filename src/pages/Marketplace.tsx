@@ -663,30 +663,30 @@ export function Marketplace() {
                       <Heart className={`h-4 w-4 ${isSaved ? 'fill-[#e35166] text-[#e35166]' : 'text-[#8a8a8a]'}`} />
                     </button>
                     {item.seller?.university && (
-                      <Badge className="absolute left-3 bottom-3 rounded-full bg-[#111111] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-white">
+                      <Badge className="absolute bottom-3 left-3 rounded-full border-0 bg-black px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.15em] text-white opacity-100">
                         {t('marketplace.verifiedStudent', 'Verified Student')}
                       </Badge>
                     )}
                   </div>
 
                   <CardContent className="flex-1 space-y-3 p-4">
-                    <h3 className="line-clamp-1 text-sm font-semibold text-[#1f1f1f]">{item.title}</h3>
-                    <p className="line-clamp-2 text-xs text-[#777777]">
+                    <h3 className="line-clamp-1 text-base font-bold text-[#111111]">{item.title}</h3>
+                    <p className="line-clamp-2 text-sm font-semibold text-[#4A4A4A]">
                       {item.description || t('marketplace.noDescription', 'No description provided.')}
                     </p>
-                    <p className="text-lg font-semibold text-[#111111]">{formatCurrency(item.price)}</p>
-                    <div className="flex items-center gap-2 text-xs text-[#8a8a8a]">
+                    <p className="text-xl font-extrabold text-[#111111]">{formatCurrency(item.price)}</p>
+                    <div className="flex items-center gap-2 text-sm font-semibold text-[#8A8A8A]">
                       <span className="inline-flex items-center gap-1">
-                        <MapPin className="h-3 w-3" />
+                        <MapPin className="h-3.5 w-3.5" />
                         {resolveLocationLabel(item)}
                       </span>
                     </div>
                   </CardContent>
 
-                  <CardFooter className="flex items-center justify-between p-4 pt-0 text-xs text-[#7a7a7a]">
-                    <span className="truncate">{seller?.name || t('marketplace.unknownSeller', 'Unknown Seller')}</span>
+                  <CardFooter className="flex items-center justify-between p-4 pt-0">
+                    <span className="truncate text-sm font-semibold text-[#4A4A4A]">{seller?.name || t('marketplace.unknownSeller', 'Unknown Seller')}</span>
                     <button
-                      className="text-xs font-semibold text-[#05B43D] hover:text-[#018F2D]"
+                      className="text-sm font-bold text-[#05B43D] hover:text-[#018F2D]"
                       onClick={(e) => {
                         e.stopPropagation();
                         navigate(`/item/${item.id}`);

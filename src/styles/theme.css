@@ -284,13 +284,24 @@
 
   /* Body text: bold and readable across all pages */
   p {
-    font-size: 1rem;
+    font-size: 1.05rem;
     font-weight: 600;
-    line-height: 1.7;
+    line-height: 1.75;
   }
 
-  /* Subtitle / description text under headings */
-  .text-sm, .text-xs {
+  /* Override small text classes to be more readable */
+  .text-xs {
+    font-size: 0.82rem !important;
+    font-weight: 600;
+  }
+
+  .text-sm {
+    font-size: 0.95rem !important;
+    font-weight: 600;
+  }
+
+  .text-base {
+    font-size: 1.05rem;
     font-weight: 600;
   }
 
