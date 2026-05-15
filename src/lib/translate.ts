@@ -51,7 +51,7 @@ export async function translateText(
   if (cache[key]) return cache[key];
 
   try {
-    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text.trim())}&langpair=${from}|${to}`;
+    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text.trim())}&langpair=${from}|${to}&de=praisessasha8@gmail.com`;
     const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
     const data = await res.json();
 
