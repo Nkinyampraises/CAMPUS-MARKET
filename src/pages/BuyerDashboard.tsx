@@ -9,6 +9,7 @@ import { Bell, DollarSign, Flag, Heart, MessageSquare, PackageCheck, ShieldAlert
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
+import { T } from '@/components/T';
 
 const formatMoney = (value: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value || 0);
@@ -140,7 +141,7 @@ export function BuyerDashboard() {
       <div className="container mx-auto px-4">
         <div className="mb-8 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-4xl font-extrabold text-[#111111]"><span className="text-[#05B43D]">Buyer</span> Dashboard</h1>
+            <h1 className="text-4xl font-extrabold text-[#111111]"><span className="text-[#05B43D]"><T>Buyer</T></span> <T>Dashboard</T></h1>
             <p className="text-muted-foreground">Achats protégés par dépôt fiduciaire pour {currentUser.name}</p>
           </div>
         </div>
@@ -164,7 +165,7 @@ export function BuyerDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.pending}</div>
-              <p className="text-xs text-muted-foreground">En attente de confirmation vendeur</p>
+              <p className="text-xs text-muted-foreground"><T>En attente de confirmation vendeur</T></p>
             </CardContent>
           </Card>
 
@@ -175,7 +176,7 @@ export function BuyerDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-blue-600">{formatMoney(stats.totalSpent)}</div>
-              <p className="text-xs text-muted-foreground">Sur toutes les commandes</p>
+              <p className="text-xs text-muted-foreground"><T>Sur toutes les commandes</T></p>
             </CardContent>
           </Card>
 
@@ -186,16 +187,16 @@ export function BuyerDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-red-600">{favoriteItems.length}</div>
-              <p className="text-xs text-muted-foreground">Articles en liste de souhaits</p>
+              <p className="text-xs text-muted-foreground"><T>Articles en liste de souhaits</T></p>
             </CardContent>
           </Card>
         </div>
 
         <Tabs defaultValue="orders" className="space-y-4">
             <TabsList>
-              <TabsTrigger value="orders">Mes commandes</TabsTrigger>
+              <TabsTrigger value="orders"><T>Mes commandes</T></TabsTrigger>
               <TabsTrigger value="favorites">Saved Items ({safeFavoriteItems.length})</TabsTrigger>
-              <TabsTrigger value="messages">Messages</TabsTrigger>
+              <TabsTrigger value="messages"><T>Messages</T></TabsTrigger>
             </TabsList>
 
           <TabsContent value="orders" className="space-y-4">
@@ -203,7 +204,7 @@ export function BuyerDashboard() {
               <Card>
                 <CardHeader>
                   <CardTitle>Commandes en dépôt fiduciaire</CardTitle>
-                  <CardDescription>Statut de paiement et flux de confirmation de livraison.</CardDescription>
+                  <CardDescription><T>Statut de paiement et flux de confirmation de livraison.</T></CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
@@ -230,7 +231,7 @@ export function BuyerDashboard() {
                             variant="outline"
                             onClick={() => navigate(`/orders/${order.id}`)}
                           >
-                            View Order
+                            <T>View Order</T>
                           </Button>
                         </div>
                       </div>
@@ -242,10 +243,10 @@ export function BuyerDashboard() {
               <Card>
                 <CardContent className="p-12 text-center">
                   <ShoppingBag className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No orders yet</h3>
-                  <p className="text-muted-foreground mb-4">Start shopping to create your first escrow-protected order.</p>
+                  <h3 className="text-lg font-semibold mb-2"><T>No orders yet</T></h3>
+                  <p className="text-muted-foreground mb-4"><T>Start shopping to create your first escrow-protected order.</T></p>
                   <Button className="bg-[#05B43D] hover:bg-[#018F2D]" onClick={() => navigate('/marketplace')}>
-                    Browse Marketplace
+                    <T>Browse Marketplace</T>
                   </Button>
                 </CardContent>
               </Card>
@@ -265,7 +266,7 @@ export function BuyerDashboard() {
                       <h3 className="font-semibold mb-2 line-clamp-2">{item.title || 'Untitled item'}</h3>
                       <p className="text-lg font-bold text-green-600 mb-3">{formatMoney(item.price || 0)}</p>
                       <Button className="w-full" onClick={(e) => { e.stopPropagation(); navigate(`/item/${item.id}`); }}>
-                        View Details
+                        <T>View Details</T>
                       </Button>
                     </CardContent>
                   </Card>
@@ -275,10 +276,10 @@ export function BuyerDashboard() {
               <Card>
                 <CardContent className="p-12 text-center">
                   <Heart className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No saved items</h3>
-                  <p className="text-muted-foreground mb-4">Save items while browsing.</p>
+                  <h3 className="text-lg font-semibold mb-2"><T>No saved items</T></h3>
+                  <p className="text-muted-foreground mb-4"><T>Save items while browsing.</T></p>
                   <Button className="bg-[#05B43D] hover:bg-[#018F2D]" onClick={() => navigate('/marketplace')}>
-                    Browse Marketplace
+                    <T>Browse Marketplace</T>
                   </Button>
                 </CardContent>
               </Card>
@@ -288,13 +289,13 @@ export function BuyerDashboard() {
           <TabsContent value="messages">
             <Card>
               <CardHeader>
-                <CardTitle>Messages</CardTitle>
-                <CardDescription>Chat with sellers about your orders.</CardDescription>
+                <CardTitle><T>Messages</T></CardTitle>
+                <CardDescription><T>Chat with sellers about your orders.</T></CardDescription>
               </CardHeader>
               <CardContent>
                 <Button className="bg-[#05B43D] hover:bg-[#018F2D] w-full" onClick={() => navigate('/messages')}>
                   <MessageSquare className="mr-2 h-4 w-4" />
-                  Open Messages
+                  <T>Open Messages</T>
                 </Button>
               </CardContent>
             </Card>

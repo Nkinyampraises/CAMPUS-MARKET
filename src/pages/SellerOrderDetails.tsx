@@ -9,6 +9,7 @@ import { MeetupMap } from '@/components/MeetupMap';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
+import { T } from '@/components/T';
 
 const formatMoney = (value: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value || 0);
@@ -199,32 +200,32 @@ export function SellerOrderDetails() {
     <div className="container mx-auto px-4 py-8 max-w-5xl space-y-6">
       <Button variant="ghost" onClick={() => navigate('/seller/orders')}>
         <ArrowLeft className="h-4 w-4 mr-2" />
-        Back to Orders
+        <T>Back to Orders</T>
       </Button>
 
       {loading ? (
-        <p className="text-sm text-muted-foreground">Loading order details...</p>
+        <p className="text-sm text-muted-foreground"><T>Loading order details...</T></p>
       ) : !order ? (
-        <p className="text-sm text-muted-foreground">Order details not found.</p>
+        <p className="text-sm text-muted-foreground"><T>Order details not found.</T></p>
       ) : (
         <>
           <Card>
             <CardHeader>
-              <CardTitle>Order Details</CardTitle>
+              <CardTitle><T>Order Details</T></CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
-              <p><span className="text-muted-foreground">Order ID:</span> {order.id}</p>
-              <p><span className="text-muted-foreground">Item:</span> {listing?.title || order.listingTitle || '-'}</p>
-              <p><span className="text-muted-foreground">Amount:</span> {formatMoney(order.amount || 0)}</p>
+              <p><span className="text-muted-foreground"><T>Order ID:</T></span> {order.id}</p>
+              <p><span className="text-muted-foreground"><T>Item:</T></span> {listing?.title || order.listingTitle || '-'}</p>
+              <p><span className="text-muted-foreground"><T>Amount:</T></span> {formatMoney(order.amount || 0)}</p>
               <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">Status:</span>
+                <span className="text-muted-foreground"><T>Status:</T></span>
                 <Badge variant={order.status === 'delivered_released' ? 'default' : 'secondary'}>
                   {mapStatus(order.status)}
                 </Badge>
               </div>
-              <p><span className="text-muted-foreground">Created:</span> {order.createdAt ? new Date(order.createdAt).toLocaleString() : '-'}</p>
-              <p><span className="text-muted-foreground">Pickup:</span> {order.pickupDate || '-'} {order.pickupTime || '-'}</p>
-              <p><span className="text-muted-foreground">Location:</span> {order.pickupLocation || '-'}</p>
+              <p><span className="text-muted-foreground"><T>Created:</T></span> {order.createdAt ? new Date(order.createdAt).toLocaleString() : '-'}</p>
+              <p><span className="text-muted-foreground"><T>Pickup:</T></span> {order.pickupDate || '-'} {order.pickupTime || '-'}</p>
+              <p><span className="text-muted-foreground"><T>Location:</T></span> {order.pickupLocation || '-'}</p>
               {order.pickupLocation ? (
                 <div className="pt-2">
                   <MeetupMap
@@ -241,20 +242,20 @@ export function SellerOrderDetails() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Buyer Info</CardTitle>
+              <CardTitle><T>Buyer Info</T></CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
-              <p><span className="text-muted-foreground">Name:</span> {buyer?.name || '-'}</p>
-              <p><span className="text-muted-foreground">Email:</span> {buyer?.email || '-'}</p>
-              <p><span className="text-muted-foreground">Phone:</span> {buyer?.phone || '-'}</p>
+              <p><span className="text-muted-foreground"><T>Name:</T></span> {buyer?.name || '-'}</p>
+              <p><span className="text-muted-foreground"><T>Email:</T></span> {buyer?.email || '-'}</p>
+              <p><span className="text-muted-foreground"><T>Phone:</T></span> {buyer?.phone || '-'}</p>
               <div className="flex flex-wrap gap-2 pt-2">
                 <Button variant="outline" onClick={openChat}>
                   <MessageSquare className="h-4 w-4 mr-2" />
-                  Chat Buyer
+                  <T>Chat Buyer</T>
                 </Button>
                 <Button variant="outline" onClick={goToReport}>
                   <Flag className="h-4 w-4 mr-2" />
-                  Report Buyer
+                  <T>Report Buyer</T>
                 </Button>
               </div>
             </CardContent>
@@ -262,29 +263,29 @@ export function SellerOrderDetails() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Payment Info</CardTitle>
+              <CardTitle><T>Payment Info</T></CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
-              <p><span className="text-muted-foreground">Method:</span> {paymentMethodLabel(order.paymentMethod)}</p>
-              <p><span className="text-muted-foreground">Reference:</span> {order.transactionRef || '-'}</p>
-              <p><span className="text-muted-foreground">Transaction Fee:</span> {formatMoney(order.transactionFee || 0)}</p>
-              <p><span className="text-muted-foreground">Total Charged:</span> {formatMoney(order.totalCharged || order.amount || 0)}</p>
+              <p><span className="text-muted-foreground"><T>Method:</T></span> {paymentMethodLabel(order.paymentMethod)}</p>
+              <p><span className="text-muted-foreground"><T>Reference:</T></span> {order.transactionRef || '-'}</p>
+              <p><span className="text-muted-foreground"><T>Transaction Fee:</T></span> {formatMoney(order.transactionFee || 0)}</p>
+              <p><span className="text-muted-foreground"><T>Total Charged:</T></span> {formatMoney(order.totalCharged || order.amount || 0)}</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle>Seller Actions</CardTitle>
+              <CardTitle><T>Seller Actions</T></CardTitle>
             </CardHeader>
             <CardContent className="flex flex-wrap gap-2">
               <Button variant="outline" disabled={!canMutate || updating} onClick={() => applyDecision('accepted')}>
-                Accept Order
+                <T>Accept Order</T>
               </Button>
               <Button variant="outline" disabled={!canMutate || updating} onClick={() => applyDecision('rejected')}>
-                Reject Order
+                <T>Reject Order</T>
               </Button>
               <Button variant="outline" disabled={!canMutate || updating} onClick={markDelivered}>
-                Mark Delivered
+                <T>Mark Delivered</T>
               </Button>
             </CardContent>
           </Card>

@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from '@/app/components/ui/alert';
 import { Loader2, Mail, Lock, ShieldCheck, BadgeCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import appLogo from '@/assets/image/logoi.png';
+import { T } from '@/components/T';
 
 const loginHeroImage =
   'https://images.pexels.com/photos/9158720/pexels-photo-9158720.jpeg?cs=srgb&dl=pexels-mikhail-nilov-9158720.jpg&fm=jpg';
@@ -88,11 +89,11 @@ export function Login() {
           <div className="relative z-10 px-10 pt-10 text-white xl:px-14 xl:pt-12">
             <div className="mb-20 flex items-center gap-3">
               <img src={appLogo} alt="UNITRADE logo" className="h-11 w-11 rounded-2xl object-cover" />
-              <p className="text-[2rem] font-bold tracking-tight">UNITRADE</p>
+              <p className="text-[2rem] font-bold tracking-tight"><T>UNITRADE</T></p>
             </div>
 
             <h2 className="max-w-sm text-6xl font-bold leading-[1.03]">
-              Academic Commerce <span className="text-[#05B43D]">Redefined.</span>
+              <T>Academic Commerce</T><span className="text-[#05B43D]"><T>Redefined.</T></span>
             </h2>
             <p className="mt-8 max-w-[35rem] text-[1.95rem] leading-[1.45] text-emerald-50/90">
               The exclusive marketplace for Cameroon&apos;s academic community. Buy, sell, and trade with verified peers
@@ -102,11 +103,11 @@ export function Login() {
             <div className="mt-16 grid max-w-xl grid-cols-2 gap-10">
               <div className="space-y-1">
                 <p className="text-5xl font-semibold leading-none text-emerald-300">15k+</p>
-                <p className="text-[1.05rem] uppercase tracking-[0.2em] text-emerald-50/85">Active students</p>
+                <p className="text-[1.05rem] uppercase tracking-[0.2em] text-emerald-50/85"><T>Active students</T></p>
               </div>
               <div className="space-y-1 border-l border-emerald-200/40 pl-10">
                 <p className="text-5xl font-semibold leading-none text-emerald-300">24+</p>
-                <p className="text-[1.05rem] uppercase tracking-[0.2em] text-emerald-50/85">Partner institutions</p>
+                <p className="text-[1.05rem] uppercase tracking-[0.2em] text-emerald-50/85"><T>Partner institutions</T></p>
               </div>
             </div>
           </div>
@@ -114,20 +115,20 @@ export function Login() {
           <div className="relative z-10 flex items-center gap-10 px-10 pb-8 text-xs uppercase tracking-[0.18em] text-emerald-100/80 xl:px-14">
             <span className="inline-flex items-center gap-2">
               <ShieldCheck className="h-4 w-4" />
-              SSL secured
+              <T>SSL secured</T>
             </span>
             <span className="inline-flex items-center gap-2">
               <BadgeCheck className="h-4 w-4" />
-              Student verified
+              <T>Student verified</T>
             </span>
           </div>
         </section>
 
         <section className="flex items-center justify-center px-5 py-10 sm:px-9 lg:px-16 xl:px-20">
           <div className="w-full max-w-[520px]">
-            <h1 className="text-4xl font-bold leading-tight text-[#161616] sm:text-5xl">Welcome Back</h1>
+            <h1 className="text-4xl font-bold leading-tight text-[#161616] sm:text-5xl"><T>Welcome Back</T></h1>
             <p className="mt-4 max-w-md text-xl text-[#4b4b4b]">
-              Please enter your student credentials to access your account.
+              <T>Please enter your student credentials to access your account.</T>
             </p>
 
             <form onSubmit={handleSubmit} className="mt-10 space-y-6">
@@ -139,7 +140,7 @@ export function Login() {
 
               <div className="space-y-3">
                 <Label htmlFor="email" className="text-[1.04rem] font-medium text-[#212121]">
-                  Institutional Email
+                  <T>Institutional Email</T>
                 </Label>
                 <div className="relative">
                   <Mail className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#7f8b84]" />
@@ -158,10 +159,10 @@ export function Login() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-3">
                   <Label htmlFor="password" className="text-[1.04rem] font-medium text-[#212121]">
-                    Password
+                    <T>Password</T>
                   </Label>
                   <Link to="/forgot-password" className="text-sm font-medium text-[#018F2D] hover:underline">
-                    Forgot Password?
+                    <T>Forgot Password?</T>
                   </Link>
                 </div>
                 <div className="relative">
@@ -185,7 +186,7 @@ export function Login() {
                   className="h-5 w-5 rounded-md border-[#c9d0cb] data-[state=checked]:border-[#05B43D] data-[state=checked]:bg-[#05B43D]"
                 />
                 <Label htmlFor="remember-device" className="cursor-pointer text-[1.02rem] font-normal text-[#404040]">
-                  Remember me on this device
+                  <T>Remember me on this device</T>
                 </Label>
               </div>
 
@@ -197,7 +198,7 @@ export function Login() {
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Logging in...
+                    <T>Logging in...</T>
                   </>
                 ) : (
                   'Sign In to Account'
@@ -206,7 +207,7 @@ export function Login() {
 
               <div className="flex items-center gap-4 text-xs uppercase tracking-[0.2em] text-[#b8b8b8]">
                 <span className="h-px flex-1 bg-[#e1e1e1]" />
-                New to UNITRADE?
+                <T>New to UNITRADE?</T>
                 <span className="h-px flex-1 bg-[#e1e1e1]" />
               </div>
 
@@ -216,7 +217,7 @@ export function Login() {
                 asChild
                 className="h-14 w-full rounded-xl bg-[#e2e2e2] text-[1.05rem] font-semibold text-[#1e1e1e] hover:bg-[#d7d7d7]"
               >
-                <Link to="/register">Create Student Account</Link>
+                <Link to="/register"><T>Create Student Account</T></Link>
               </Button>
 
               {confirmationMessage && (
@@ -225,7 +226,7 @@ export function Login() {
                     {confirmationMessage}{' '}
                     {confirmationLink && (
                       <a href={confirmationLink} className="font-semibold underline underline-offset-2">
-                        Open confirmation link
+                        <T>Open confirmation link</T>
                       </a>
                     )}
                   </AlertDescription>
@@ -248,7 +249,7 @@ export function Login() {
             <div className="mt-12 flex items-center justify-center gap-8 text-[0.66rem] uppercase tracking-[0.2em] text-[#9b9b9b]">
               <span className="inline-flex items-center gap-2">
                 <BadgeCheck className="h-3.5 w-3.5" />
-                UB verified
+                <T>UB verified</T>
               </span>
               <span className="inline-flex items-center gap-2">
                 <ShieldCheck className="h-3.5 w-3.5" />
@@ -260,10 +261,10 @@ export function Login() {
               <p>© 2026 UNITRADE Cameroon</p>
               <div className="flex items-center gap-5">
                 <a href="#" className="hover:text-[#737373]">
-                  Privacy policy
+                  <T>Privacy policy</T>
                 </a>
                 <a href="#" className="hover:text-[#737373]">
-                  Terms of service
+                  <T>Terms of service</T>
                 </a>
               </div>
             </div>

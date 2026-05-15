@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
 import { fetchPublicCatalog, type NamedCatalogOption, resolveNamedCatalogLabel } from '@/lib/catalog';
+import { T } from '@/components/T';
 
 interface PendingUser {
   id: string;
@@ -147,9 +148,9 @@ export function AdminApprovals() {
     <div className="bg-background min-h-screen py-8">
       <div className="container mx-auto px-3 sm:px-4">
         <div className="mb-8">
-          <h1 className="mb-2 text-2xl font-bold sm:text-3xl">Account Approvals</h1>
+          <h1 className="mb-2 text-2xl font-bold sm:text-3xl"><T>Account Approvals</T></h1>
           <p className="text-muted-foreground">
-            Review and approve or deny student account registrations
+            <T>Review and approve or deny student account registrations</T>
           </p>
         </div>
 
@@ -157,7 +158,7 @@ export function AdminApprovals() {
           <CardHeader>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <CardTitle>Pending Approvals</CardTitle>
+                <CardTitle><T>Pending Approvals</T></CardTitle>
                 <CardDescription>
                   {pendingUsers.length} account{pendingUsers.length !== 1 ? 's' : ''} waiting for approval
                 </CardDescription>
@@ -168,7 +169,7 @@ export function AdminApprovals() {
             {loading ? (
               <div className="text-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-muted-foreground" />
-                <p className="text-muted-foreground">Loading pending approvals...</p>
+                <p className="text-muted-foreground"><T>Loading pending approvals...</T></p>
               </div>
             ) : pendingUsers.length > 0 ? (
               <div className="space-y-4">
@@ -185,7 +186,7 @@ export function AdminApprovals() {
                         <div className="mb-2 flex flex-wrap items-center gap-2">
                           <h3 className="font-semibold text-lg">{user.name}</h3>
                           <Badge variant="secondary" className="bg-orange-100 dark:bg-orange-900/35 text-orange-700 dark:text-orange-200">
-                            Pending
+                            <T>Pending</T>
                           </Badge>
                           {user.userType && (
                             <Badge
@@ -216,7 +217,7 @@ export function AdminApprovals() {
                           </div>
                           {user.studentId && (
                             <div className="flex items-center gap-2">
-                              <span className="font-medium">Student ID:</span>
+                              <span className="font-medium"><T>Student ID:</T></span>
                               {user.studentId}
                             </div>
                           )}
@@ -239,7 +240,7 @@ export function AdminApprovals() {
                           ) : (
                             <>
                               <CheckCircle className="mr-1 h-4 w-4" />
-                              Approve
+                              <T>Approve</T>
                             </>
                           )}
                         </Button>
@@ -261,9 +262,9 @@ export function AdminApprovals() {
             ) : (
               <div className="text-center py-12">
                 <CheckCircle className="h-12 w-12 text-green-600 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">All Caught Up!</h3>
+                <h3 className="text-lg font-semibold mb-2"><T>All Caught Up!</T></h3>
                 <p className="text-muted-foreground">
-                  No pending account approvals at the moment
+                  <T>No pending account approvals at the moment</T>
                 </p>
               </div>
             )}

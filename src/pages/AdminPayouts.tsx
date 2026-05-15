@@ -10,6 +10,7 @@ import { Loader2, Wallet } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
+import { T } from '@/components/T';
 
 interface Payout {
   sellerId: string;
@@ -287,8 +288,8 @@ export function AdminPayouts() {
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle>Platform Revenue Wallet</CardTitle>
-          <CardDescription>Withdraw platform revenue directly to the admin mobile money account.</CardDescription>
+          <CardTitle><T>Platform Revenue Wallet</T></CardTitle>
+          <CardDescription><T>Withdraw platform revenue directly to the admin mobile money account.</T></CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {platformWalletError ? (
@@ -298,26 +299,26 @@ export function AdminPayouts() {
           ) : null}
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <div className="rounded-lg border p-3">
-              <p className="text-xs text-muted-foreground">Available Revenue</p>
+              <p className="text-xs text-muted-foreground"><T>Available Revenue</T></p>
               <p className="text-xl font-bold text-green-600">
                 {formatMoney(platformWallet?.withdrawableBalance || 0)}
               </p>
             </div>
             <div className="rounded-lg border p-3">
-              <p className="text-xs text-muted-foreground">Pending Balance</p>
+              <p className="text-xs text-muted-foreground"><T>Pending Balance</T></p>
               <p className="text-xl font-bold text-orange-600">
                 {formatMoney(platformWallet?.pendingBalance || 0)}
               </p>
             </div>
             <div className="rounded-lg border p-3">
-              <p className="text-xs text-muted-foreground">Total Withdrawn</p>
+              <p className="text-xs text-muted-foreground"><T>Total Withdrawn</T></p>
               <p className="text-xl font-bold">{formatMoney(platformWallet?.totalWithdrawn || 0)}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
             <div className="space-y-2">
-              <Label htmlFor="platform-withdraw-amount">Withdrawal Amount (XAF)</Label>
+              <Label htmlFor="platform-withdraw-amount"><T>Withdrawal Amount (XAF)</T></Label>
               <Input
                 id="platform-withdraw-amount"
                 type="number"
@@ -329,7 +330,7 @@ export function AdminPayouts() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="platform-withdraw-phone">Mobile Money Number</Label>
+              <Label htmlFor="platform-withdraw-phone"><T>Mobile Money Number</T></Label>
               <Input
                 id="platform-withdraw-phone"
                 placeholder="671234567"
@@ -338,15 +339,15 @@ export function AdminPayouts() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="platform-withdraw-provider">Provider</Label>
+              <Label htmlFor="platform-withdraw-provider"><T>Provider</T></Label>
               <select
                 id="platform-withdraw-provider"
                 className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
                 value={platformWithdrawProvider}
                 onChange={(e) => setPlatformWithdrawProvider(e.target.value as 'mtn-momo' | 'orange-money')}
               >
-                <option value="mtn-momo">MTN Mobile Money</option>
-                <option value="orange-money">Orange Money</option>
+                <option value="mtn-momo"><T>MTN Mobile Money</T></option>
+                <option value="orange-money"><T>Orange Money</T></option>
               </select>
             </div>
           </div>
@@ -369,21 +370,21 @@ export function AdminPayouts() {
               {withdrawingPlatformRevenue ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Processing...
+                  <T>Processing...</T>
                 </>
               ) : (
                 <>
                   <Wallet className="mr-2 h-4 w-4" />
-                  Withdraw Revenue
+                  <T>Withdraw Revenue</T>
                 </>
               )}
             </Button>
           </div>
 
           <div className="space-y-2">
-            <p className="text-sm font-medium">Recent Platform Withdrawals</p>
+            <p className="text-sm font-medium"><T>Recent Platform Withdrawals</T></p>
             {(platformWallet?.withdrawals || []).length === 0 ? (
-              <p className="text-sm text-muted-foreground">No platform withdrawals yet.</p>
+              <p className="text-sm text-muted-foreground"><T>No platform withdrawals yet.</T></p>
             ) : (
               <div className="space-y-2">
                 {(platformWallet?.withdrawals || []).slice(0, 5).map((withdrawal) => (
@@ -409,25 +410,25 @@ export function AdminPayouts() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Gross Volume</CardTitle>
+            <CardTitle className="text-sm"><T>Gross Volume</T></CardTitle>
           </CardHeader>
           <CardContent className="text-2xl font-bold">{formatMoney(totals.gross)}</CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Net Payouts</CardTitle>
+            <CardTitle className="text-sm"><T>Net Payouts</T></CardTitle>
           </CardHeader>
           <CardContent className="text-2xl font-bold">{formatMoney(totals.net)}</CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Already Paid</CardTitle>
+            <CardTitle className="text-sm"><T>Already Paid</T></CardTitle>
           </CardHeader>
           <CardContent className="text-2xl font-bold text-green-600">{formatMoney(totals.paid)}</CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Pending Payout</CardTitle>
+            <CardTitle className="text-sm"><T>Pending Payout</T></CardTitle>
           </CardHeader>
           <CardContent className="text-2xl font-bold text-orange-600">{formatMoney(totals.pending)}</CardContent>
         </Card>
@@ -437,19 +438,19 @@ export function AdminPayouts() {
         <CardHeader>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
-              <CardTitle>Payout Queue</CardTitle>
-              <CardDescription>Process payouts from seller available wallet balances.</CardDescription>
+              <CardTitle><T>Payout Queue</T></CardTitle>
+              <CardDescription><T>Process payouts from seller available wallet balances.</T></CardDescription>
             </div>
             <Button variant="outline" onClick={fetchPayouts} disabled={loading}>
-              Refresh
+              <T>Refresh</T>
             </Button>
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
           {loading ? (
-            <div className="text-sm text-muted-foreground">Loading payouts...</div>
+            <div className="text-sm text-muted-foreground"><T>Loading payouts...</T></div>
           ) : payouts.length === 0 ? (
-            <div className="text-sm text-muted-foreground">No payout data yet.</div>
+            <div className="text-sm text-muted-foreground"><T>No payout data yet.</T></div>
           ) : (
             payouts.map((payout) => (
               <div key={payout.sellerId} className="border rounded-lg p-4">
@@ -462,11 +463,11 @@ export function AdminPayouts() {
                 </div>
                 <div className="mb-3 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2 md:grid-cols-5">
                   <div>
-                    <p className="text-muted-foreground">Transactions</p>
+                    <p className="text-muted-foreground"><T>Transactions</T></p>
                     <p className="font-medium">{payout.transactionCount}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Gross</p>
+                    <p className="text-muted-foreground"><T>Gross</T></p>
                     <p className="font-medium">{formatMoney(payout.grossAmount)}</p>
                   </div>
                   <div>
@@ -478,7 +479,7 @@ export function AdminPayouts() {
                     <p className="font-medium text-green-600">{formatMoney(payout.paidAmount)}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Pending</p>
+                    <p className="text-muted-foreground"><T>Pending</T></p>
                     <p className="font-medium text-orange-600">{formatMoney(payout.pendingAmount)}</p>
                   </div>
                 </div>
@@ -496,7 +497,7 @@ export function AdminPayouts() {
                     {processingId === payout.sellerId ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Processing...
+                        <T>Processing...</T>
                       </>
                     ) : (
                       <>

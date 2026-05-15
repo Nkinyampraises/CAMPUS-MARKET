@@ -11,6 +11,7 @@ const isMobileDevice = () =>
   (navigator.maxTouchPoints > 0 && window.innerWidth <= 1024);
 
 import { API_URL } from '@/lib/api';
+import { T } from '@/components/T';
 
 type PaymentContext = 'order' | 'subscription';
 
@@ -259,9 +260,9 @@ export function PaymentReview() {
           <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#e8f9f5]">
             <Smartphone className="h-7 w-7 text-[#05B43D]" />
           </div>
-          <h3 className="text-xl font-extrabold text-[#111111]">Scan to Pay</h3>
+          <h3 className="text-xl font-extrabold text-[#111111]"><T>Scan to Pay</T></h3>
           <p className="mt-1 text-sm text-[#8A8A8A]">
-            Point your phone camera at the QR code below
+            <T>Point your phone camera at the QR code below</T>
           </p>
         </div>
 
@@ -281,7 +282,7 @@ export function PaymentReview() {
         <ol className="mb-5 space-y-2.5 text-sm text-[#4A4A4A]">
           <li className="flex items-center gap-3">
             <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#05B43D] text-xs font-bold text-white">1</span>
-            Open your phone camera and scan the QR code
+            <T>Open your phone camera and scan the QR code</T>
           </li>
           <li className="flex items-center gap-3">
             <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#05B43D] text-xs font-bold text-white">2</span>
@@ -289,11 +290,11 @@ export function PaymentReview() {
           </li>
           <li className="flex items-center gap-3">
             <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#05B43D] text-xs font-bold text-white">3</span>
-            Tap <strong>Call</strong> then enter your <strong>MTN MoMo PIN</strong>
+            Tap <strong>Call</strong> then enter your <strong><T>MTN MoMo PIN</T></strong>
           </li>
           <li className="flex items-center gap-3">
             <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#018F2D] text-xs font-bold text-white">4</span>
-            Come back here and click <strong>"I've Paid"</strong>
+            <T>Come back here and click</T><strong>"I've Paid"</strong>
           </li>
         </ol>
 
@@ -307,7 +308,7 @@ export function PaymentReview() {
             I've Paid — Confirm Order
           </Button>
           <Button variant="ghost" className="w-full text-[#4A4A4A] hover:bg-[#e6f9ee]" onClick={() => setShowDesktopModal(false)}>
-            Cancel
+            <T>Cancel</T>
           </Button>
         </div>
 
@@ -337,7 +338,7 @@ export function PaymentReview() {
           Back
         </Button>
 
-        <h1 className="text-4xl font-extrabold tracking-tight text-[#111111]">Review your <span className="text-[#05B43D]">Payment</span></h1>
+        <h1 className="text-4xl font-extrabold tracking-tight text-[#111111]"><T>Review your</T><span className="text-[#05B43D]"><T>Payment</T></span></h1>
         <p className="mt-1 max-w-2xl text-sm text-[#8A8A8A]">
           Verify the transaction details below before confirming. Funds will be held in escrow until item collection.
         </p>
@@ -380,7 +381,7 @@ export function PaymentReview() {
                         <h3 className="line-clamp-2 text-base font-extrabold leading-tight text-[#111111]">{state.title}</h3>
                         <p className="text-xs text-[#8A8A8A]">{paymentMethodLabel} • Escrow protected</p>
                         <span className="mt-1 inline-flex items-center rounded-full bg-[#f4dcac] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#664600]">
-                          Academic Authenticated
+                          <T>Academic Authenticated</T>
                         </span>
                       </div>
                     </div>
@@ -393,7 +394,7 @@ export function PaymentReview() {
                       <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[#e6f9ee]">
                         <Smartphone className="h-4 w-4 text-[#018F2D]" />
                       </span>
-                      Mobile Money Authorization
+                      <T>Mobile Money Authorization</T>
                     </h3>
                     <p className="text-sm text-[#5f7c73]">
                       Please keep your phone ready. Fee example: {formatMoney(feeHintBaseAmount)} XAF + {formatMoney(feeHintAmount)} XAF.
@@ -422,7 +423,7 @@ export function PaymentReview() {
                   <span>{formatMoney(state.amount)} FCFA</span>
                 </div>
                 <div className="flex items-center justify-between text-[#8A8A8A]">
-                  <span>Platform Fee</span>
+                  <span><T>Platform Fee</T></span>
                   <span>{formatMoney(feeAmount)} FCFA</span>
                 </div>
                 <div className="flex items-center justify-between text-[#8A8A8A]">
@@ -435,7 +436,7 @@ export function PaymentReview() {
                 <div className="flex items-end justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold text-[#4A4A4A]">{t("payment.totalPayable", "Total Payable")}</p>
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[#8A8A8A]">Incl. VAT where applicable</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[#8A8A8A]"><T>Incl. VAT where applicable</T></p>
                   </div>
                   <p className="text-[2rem] font-black leading-none text-[#018F2D]">{formatMoney(totalAmount)} FCFA</p>
                 </div>
@@ -444,10 +445,10 @@ export function PaymentReview() {
               <div className="rounded-2xl border border-[#DDE3E2] bg-[#F3F5F4] p-3">
                 <p className="flex items-center gap-2 text-sm font-semibold text-[#018F2D]">
                   <ShieldCheck className="h-4 w-4 text-[#05B43D]" />
-                  Buyer Protection Active.
+                  <T>Buyer Protection Active.</T>
                 </p>
                 <p className="mt-1 text-xs text-[#8A8A8A]">
-                  Your money is safe until you confirm receipt of the item.
+                  <T>Your money is safe until you confirm receipt of the item.</T>
                 </p>
               </div>
 
@@ -466,17 +467,17 @@ export function PaymentReview() {
                 onClick={() => navigate(-1)}
                 disabled={submitting}
               >
-                Cancel Transaction
+                <T>Cancel Transaction</T>
               </Button>
 
               <div className="flex items-center justify-center gap-4 border-t border-[#e1ece7] pt-3 text-[11px] font-semibold uppercase tracking-wide text-[#7f9890]">
                 <span className="inline-flex items-center gap-1">
                   <Lock className="h-3.5 w-3.5" />
-                  Secure
+                  <T>Secure</T>
                 </span>
                 <span className="inline-flex items-center gap-1">
                   <Zap className="h-3.5 w-3.5" />
-                  Instant
+                  <T>Instant</T>
                 </span>
                 <span className="inline-flex items-center gap-1">
                   <Headset className="h-3.5 w-3.5" />

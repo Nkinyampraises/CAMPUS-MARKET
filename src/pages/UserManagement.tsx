@@ -6,6 +6,7 @@ import { Search, ChevronDown, Filter } from 'lucide-react';
 
 import { API_URL } from '@/lib/api';
 import { fetchPublicCatalog, type NamedCatalogOption, resolveNamedCatalogLabel } from '@/lib/catalog';
+import { T } from '@/components/T';
 
 interface User {
   id: string;
@@ -225,7 +226,7 @@ export function UserManagement() {
             okText="Yes"
             cancelText="No"
           >
-            <Button size="small" danger>Delete</Button>
+            <Button size="small" danger><T>Delete</T></Button>
           </Popconfirm>
         </Space>
       ),
@@ -241,14 +242,14 @@ export function UserManagement() {
       <section className="rounded-2xl border border-[#d7dede] bg-[#f7f9f9] p-4 sm:p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <h2 className="text-3xl font-bold leading-tight text-[#00524a]">User Registry</h2>
+            <h2 className="text-3xl font-bold leading-tight text-[#00524a]"><T>User Registry</T></h2>
             <p className="mt-1 text-[1rem] text-[#30424f]">
-              Manage institutional accounts and marketplace permissions across all campuses.
+              <T>Manage institutional accounts and marketplace permissions across all campuses.</T>
             </p>
           </div>
 
           <div className="self-start rounded-xl bg-[#edf2ef] px-4 py-2">
-            <p className="text-[0.67rem] font-semibold uppercase tracking-[0.12em] text-[#5a6c78]">Total Active</p>
+            <p className="text-[0.67rem] font-semibold uppercase tracking-[0.12em] text-[#5a6c78]"><T>Total Active</T></p>
             <p className="text-3xl font-bold text-[#004f47]">{activeUsersCount.toLocaleString()}</p>
           </div>
         </div>
@@ -270,7 +271,7 @@ export function UserManagement() {
               onChange={(e) => setUniversityInput(e.target.value)}
               className="h-11 w-full appearance-none rounded-xl border border-[#d8dede] bg-white px-3 pr-9 text-sm text-[#0f1111] outline-none transition focus:border-[#00524a] focus:ring-2 focus:ring-[#00524a]/15"
             >
-              <option value="all">All Universities</option>
+              <option value="all"><T>All Universities</T></option>
               {universityOptions.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
@@ -286,10 +287,10 @@ export function UserManagement() {
               onChange={(e) => setStatusInput(e.target.value as 'all' | 'approved' | 'pending' | 'banned')}
               className="h-11 w-full appearance-none rounded-xl border border-[#d8dede] bg-white px-3 pr-9 text-sm text-[#0f1111] outline-none transition focus:border-[#00524a] focus:ring-2 focus:ring-[#00524a]/15"
             >
-              <option value="all">All Statuses</option>
-              <option value="approved">Approved</option>
-              <option value="pending">Pending</option>
-              <option value="banned">Banned</option>
+              <option value="all"><T>All Statuses</T></option>
+              <option value="approved"><T>Approved</T></option>
+              <option value="pending"><T>Pending</T></option>
+              <option value="banned"><T>Banned</T></option>
             </select>
             <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#72828e]" />
           </div>
@@ -300,7 +301,7 @@ export function UserManagement() {
           className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[#013f3a] bg-[#05B43D] px-4 text-sm font-semibold text-white transition hover:bg-[#018F2D]"
           >
             <Filter className="h-3.5 w-3.5" />
-            Apply Filters
+            <T>Apply Filters</T>
           </button>
         </div>
       </section>

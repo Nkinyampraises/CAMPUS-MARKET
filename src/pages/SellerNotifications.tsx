@@ -8,6 +8,7 @@ import { CheckCheck } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
+import { T } from '@/components/T';
 
 export function SellerNotifications() {
   const navigate = useNavigate();
@@ -89,22 +90,22 @@ export function SellerNotifications() {
       <div className="mb-4 flex justify-end">
         <Button variant="outline" onClick={markAllAsRead} disabled={unreadCount === 0}>
           <CheckCheck className="h-4 w-4 mr-2" />
-          Mark All Read
+          <T>Mark All Read</T>
         </Button>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Seller Notifications</CardTitle>
+          <CardTitle><T>Seller Notifications</T></CardTitle>
           <CardDescription>
-            New order alerts - New message alerts - Payout status updates
+            <T>New order alerts - New message alerts - Payout status updates</T>
           </CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-sm text-muted-foreground">Loading notifications...</p>
+            <p className="text-sm text-muted-foreground"><T>Loading notifications...</T></p>
           ) : notifications.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No notifications yet.</p>
+            <p className="text-sm text-muted-foreground"><T>No notifications yet.</T></p>
           ) : (
             <div className="space-y-3">
               {notifications.map((notification) => (

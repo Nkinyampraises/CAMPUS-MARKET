@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
+import { T } from '@/components/T';
 
 function BarList({
   items,
@@ -21,7 +22,7 @@ function BarList({
   );
 
   if (!items.length) {
-    return <p className="text-sm text-muted-foreground">No data available.</p>;
+    return <p className="text-sm text-muted-foreground"><T>No data available.</T></p>;
   }
 
   return (
@@ -145,7 +146,7 @@ export function AdminAnalytics() {
     <div className="container mx-auto max-w-7xl space-y-6 px-3 py-8 sm:px-4">
       <Card>
         <CardHeader>
-          <CardTitle>Admin Analytics</CardTitle>
+          <CardTitle><T>Admin Analytics</T></CardTitle>
           <CardDescription>
             Daily listings, daily transactions, top categories, top universities, and top sellers.
           </CardDescription>
@@ -154,13 +155,13 @@ export function AdminAnalytics() {
 
       {loading ? (
         <Card>
-          <CardContent className="p-8 text-sm text-muted-foreground">Loading analytics...</CardContent>
+          <CardContent className="p-8 text-sm text-muted-foreground"><T>Loading analytics...</T></CardContent>
         </Card>
       ) : (
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
-              <CardTitle>Daily Listings Posted</CardTitle>
+              <CardTitle><T>Daily Listings Posted</T></CardTitle>
             </CardHeader>
             <CardContent>
               <BarList items={analytics.dailyListingsPosted} labelKey="date" valueKey="count" />
@@ -169,7 +170,7 @@ export function AdminAnalytics() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Daily Transactions</CardTitle>
+              <CardTitle><T>Daily Transactions</T></CardTitle>
             </CardHeader>
             <CardContent>
               <BarList items={analytics.dailyTransactions} labelKey="date" valueKey="count" />
@@ -178,7 +179,7 @@ export function AdminAnalytics() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Top Categories</CardTitle>
+              <CardTitle><T>Top Categories</T></CardTitle>
             </CardHeader>
             <CardContent>
               <BarList items={analytics.topCategories} labelKey="name" valueKey="count" />
@@ -187,7 +188,7 @@ export function AdminAnalytics() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Top Universities</CardTitle>
+              <CardTitle><T>Top Universities</T></CardTitle>
             </CardHeader>
             <CardContent>
               <BarList items={analytics.topUniversities} labelKey="name" valueKey="count" />
@@ -196,22 +197,22 @@ export function AdminAnalytics() {
 
           <Card className="xl:col-span-2">
             <CardHeader>
-              <CardTitle>Top Sellers</CardTitle>
+              <CardTitle><T>Top Sellers</T></CardTitle>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto border rounded-lg">
                 <table className="w-full min-w-[520px] text-sm">
                   <thead className="bg-muted/40">
                     <tr>
-                      <th className="text-left p-3">Seller</th>
-                      <th className="text-left p-3">Orders</th>
-                      <th className="text-left p-3">Amount</th>
+                      <th className="text-left p-3"><T>Seller</T></th>
+                      <th className="text-left p-3"><T>Orders</T></th>
+                      <th className="text-left p-3"><T>Amount</T></th>
                     </tr>
                   </thead>
                   <tbody>
                     {(analytics.topSellers || []).length === 0 ? (
                       <tr>
-                        <td colSpan={3} className="p-3 text-muted-foreground">No seller analytics available.</td>
+                        <td colSpan={3} className="p-3 text-muted-foreground"><T>No seller analytics available.</T></td>
                       </tr>
                     ) : (
                       analytics.topSellers.map((seller: any) => (

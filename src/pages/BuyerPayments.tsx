@@ -8,6 +8,7 @@ import { Download } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
+import { T } from '@/components/T';
 
 const formatMoney = (value: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value || 0);
@@ -67,12 +68,12 @@ export function BuyerPayments() {
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       <Card>
         <CardHeader>
-          <CardTitle>Payment History</CardTitle>
-          <CardDescription>All your transaction records</CardDescription>
+          <CardTitle><T>Payment History</T></CardTitle>
+          <CardDescription><T>All your transaction records</T></CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center gap-2">
-            <label htmlFor="payment-method-filter" className="text-sm text-muted-foreground">Filter by:</label>
+            <label htmlFor="payment-method-filter" className="text-sm text-muted-foreground"><T>Filter by:</T></label>
             <select
               id="payment-method-filter"
               className="border rounded-md h-9 px-3 text-sm"
@@ -80,16 +81,16 @@ export function BuyerPayments() {
               onChange={(e) => setFilterMethod(e.target.value as 'all' | 'mtn-momo' | 'orange-money' | 'cash')}
             >
               <option value="all">All</option>
-              <option value="mtn-momo">MTN MoMo</option>
-              <option value="orange-money">Orange Money</option>
+              <option value="mtn-momo"><T>MTN MoMo</T></option>
+              <option value="orange-money"><T>Orange Money</T></option>
               <option value="cash">Cash</option>
             </select>
           </div>
 
           {loading ? (
-            <p className="text-sm text-muted-foreground">Loading transactions...</p>
+            <p className="text-sm text-muted-foreground"><T>Loading transactions...</T></p>
           ) : filtered.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No transactions found for this filter.</p>
+            <p className="text-sm text-muted-foreground"><T>No transactions found for this filter.</T></p>
           ) : (
             <div className="space-y-3">
               {filtered.map((transaction) => (
@@ -111,7 +112,7 @@ export function BuyerPayments() {
                       onClick={() => navigate(`/buyer/receipt/${transaction.id}?kind=transaction`)}
                     >
                       <Download className="h-4 w-4 mr-2" />
-                      Download Receipt
+                      <T>Download Receipt</T>
                     </Button>
                   </div>
                 </div>

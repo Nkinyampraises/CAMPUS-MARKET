@@ -9,6 +9,7 @@ import { Switch } from '@/app/components/ui/switch';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
+import { T } from '@/components/T';
 
 export function SellerSettings() {
   const navigate = useNavigate();
@@ -96,18 +97,18 @@ export function SellerSettings() {
     <div className="container mx-auto px-4 py-8 max-w-4xl space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Seller Settings</CardTitle>
-          <CardDescription>Change password and notification preferences.</CardDescription>
+          <CardTitle><T>Seller Settings</T></CardTitle>
+          <CardDescription><T>Change password and notification preferences.</T></CardDescription>
         </CardHeader>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Change Password</CardTitle>
+          <CardTitle><T>Change Password</T></CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="space-y-1">
-            <Label htmlFor="seller-current-password">Current Password</Label>
+            <Label htmlFor="seller-current-password"><T>Current Password</T></Label>
             <PasswordInput
               id="seller-current-password"
               value={currentPassword}
@@ -115,7 +116,7 @@ export function SellerSettings() {
             />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="seller-new-password">New Password</Label>
+            <Label htmlFor="seller-new-password"><T>New Password</T></Label>
             <PasswordInput
               id="seller-new-password"
               value={newPassword}
@@ -123,7 +124,7 @@ export function SellerSettings() {
             />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="seller-confirm-password">Confirm New Password</Label>
+            <Label htmlFor="seller-confirm-password"><T>Confirm New Password</T></Label>
             <PasswordInput
               id="seller-confirm-password"
               value={confirmPassword}
@@ -138,11 +139,11 @@ export function SellerSettings() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Notification Preferences</CardTitle>
+          <CardTitle><T>Notification Preferences</T></CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-center justify-between">
-            <Label htmlFor="seller-notif-orders">New order alerts</Label>
+            <Label htmlFor="seller-notif-orders"><T>New order alerts</T></Label>
             <Switch
               id="seller-notif-orders"
               checked={notificationPreferences.orders}
@@ -152,7 +153,7 @@ export function SellerSettings() {
             />
           </div>
           <div className="flex items-center justify-between">
-            <Label htmlFor="seller-notif-messages">New message alerts</Label>
+            <Label htmlFor="seller-notif-messages"><T>New message alerts</T></Label>
             <Switch
               id="seller-notif-messages"
               checked={notificationPreferences.messages}
@@ -162,7 +163,7 @@ export function SellerSettings() {
             />
           </div>
           <div className="flex items-center justify-between">
-            <Label htmlFor="seller-notif-payouts">Payout status updates</Label>
+            <Label htmlFor="seller-notif-payouts"><T>Payout status updates</T></Label>
             <Switch
               id="seller-notif-payouts"
               checked={notificationPreferences.payments}

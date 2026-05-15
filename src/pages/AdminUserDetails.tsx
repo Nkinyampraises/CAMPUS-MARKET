@@ -6,6 +6,7 @@ import { Badge } from '@/app/components/ui/badge';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
+import { T } from '@/components/T';
 
 const formatMoney = (value: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value || 0);
@@ -60,37 +61,37 @@ export function AdminUserDetails() {
   return (
     <div className="container mx-auto max-w-7xl space-y-6 px-3 py-8 sm:px-4">
       {loading ? (
-        <p className="text-sm text-muted-foreground">Loading user details...</p>
+        <p className="text-sm text-muted-foreground"><T>Loading user details...</T></p>
       ) : !user ? (
-        <p className="text-sm text-muted-foreground">User not found.</p>
+        <p className="text-sm text-muted-foreground"><T>User not found.</T></p>
       ) : (
         <>
           <Card>
             <CardHeader>
-              <CardTitle>Full Profile View</CardTitle>
+              <CardTitle><T>Full Profile View</T></CardTitle>
               <CardDescription>{user.name}</CardDescription>
             </CardHeader>
             <CardContent className="grid grid-cols-1 gap-3 text-sm md:grid-cols-2">
-              <p className="break-words"><span className="text-muted-foreground">Name:</span> {user.name || '-'}</p>
-              <p className="break-all"><span className="text-muted-foreground">Email:</span> {user.email || '-'}</p>
-              <p className="break-words"><span className="text-muted-foreground">Phone:</span> {user.phone || '-'}</p>
-              <p className="break-words"><span className="text-muted-foreground">University:</span> {user.university || '-'}</p>
-              <p className="break-words"><span className="text-muted-foreground">Student ID:</span> {user.studentId || '-'}</p>
-              <p className="break-words"><span className="text-muted-foreground">Role:</span> {user.userType || '-'}</p>
-              <p className="break-words"><span className="text-muted-foreground">Rating:</span> {Number(user.rating || 0).toFixed(2)} ({user.reviewCount || 0} reviews)</p>
-              <p className="break-words"><span className="text-muted-foreground">Status:</span> {user.isBanned ? 'Banned' : 'Active'}</p>
+              <p className="break-words"><span className="text-muted-foreground"><T>Name:</T></span> {user.name || '-'}</p>
+              <p className="break-all"><span className="text-muted-foreground"><T>Email:</T></span> {user.email || '-'}</p>
+              <p className="break-words"><span className="text-muted-foreground"><T>Phone:</T></span> {user.phone || '-'}</p>
+              <p className="break-words"><span className="text-muted-foreground"><T>University:</T></span> {user.university || '-'}</p>
+              <p className="break-words"><span className="text-muted-foreground"><T>Student ID:</T></span> {user.studentId || '-'}</p>
+              <p className="break-words"><span className="text-muted-foreground"><T>Role:</T></span> {user.userType || '-'}</p>
+              <p className="break-words"><span className="text-muted-foreground"><T>Rating:</T></span> {Number(user.rating || 0).toFixed(2)} ({user.reviewCount || 0} reviews)</p>
+              <p className="break-words"><span className="text-muted-foreground"><T>Status:</T></span> {user.isBanned ? 'Banned' : 'Active'}</p>
             </CardContent>
           </Card>
 
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>User Activity Log</CardTitle>
-                <CardDescription>Recent platform events</CardDescription>
+                <CardTitle><T>User Activity Log</T></CardTitle>
+                <CardDescription><T>Recent platform events</T></CardDescription>
               </CardHeader>
               <CardContent>
                 {activityLog.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No activity log entries.</p>
+                  <p className="text-sm text-muted-foreground"><T>No activity log entries.</T></p>
                 ) : (
                   <div className="space-y-3 max-h-[420px] overflow-auto pr-1">
                     {activityLog.slice(0, 100).map((entry: any, index: number) => (
@@ -111,11 +112,11 @@ export function AdminUserDetails() {
 
             <Card>
               <CardHeader>
-                <CardTitle>User Listings</CardTitle>
+                <CardTitle><T>User Listings</T></CardTitle>
               </CardHeader>
               <CardContent>
                 {listings.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No listings.</p>
+                  <p className="text-sm text-muted-foreground"><T>No listings.</T></p>
                 ) : (
                   <div className="space-y-3 max-h-[420px] overflow-auto pr-1">
                     {listings.map((listing: any) => (
@@ -143,11 +144,11 @@ export function AdminUserDetails() {
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>Reviews Received</CardTitle>
+                <CardTitle><T>Reviews Received</T></CardTitle>
               </CardHeader>
               <CardContent>
                 {reviewsReceived.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No reviews received.</p>
+                  <p className="text-sm text-muted-foreground"><T>No reviews received.</T></p>
                 ) : (
                   <div className="space-y-3 max-h-[360px] overflow-auto pr-1">
                     {reviewsReceived.map((review: any) => (
@@ -166,11 +167,11 @@ export function AdminUserDetails() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Transactions History</CardTitle>
+                <CardTitle><T>Transactions History</T></CardTitle>
               </CardHeader>
               <CardContent>
                 {transactionsHistory.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No transactions.</p>
+                  <p className="text-sm text-muted-foreground"><T>No transactions.</T></p>
                 ) : (
                   <div className="space-y-3 max-h-[360px] overflow-auto pr-1">
                     {transactionsHistory.map((transaction: any) => (
@@ -197,11 +198,11 @@ export function AdminUserDetails() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Reports Against User</CardTitle>
+              <CardTitle><T>Reports Against User</T></CardTitle>
             </CardHeader>
             <CardContent>
               {reportsAgainstUser.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No reports against this user.</p>
+                <p className="text-sm text-muted-foreground"><T>No reports against this user.</T></p>
               ) : (
                 <div className="space-y-3 max-h-[360px] overflow-auto pr-1">
                   {reportsAgainstUser.map((report: any) => (

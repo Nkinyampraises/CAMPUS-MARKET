@@ -9,6 +9,7 @@ import { Switch } from '@/app/components/ui/switch';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
+import { T } from '@/components/T';
 
 export function Settings() {
   const navigate = useNavigate();
@@ -114,18 +115,18 @@ export function Settings() {
     <div className="container mx-auto px-4 py-8 max-w-4xl space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Settings</CardTitle>
-          <CardDescription>Change password, notification preferences, and privacy options.</CardDescription>
+          <CardTitle><T>Settings</T></CardTitle>
+          <CardDescription><T>Change password, notification preferences, and privacy options.</T></CardDescription>
         </CardHeader>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Change Password</CardTitle>
+          <CardTitle><T>Change Password</T></CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="space-y-1">
-            <Label htmlFor="current-password">Current Password</Label>
+            <Label htmlFor="current-password"><T>Current Password</T></Label>
             <PasswordInput
               id="current-password"
               value={currentPassword}
@@ -134,7 +135,7 @@ export function Settings() {
             />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="new-password">New Password</Label>
+            <Label htmlFor="new-password"><T>New Password</T></Label>
             <PasswordInput
               id="new-password"
               value={newPassword}
@@ -143,7 +144,7 @@ export function Settings() {
             />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="confirm-password">Confirm New Password</Label>
+            <Label htmlFor="confirm-password"><T>Confirm New Password</T></Label>
             <PasswordInput
               id="confirm-password"
               value={confirmPassword}
@@ -159,11 +160,11 @@ export function Settings() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Notification Preferences</CardTitle>
+          <CardTitle><T>Notification Preferences</T></CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-center justify-between">
-            <Label htmlFor="notif-messages">New message received</Label>
+            <Label htmlFor="notif-messages"><T>New message received</T></Label>
             <Switch
               id="notif-messages"
               checked={notificationPreferences.messages}
@@ -173,7 +174,7 @@ export function Settings() {
             />
           </div>
           <div className="flex items-center justify-between">
-            <Label htmlFor="notif-orders">Order updates</Label>
+            <Label htmlFor="notif-orders"><T>Order updates</T></Label>
             <Switch
               id="notif-orders"
               checked={notificationPreferences.orders}
@@ -183,7 +184,7 @@ export function Settings() {
             />
           </div>
           <div className="flex items-center justify-between">
-            <Label htmlFor="notif-payments">Payment alerts</Label>
+            <Label htmlFor="notif-payments"><T>Payment alerts</T></Label>
             <Switch
               id="notif-payments"
               checked={notificationPreferences.payments}
@@ -193,7 +194,7 @@ export function Settings() {
             />
           </div>
           <div className="flex items-center justify-between">
-            <Label htmlFor="notif-rentals">Rental reminders</Label>
+            <Label htmlFor="notif-rentals"><T>Rental reminders</T></Label>
             <Switch
               id="notif-rentals"
               checked={notificationPreferences.rentals}
@@ -207,11 +208,11 @@ export function Settings() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Privacy Options</CardTitle>
+          <CardTitle><T>Privacy Options</T></CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-center justify-between">
-            <Label htmlFor="privacy-phone">Show phone on profile</Label>
+            <Label htmlFor="privacy-phone"><T>Show phone on profile</T></Label>
             <Switch
               id="privacy-phone"
               checked={privacyOptions.showPhone}
@@ -221,7 +222,7 @@ export function Settings() {
             />
           </div>
           <div className="flex items-center justify-between">
-            <Label htmlFor="privacy-email">Show email on profile</Label>
+            <Label htmlFor="privacy-email"><T>Show email on profile</T></Label>
             <Switch
               id="privacy-email"
               checked={privacyOptions.showEmail}
@@ -231,7 +232,7 @@ export function Settings() {
             />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="profile-visibility">Profile visibility</Label>
+            <Label htmlFor="profile-visibility"><T>Profile visibility</T></Label>
             <select
               id="profile-visibility"
               className="w-full border rounded-md h-10 px-3 text-sm"
@@ -243,8 +244,8 @@ export function Settings() {
                 }))
               }
             >
-              <option value="public">Public</option>
-              <option value="private">Private</option>
+              <option value="public"><T>Public</T></option>
+              <option value="private"><T>Private</T></option>
             </select>
           </div>
           <Button className="bg-[#05B43D] hover:bg-[#018F2D]" onClick={handleSavePreferences} disabled={savingPreferences}>

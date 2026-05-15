@@ -7,6 +7,7 @@ import { Badge } from '@/app/components/ui/badge';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
+import { T } from '@/components/T';
 
 const dateLabel = (value: string | null | undefined) => {
   if (!value) return '-';
@@ -169,25 +170,25 @@ export function SellerRentals() {
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       <Card>
         <CardHeader>
-          <CardTitle>Seller Rentals</CardTitle>
-          <CardDescription>Show all rental transactions with actions.</CardDescription>
+          <CardTitle><T>Seller Rentals</T></CardTitle>
+          <CardDescription><T>Show all rental transactions with actions.</T></CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-sm text-muted-foreground">Loading rentals...</p>
+            <p className="text-sm text-muted-foreground"><T>Loading rentals...</T></p>
           ) : sortedRentals.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No rental transactions found.</p>
+            <p className="text-sm text-muted-foreground"><T>No rental transactions found.</T></p>
           ) : (
             <div className="overflow-x-auto border rounded-lg">
               <table className="w-full text-sm">
                 <thead className="bg-muted/40">
                   <tr>
                     <th className="text-left p-3">Item</th>
-                    <th className="text-left p-3">Rental Start</th>
-                    <th className="text-left p-3">Rental End</th>
-                    <th className="text-left p-3">Buyer</th>
-                    <th className="text-left p-3">Status</th>
-                    <th className="text-left p-3">Actions</th>
+                    <th className="text-left p-3"><T>Rental Start</T></th>
+                    <th className="text-left p-3"><T>Rental End</T></th>
+                    <th className="text-left p-3"><T>Buyer</T></th>
+                    <th className="text-left p-3"><T>Status</T></th>
+                    <th className="text-left p-3"><T>Actions</T></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -217,7 +218,7 @@ export function SellerRentals() {
                               disabled={locked || updatingId === order.id}
                               onClick={() => applyDecision(order.id, 'accepted')}
                             >
-                              Accept Rental
+                              <T>Accept Rental</T>
                             </Button>
                             <Button
                               size="sm"
@@ -225,7 +226,7 @@ export function SellerRentals() {
                               disabled={locked || updatingId === order.id}
                               onClick={() => applyDecision(order.id, 'rejected')}
                             >
-                              Reject
+                              <T>Reject</T>
                             </Button>
                             <Button
                               size="sm"
@@ -233,7 +234,7 @@ export function SellerRentals() {
                               disabled={locked || updatingId === order.id}
                               onClick={() => markReturned(order.id)}
                             >
-                              Mark Returned
+                              <T>Mark Returned</T>
                             </Button>
                           </div>
                         </td>

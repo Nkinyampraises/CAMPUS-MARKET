@@ -10,6 +10,7 @@ import { ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
+import { T } from '@/components/T';
 const RETURNED_KEY = 'buyerReturnedRentals';
 
 const formatMoney = (value: number) =>
@@ -150,31 +151,31 @@ export function RentalDetails() {
     <div className="container mx-auto px-4 py-8 max-w-4xl space-y-6">
       <Button variant="ghost" onClick={() => navigate('/buyer/rentals')}>
         <ArrowLeft className="h-4 w-4 mr-2" />
-        Back to Rentals
+        <T>Back to Rentals</T>
       </Button>
 
       <Card>
         <CardHeader>
-          <CardTitle>Rental Details</CardTitle>
-          <CardDescription>Track rental status and request extension</CardDescription>
+          <CardTitle><T>Rental Details</T></CardTitle>
+          <CardDescription><T>Track rental status and request extension</T></CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-sm text-muted-foreground">Loading rental details...</p>
+            <p className="text-sm text-muted-foreground"><T>Loading rental details...</T></p>
           ) : !order ? (
-            <p className="text-sm text-muted-foreground">Rental details not found.</p>
+            <p className="text-sm text-muted-foreground"><T>Rental details not found.</T></p>
           ) : (
             <div className="space-y-2 text-sm">
-              <p><span className="text-muted-foreground">Item:</span> {listing?.title || order.listingTitle || '-'}</p>
-              <p><span className="text-muted-foreground">Rental period:</span> {rentalPeriod}</p>
-              <p><span className="text-muted-foreground">Rental start:</span> {startDate ? startDate.toLocaleDateString() : '-'}</p>
-              <p><span className="text-muted-foreground">Rental end:</span> {endDate ? endDate.toLocaleDateString() : '-'}</p>
-              <p><span className="text-muted-foreground">Total rental cost:</span> {formatMoney(order.amount || 0)}</p>
+              <p><span className="text-muted-foreground"><T>Item:</T></span> {listing?.title || order.listingTitle || '-'}</p>
+              <p><span className="text-muted-foreground"><T>Rental period:</T></span> {rentalPeriod}</p>
+              <p><span className="text-muted-foreground"><T>Rental start:</T></span> {startDate ? startDate.toLocaleDateString() : '-'}</p>
+              <p><span className="text-muted-foreground"><T>Rental end:</T></span> {endDate ? endDate.toLocaleDateString() : '-'}</p>
+              <p><span className="text-muted-foreground"><T>Total rental cost:</T></span> {formatMoney(order.amount || 0)}</p>
               <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">Status:</span>
+                <span className="text-muted-foreground"><T>Status:</T></span>
                 <Badge variant={status === 'active' ? 'default' : 'secondary'}>{status}</Badge>
               </div>
-              <p><span className="text-muted-foreground">Return tracking:</span> {isReturned ? 'Returned by buyer' : 'Not returned yet'}</p>
+              <p><span className="text-muted-foreground"><T>Return tracking:</T></span> {isReturned ? 'Returned by buyer' : 'Not returned yet'}</p>
               <div className="pt-2">
                 <Button variant="outline" onClick={markReturned} disabled={isReturned}>
                   {isReturned ? 'Already Returned' : 'Mark Returned'}
@@ -187,11 +188,11 @@ export function RentalDetails() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Request Extension</CardTitle>
+          <CardTitle><T>Request Extension</T></CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="space-y-1">
-            <Label htmlFor="extension-reason">Reason</Label>
+            <Label htmlFor="extension-reason"><T>Reason</T></Label>
             <Textarea
               id="extension-reason"
               rows={4}

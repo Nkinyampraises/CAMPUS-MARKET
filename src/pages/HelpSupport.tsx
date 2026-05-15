@@ -9,6 +9,7 @@ import { Textarea } from '@/app/components/ui/textarea';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
+import { T } from '@/components/T';
 
 const FAQS = [
   {
@@ -81,8 +82,8 @@ export function HelpSupport() {
     <div className="container mx-auto px-4 py-8 max-w-4xl space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Help / Support</CardTitle>
-          <CardDescription>FAQs and contact admin support form.</CardDescription>
+          <CardTitle><T>Help / Support</T></CardTitle>
+          <CardDescription><T>FAQs and contact admin support form.</T></CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {FAQS.map((item) => (
@@ -96,11 +97,11 @@ export function HelpSupport() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Contact Support</CardTitle>
+          <CardTitle><T>Contact Support</T></CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="space-y-1">
-            <Label htmlFor="support-subject">Subject</Label>
+            <Label htmlFor="support-subject"><T>Subject</T></Label>
             <Input
               id="support-subject"
               value={subject}
@@ -109,7 +110,7 @@ export function HelpSupport() {
             />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="support-message">Message</Label>
+            <Label htmlFor="support-message"><T>Message</T></Label>
             <Textarea
               id="support-message"
               value={message}

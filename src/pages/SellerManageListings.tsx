@@ -8,6 +8,7 @@ import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
+import { T } from '@/components/T';
 
 type ListingStatus = 'available' | 'sold' | 'rented' | 'reserved' | 'inactive';
 type NamedOption = { id: string; name: string };
@@ -207,19 +208,19 @@ export function SellerManageListings() {
       <div className="mb-4 flex justify-end">
         <Button className="bg-[#05B43D] hover:bg-[#018F2D]" onClick={() => navigate('/add-listing')}>
           <Plus className="h-4 w-4 mr-2" />
-          Add Listing
+          <T>Add Listing</T>
         </Button>
       </div>
 
       <Card>
         <CardHeader>
           <CardTitle>{t("nav.manageListings", "Manage Listings")}</CardTitle>
-          <CardDescription>Table view of all seller listings with filters and actions.</CardDescription>
+          <CardDescription><T>Table view of all seller listings with filters and actions.</T></CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="space-y-1">
-              <label htmlFor="listing-category" className="text-sm text-muted-foreground">Category</label>
+              <label htmlFor="listing-category" className="text-sm text-muted-foreground"><T>Category</T></label>
               <select
                 id="listing-category"
                 className="w-full border rounded-md h-10 px-3 text-sm"
@@ -235,7 +236,7 @@ export function SellerManageListings() {
               </select>
             </div>
             <div className="space-y-1">
-              <label htmlFor="listing-status" className="text-sm text-muted-foreground">Status</label>
+              <label htmlFor="listing-status" className="text-sm text-muted-foreground"><T>Status</T></label>
               <select
                 id="listing-status"
                 className="w-full border rounded-md h-10 px-3 text-sm"
@@ -268,19 +269,19 @@ export function SellerManageListings() {
           {loading ? (
             <p className="text-sm text-muted-foreground">{t("common.loading", "Loading listings...")}</p>
           ) : filteredListings.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No listings found for current filters.</p>
+            <p className="text-sm text-muted-foreground"><T>No listings found for current filters.</T></p>
           ) : (
             <div className="overflow-x-auto border rounded-lg">
               <table className="w-full text-sm">
                 <thead className="bg-muted/40">
                   <tr>
-                    <th className="text-left p-3">Title</th>
-                    <th className="text-left p-3">Category</th>
+                    <th className="text-left p-3"><T>Title</T></th>
+                    <th className="text-left p-3"><T>Category</T></th>
                     <th className="text-left p-3">Type</th>
-                    <th className="text-left p-3">Status</th>
-                    <th className="text-left p-3">Views</th>
-                    <th className="text-left p-3">Created</th>
-                    <th className="text-left p-3">Actions</th>
+                    <th className="text-left p-3"><T>Status</T></th>
+                    <th className="text-left p-3"><T>Views</T></th>
+                    <th className="text-left p-3"><T>Created</T></th>
+                    <th className="text-left p-3"><T>Actions</T></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -301,8 +302,8 @@ export function SellerManageListings() {
                           <Button size="sm" variant="outline" onClick={() => navigate(`/item/${listing.id}`)}>View</Button>
                           <Button size="sm" variant="outline" onClick={() => navigate(`/seller/edit-listing/${listing.id}`)}>{t("common.edit", "Edit")}</Button>
                           <Button size="sm" variant="outline" onClick={() => deleteListing(listing.id)}>{t("common.delete", "Delete")}</Button>
-                          <Button size="sm" variant="outline" onClick={() => updateStatus(listing.id, 'sold')}>Mark Sold</Button>
-                          <Button size="sm" variant="outline" onClick={() => updateStatus(listing.id, 'rented')}>Mark Rented</Button>
+                          <Button size="sm" variant="outline" onClick={() => updateStatus(listing.id, 'sold')}><T>Mark Sold</T></Button>
+                          <Button size="sm" variant="outline" onClick={() => updateStatus(listing.id, 'rented')}><T>Mark Rented</T></Button>
                         </div>
                       </td>
                     </tr>

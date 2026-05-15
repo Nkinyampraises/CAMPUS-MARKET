@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
 import { fetchPublicCatalog, type NamedCatalogOption, resolveNamedCatalogLabel } from '@/lib/catalog';
+import { T } from '@/components/T';
 
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat('fr-FR', {
@@ -127,7 +128,7 @@ export function Favorites() {
       <div className="w-full px-4 lg:px-8 xl:px-12">
         <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-[#013b36]">Saved Items</h1>
+            <h1 className="text-3xl font-extrabold tracking-tight text-[#013b36]"><T>Saved Items</T></h1>
             <p className="mt-1 text-sm text-[#55766b]">
               Your curated collection of home essentials, tech finds, and practical daily-use items.
             </p>
@@ -151,9 +152,9 @@ export function Favorites() {
                 onChange={(e) => setFilterType(e.target.value as 'all' | 'sell' | 'rent')}
                 className="h-10 min-w-[155px] rounded-xl border border-[#c7ddd2] bg-white pl-9 pr-8 text-sm text-[#173f36] outline-none transition-colors focus:border-[#018F2D]"
               >
-                <option value="all">All Types</option>
-                <option value="sell">For Sale</option>
-                <option value="rent">For Rent</option>
+                <option value="all"><T>All Types</T></option>
+                <option value="sell"><T>For Sale</T></option>
+                <option value="rent"><T>For Rent</T></option>
               </select>
             </div>
             <div className="relative">
@@ -163,9 +164,9 @@ export function Favorites() {
                 onChange={(e) => setSortBy(e.target.value as 'recent' | 'price-low' | 'price-high')}
                 className="h-10 min-w-[165px] rounded-xl border border-[#c7ddd2] bg-white pl-9 pr-8 text-sm text-[#173f36] outline-none transition-colors focus:border-[#018F2D]"
               >
-                <option value="recent">Recently Added</option>
-                <option value="price-low">Price: Low to High</option>
-                <option value="price-high">Price: High to Low</option>
+                <option value="recent"><T>Recently Added</T></option>
+                <option value="price-low"><T>Price: Low to High</T></option>
+                <option value="price-high"><T>Price: High to Low</T></option>
               </select>
             </div>
           </div>
@@ -175,25 +176,25 @@ export function Favorites() {
           <Card className="rounded-3xl border border-[#d2e4dc] bg-white">
             <CardContent className="py-14 text-center">
               <Package className="mx-auto mb-4 h-12 w-12 text-[#7f9b92]" />
-              <h3 className="mb-2 text-xl font-semibold text-[#113c32]">No saved items yet</h3>
+              <h3 className="mb-2 text-xl font-semibold text-[#113c32]"><T>No saved items yet</T></h3>
               <p className="mx-auto mb-6 max-w-md text-sm text-[#59796f]">
-                Start browsing and save items that match what you need for campus life.
+                <T>Start browsing and save items that match what you need for campus life.</T>
               </p>
               <Button
                 onClick={() => navigate('/marketplace')}
                 className="rounded-xl bg-[#018F2D] px-6 text-white hover:bg-[#0a594c]"
               >
                 <ShoppingBag className="mr-2 h-4 w-4" />
-                Browse Marketplace
+                <T>Browse Marketplace</T>
               </Button>
             </CardContent>
           </Card>
         ) : filteredItems.length === 0 ? (
           <Card className="rounded-3xl border border-[#d2e4dc] bg-white">
             <CardContent className="py-14 text-center">
-              <h3 className="mb-2 text-xl font-semibold text-[#113c32]">No items match your search</h3>
+              <h3 className="mb-2 text-xl font-semibold text-[#113c32]"><T>No items match your search</T></h3>
               <p className="mx-auto mb-6 max-w-md text-sm text-[#59796f]">
-                Try a different keyword or reset your filters to see all your saved items.
+                <T>Try a different keyword or reset your filters to see all your saved items.</T>
               </p>
               <Button
                 variant="outline"
@@ -204,7 +205,7 @@ export function Favorites() {
                 }}
                 className="rounded-xl border-[#b9d4c8] text-[#018F2D] hover:bg-[#edf7f2]"
               >
-                Clear Filters
+                <T>Clear Filters</T>
               </Button>
             </CardContent>
           </Card>
@@ -237,7 +238,7 @@ export function Favorites() {
                         />
                       ) : (
                         <div className="flex h-full items-center justify-center text-sm text-[#6a8c82]">
-                          No image available
+                          <T>No image available</T>
                         </div>
                       )}
                       <button
@@ -308,7 +309,7 @@ export function Favorites() {
               <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[#e6f3ec]">
                 <Heart className="h-5 w-5 text-[#018F2D]" />
               </div>
-              <h3 className="text-2xl font-extrabold tracking-tight text-[#103d34]">Finding more items?</h3>
+              <h3 className="text-2xl font-extrabold tracking-tight text-[#103d34]"><T>Finding more items?</T></h3>
               <p className="mx-auto mt-2 max-w-xl text-sm text-[#8A8A8A]">
                 Keep browsing your favorite home essentials and discover more trusted marketplace deals.
               </p>
@@ -316,7 +317,7 @@ export function Favorites() {
                 onClick={() => navigate('/marketplace')}
                 className="mt-5 rounded-xl bg-[#018F2D] px-6 text-white hover:bg-[#0a594c]"
               >
-                Browse Marketplace
+                <T>Browse Marketplace</T>
               </Button>
             </div>
           </>

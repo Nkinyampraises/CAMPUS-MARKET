@@ -9,6 +9,7 @@ import { Input } from '@/app/components/ui/input';
 import { Alert, AlertDescription } from '@/app/components/ui/alert';
 import { Check, Smartphone } from 'lucide-react';
 import { toast } from 'sonner';
+import { T } from '@/components/T';
 
 const plans = {
   seller: {
@@ -77,9 +78,9 @@ export function Subscription() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-3 sm:p-4">
       <Card className="w-full max-w-4xl">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl sm:text-3xl">Choose Your Subscription Plan</CardTitle>
+          <CardTitle className="text-2xl sm:text-3xl"><T>Choose Your Subscription Plan</T></CardTitle>
           <CardDescription>
-            Your trial has ended. Continue with secure mobile money payment.
+            <T>Your trial has ended. Continue with secure mobile money payment.</T>
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -117,21 +118,21 @@ export function Subscription() {
             <div className="space-y-6">
               <h3 className="text-lg font-semibold">2. Mobile Money Payment</h3>
               <div className="space-y-3">
-                <Label>Choose Method</Label>
+                <Label><T>Choose Method</T></Label>
                 <RadioGroup value={paymentMethod} onValueChange={(v: 'mtn-momo' | 'orange-money') => setPaymentMethod(v)}>
                   <div className="flex items-center space-x-2 border rounded-lg p-3">
                     <RadioGroupItem value="mtn-momo" id="mtn-method" />
-                    <Label htmlFor="mtn-method" className="cursor-pointer">MTN MoMo</Label>
+                    <Label htmlFor="mtn-method" className="cursor-pointer"><T>MTN MoMo</T></Label>
                   </div>
                   <div className="flex items-center space-x-2 border rounded-lg p-3">
                     <RadioGroupItem value="orange-money" id="orange-method" />
-                    <Label htmlFor="orange-method" className="cursor-pointer">Orange Money</Label>
+                    <Label htmlFor="orange-method" className="cursor-pointer"><T>Orange Money</T></Label>
                   </div>
                 </RadioGroup>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="subscription-phone">Phone Number</Label>
+                <Label htmlFor="subscription-phone"><T>Phone Number</T></Label>
                 <Input
                   id="subscription-phone"
                   type="tel"
@@ -149,7 +150,7 @@ export function Subscription() {
 
               <Card className="bg-gray-50">
                 <CardContent className="p-4">
-                  <p className="font-semibold mb-2">Order Summary</p>
+                  <p className="font-semibold mb-2"><T>Order Summary</T></p>
                   <div className="flex justify-between text-sm">
                     <p>{planDetails.name} Plan</p>
                     <p>{planDetails.price.toLocaleString()} XAF</p>
@@ -160,7 +161,7 @@ export function Subscription() {
               <Button className="w-full bg-[#05B43D] hover:bg-[#018F2D]" size="lg" onClick={handleContinue}>
                 <Check className="mr-2 h-4 w-4" />
                 <Smartphone className="mr-2 h-4 w-4" />
-                Continue to Payment Review
+                <T>Continue to Payment Review</T>
               </Button>
             </div>
           </div>

@@ -12,6 +12,7 @@ import { ImageUploader } from '@/components/ImageUploader';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
+import { T } from '@/components/T';
 
 type ListingType = 'sell' | 'rent';
 type RentalPeriod = 'daily' | 'weekly' | 'monthly';
@@ -255,7 +256,7 @@ export function SellerEditListing() {
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <p className="text-sm text-muted-foreground">Loading listing...</p>
+        <p className="text-sm text-muted-foreground"><T>Loading listing...</T></p>
       </div>
     );
   }
@@ -265,18 +266,18 @@ export function SellerEditListing() {
       <div className="container mx-auto px-4 max-w-4xl">
         <Button variant="ghost" className="mb-4" onClick={() => navigate('/seller/manage-listings')}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Listings
+          <T>Back to Listings</T>
         </Button>
 
         <Card>
           <CardHeader>
-            <CardTitle>Edit Listing</CardTitle>
-            <CardDescription>Edit listing details, images, and status.</CardDescription>
+            <CardTitle><T>Edit Listing</T></CardTitle>
+            <CardDescription><T>Edit listing details, images, and status.</T></CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={saveListing} className="space-y-5">
               <div className="space-y-2">
-                <Label htmlFor="title">Title</Label>
+                <Label htmlFor="title"><T>Title</T></Label>
                 <Input
                   id="title"
                   value={formData.title}
@@ -285,7 +286,7 @@ export function SellerEditListing() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="description"><T>Description</T></Label>
                 <Textarea
                   id="description"
                   rows={5}
@@ -296,7 +297,7 @@ export function SellerEditListing() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Category</Label>
+                  <Label><T>Category</T></Label>
                   <Select value={formData.category} onValueChange={(value) => setFormData((prev) => ({ ...prev, category: value }))}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select category" />
@@ -312,7 +313,7 @@ export function SellerEditListing() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Status</Label>
+                  <Label><T>Status</T></Label>
                   <Select value={formData.status} onValueChange={(value) => setFormData((prev) => ({ ...prev, status: value as ListingStatus }))}>
                     <SelectTrigger>
                       <SelectValue />
@@ -343,7 +344,7 @@ export function SellerEditListing() {
                 </div>
                 {formData.type === 'rent' ? (
                   <div className="space-y-2">
-                    <Label>Rental Period</Label>
+                    <Label><T>Rental Period</T></Label>
                     <Select
                       value={formData.rentalPeriod}
                       onValueChange={(value) => setFormData((prev) => ({ ...prev, rentalPeriod: value as RentalPeriod }))}
@@ -374,7 +375,7 @@ export function SellerEditListing() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Condition</Label>
+                  <Label><T>Condition</T></Label>
                   <Select value={formData.condition} onValueChange={(value) => setFormData((prev) => ({ ...prev, condition: value as Condition }))}>
                     <SelectTrigger>
                       <SelectValue />
@@ -390,7 +391,7 @@ export function SellerEditListing() {
               </div>
 
               <div className="space-y-2">
-                <Label>Location</Label>
+                <Label><T>Location</T></Label>
                 <Select value={formData.location} onValueChange={(value) => setFormData((prev) => ({ ...prev, location: value }))}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select location" />
@@ -407,7 +408,7 @@ export function SellerEditListing() {
               </div>
 
               <div className="space-y-3">
-                <Label>Images</Label>
+                <Label><T>Images</T></Label>
                 <ImageUploader
                   images={formData.images}
                   onChange={(images) => setFormData((prev) => ({ ...prev, images }))}
@@ -421,7 +422,7 @@ export function SellerEditListing() {
                         <img src={image} alt="Listing" className="w-full h-20 object-cover rounded" />
                         <Button size="sm" variant="outline" className="w-full" type="button" onClick={() => removeImage(image)}>
                           <Trash2 className="h-4 w-4 mr-2" />
-                          Remove
+                          <T>Remove</T>
                         </Button>
                       </div>
                     ))}
@@ -431,7 +432,7 @@ export function SellerEditListing() {
 
               <div className="flex gap-3">
                 <Button type="button" variant="outline" className="flex-1" onClick={() => navigate('/seller/manage-listings')} disabled={saving}>
-                  Cancel
+                  <T>Cancel</T>
                 </Button>
                 <Button type="submit" className="flex-1 bg-[#05B43D] hover:bg-[#018F2D]" disabled={saving}>
                   {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}

@@ -17,6 +17,7 @@ import { Bell, Loader2, Send } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
+import { T } from '@/components/T';
 
 interface Broadcast {
   id: string;
@@ -179,12 +180,12 @@ export function AdminNotifications() {
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle>Send Broadcast</CardTitle>
-          <CardDescription>Send announcements to buyers, sellers, or all users.</CardDescription>
+          <CardTitle><T>Send Broadcast</T></CardTitle>
+          <CardDescription><T>Send announcements to buyers, sellers, or all users.</T></CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="broadcast-title">Title</Label>
+            <Label htmlFor="broadcast-title"><T>Title</T></Label>
             <Input
               id="broadcast-title"
               value={title}
@@ -193,7 +194,7 @@ export function AdminNotifications() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="broadcast-message">Message</Label>
+            <Label htmlFor="broadcast-message"><T>Message</T></Label>
             <Textarea
               id="broadcast-message"
               value={message}
@@ -204,28 +205,28 @@ export function AdminNotifications() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Priority</Label>
+              <Label><T>Priority</T></Label>
               <Select value={priority} onValueChange={(v: 'normal' | 'high' | 'urgent') => setPriority(v)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="normal">Normal</SelectItem>
+                  <SelectItem value="normal"><T>Normal</T></SelectItem>
                   <SelectItem value="high">High</SelectItem>
-                  <SelectItem value="urgent">Urgent</SelectItem>
+                  <SelectItem value="urgent"><T>Urgent</T></SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Target</Label>
+              <Label><T>Target</T></Label>
               <Select value={target} onValueChange={(v: 'all' | 'buyers' | 'sellers') => setTarget(v)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All users</SelectItem>
-                  <SelectItem value="buyers">Buyers only</SelectItem>
-                  <SelectItem value="sellers">Sellers only</SelectItem>
+                  <SelectItem value="all"><T>All users</T></SelectItem>
+                  <SelectItem value="buyers"><T>Buyers only</T></SelectItem>
+                  <SelectItem value="sellers"><T>Sellers only</T></SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -238,12 +239,12 @@ export function AdminNotifications() {
             {submitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Sending...
+                <T>Sending...</T>
               </>
             ) : (
               <>
                 <Send className="mr-2 h-4 w-4" />
-                Send Broadcast
+                <T>Send Broadcast</T>
               </>
             )}
           </Button>
@@ -252,14 +253,14 @@ export function AdminNotifications() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Reports Inbox</CardTitle>
-          <CardDescription>All buyer/seller reports and support requests received by admin.</CardDescription>
+          <CardTitle><T>Reports Inbox</T></CardTitle>
+          <CardDescription><T>All buyer/seller reports and support requests received by admin.</T></CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           {supportLoading ? (
-            <div className="text-sm text-muted-foreground">Loading reports...</div>
+            <div className="text-sm text-muted-foreground"><T>Loading reports...</T></div>
           ) : supportReports.length === 0 ? (
-            <div className="text-sm text-muted-foreground">No reports yet.</div>
+            <div className="text-sm text-muted-foreground"><T>No reports yet.</T></div>
           ) : (
             supportReports.map((report) => (
               <div key={report.id} className="border rounded-lg p-4">
@@ -287,7 +288,7 @@ export function AdminNotifications() {
                     disabled={actioningReportId === report.id}
                     onClick={() => updateSupportReportStatus(report.id, 'reviewed')}
                   >
-                    Mark Reviewed
+                    <T>Mark Reviewed</T>
                   </Button>
                   <Button
                     size="sm"
@@ -296,7 +297,7 @@ export function AdminNotifications() {
                     disabled={actioningReportId === report.id}
                     onClick={() => updateSupportReportStatus(report.id, 'resolved')}
                   >
-                    Mark Resolved
+                    <T>Mark Resolved</T>
                   </Button>
                   <Button
                     size="sm"
@@ -305,7 +306,7 @@ export function AdminNotifications() {
                     disabled={actioningReportId === report.id}
                     onClick={() => updateSupportReportStatus(report.id, 'rejected')}
                   >
-                    Reject
+                    <T>Reject</T>
                   </Button>
                 </div>
               </div>
@@ -316,14 +317,14 @@ export function AdminNotifications() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Broadcast History</CardTitle>
-          <CardDescription>Latest announcements sent from admin dashboard.</CardDescription>
+          <CardTitle><T>Broadcast History</T></CardTitle>
+          <CardDescription><T>Latest announcements sent from admin dashboard.</T></CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           {loading ? (
-            <div className="text-sm text-muted-foreground">Loading broadcasts...</div>
+            <div className="text-sm text-muted-foreground"><T>Loading broadcasts...</T></div>
           ) : broadcasts.length === 0 ? (
-            <div className="text-sm text-muted-foreground">No broadcasts yet.</div>
+            <div className="text-sm text-muted-foreground"><T>No broadcasts yet.</T></div>
           ) : (
             broadcasts.map((broadcast) => (
               <div key={broadcast.id} className="border rounded-lg p-4">

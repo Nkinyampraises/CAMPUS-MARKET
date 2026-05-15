@@ -20,6 +20,7 @@ import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
 import { fetchPublicCatalog, type NamedCatalogOption, resolveNamedCatalogLabel } from '@/lib/catalog';
+import { T } from '@/components/T';
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
 
 const fallbackPickupLocations = [
@@ -351,8 +352,8 @@ export function Checkout() {
   if (!item) {
     return (
       <div className="container mx-auto px-4 py-12 text-center">
-        <h1 className="text-2xl font-bold mb-4">Item not found</h1>
-        <Button onClick={() => navigate('/marketplace')}>Back to Marketplace</Button>
+        <h1 className="text-2xl font-bold mb-4"><T>Item not found</T></h1>
+        <Button onClick={() => navigate('/marketplace')}><T>Back to Marketplace</T></Button>
       </div>
     );
   }
@@ -375,9 +376,9 @@ export function Checkout() {
         </Button>
 
         <div className="mb-5">
-          <h1 className="text-4xl font-extrabold tracking-tight text-[#111111]">Secure <span className="text-[#05B43D]">Checkout</span></h1>
+          <h1 className="text-4xl font-extrabold tracking-tight text-[#111111]"><T>Secure</T><span className="text-[#05B43D]"><T>Checkout</T></span></h1>
           <p className="mt-1 text-sm text-[#5e7e75]">
-            Complete your purchase from the University of Buea Marketplace.
+            <T>Complete your purchase from the University of Buea Marketplace.</T>
           </p>
         </div>
 
@@ -400,7 +401,7 @@ export function Checkout() {
                     <p className="mt-1 text-xs text-[#6f8f85]">Condition: {conditionLabel}</p>
                     <div className="mt-1 flex items-center justify-between">
                       <p className="text-lg font-extrabold text-[#045444]">{subtotal.toLocaleString()} XAF</p>
-                      <span className="text-xs text-[#6f8f85]">Qty: 1</span>
+                      <span className="text-xs text-[#6f8f85]"><T>Qty: 1</T></span>
                     </div>
                   </div>
                 </div>
@@ -408,7 +409,7 @@ export function Checkout() {
 
               <div className="space-y-2 text-sm">
                 <div className="flex items-center justify-between text-[#8A8A8A]">
-                  <span>Subtotal</span>
+                  <span><T>Subtotal</T></span>
                   <span>{subtotal.toLocaleString()} XAF</span>
                 </div>
                 <div className="flex items-center justify-between text-[#8A8A8A]">
@@ -418,7 +419,7 @@ export function Checkout() {
 
                 <div className="mt-2 border-t border-[#DDE3E2] pt-2">
                   <div className="flex items-center justify-between text-xl font-black text-[#018F2D]">
-                    <span>Total</span>
+                    <span><T>Total</T></span>
                     <span>{checkoutTotal.toLocaleString()} XAF</span>
                   </div>
                 </div>
@@ -427,7 +428,7 @@ export function Checkout() {
               <Alert className="rounded-xl border-[#b7e5ce] bg-[#ecfff4] text-[#116145]">
                 <ShieldCheck className="h-4 w-4 text-[#0f8057]" />
                 <AlertDescription className="text-xs">
-                  Payments are held in escrow until pickup is confirmed.
+                  <T>Payments are held in escrow until pickup is confirmed.</T>
                 </AlertDescription>
               </Alert>
             </CardContent>
@@ -440,7 +441,7 @@ export function Checkout() {
                   <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-[#e9f4ef]">
                     <CreditCard className="h-4 w-4 text-[#018F2D]" />
                   </span>
-                  Payment Method
+                  <T>Payment Method</T>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-5">
@@ -510,7 +511,7 @@ export function Checkout() {
                   <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-[#fff3db]">
                     <CalendarClock className="h-4 w-4 text-[#8b5a00]" />
                   </span>
-                  Pickup Details
+                  <T>Pickup Details</T>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-5">
@@ -541,7 +542,7 @@ export function Checkout() {
                   <Label htmlFor="pickup-location" className="text-sm text-[#274e45]">
                     <span className="inline-flex items-center gap-1.5">
                       <MapPin className="h-4 w-4 text-[#018F2D]" />
-                      Meeting Location
+                      <T>Meeting Location</T>
                     </span>
                   </Label>
                   <Input
@@ -553,12 +554,12 @@ export function Checkout() {
                     value={pickupLocation.name}
                     className="border-[#cfe0d8] bg-[#fbfdfc]"
                   />
-                  <p className="text-xs text-[#668279]">Allowed: university campuses and roundabouts only.</p>
+                  <p className="text-xs text-[#668279]"><T>Allowed: university campuses and roundabouts only.</T></p>
                   {mapsError ? <p className="text-xs text-amber-700">{mapsError}</p> : null}
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-sm text-[#274e45]">Select from approved locations</Label>
+                  <Label className="text-sm text-[#274e45]"><T>Select from approved locations</T></Label>
                   <Select onValueChange={handleFallbackPickupSelect}>
                     <SelectTrigger className="border-[#cfe0d8] bg-[#fbfdfc]">
                       <SelectValue placeholder="Choose approved pickup point" />
@@ -583,7 +584,7 @@ export function Checkout() {
                     />
                   ) : (
                     <div className="flex h-44 items-center justify-center text-sm text-[#68867c]">
-                      Select a pickup point to preview the map.
+                      <T>Select a pickup point to preview the map.</T>
                     </div>
                   )}
                 </div>
@@ -598,7 +599,7 @@ export function Checkout() {
                   onClick={handleReviewPayment}
                   className="h-12 w-full rounded-xl bg-[#05B43D] text-base font-semibold text-white hover:bg-[#018F2D]"
                 >
-                  Review Payment
+                  <T>Review Payment</T>
                 </Button>
               </CardContent>
             </Card>

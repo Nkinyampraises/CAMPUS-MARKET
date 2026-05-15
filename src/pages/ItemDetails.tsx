@@ -24,6 +24,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
+import { T } from '@/components/T';
 const RECENTLY_VIEWED_KEY = 'recentlyViewedItemIds';
 const VIEW_TRACKED_KEY = 'viewTrackedItemIds';
 
@@ -365,7 +366,7 @@ export function ItemDetails() {
       <div className="w-full px-4 lg:px-8 xl:px-12">
         <div className="mb-4 flex flex-wrap items-center gap-1.5 text-xs font-medium text-[#5d7b72]">
           <button type="button" className="hover:text-[#018F2D]" onClick={() => navigate('/marketplace')}>
-            Marketplace
+            <T>Marketplace</T>
           </button>
           <ChevronRight className="h-3.5 w-3.5 text-[#92aba3]" />
           <span>{categoryLabel}</span>
@@ -380,7 +381,7 @@ export function ItemDetails() {
                 {primaryImage ? (
                   <img src={primaryImage} alt={item.title} className="h-full w-full object-cover" />
                 ) : (
-                  <div className="flex h-full items-center justify-center text-sm text-[#6f8d84]">No image available</div>
+                  <div className="flex h-full items-center justify-center text-sm text-[#6f8d84]"><T>No image available</T></div>
                 )}
                 <Badge className="absolute right-3 top-3 rounded-full bg-[#e8f8ef] px-3 py-1 text-[10px] uppercase tracking-wide text-[#018F2D] hover:bg-[#d9f3e5]">
                   {item.type === 'sell' ? t('item.forSale', 'For Sale') : t('item.forRent', 'For Rent')}
@@ -445,7 +446,7 @@ export function ItemDetails() {
                     <p className="mt-1 text-sm font-semibold capitalize text-[#123b32]">{item.condition || 'Used'}</p>
                   </div>
                   <div className="rounded-xl border border-[#d5e5dd] bg-[#F3F5F4] p-3">
-                    <p className="text-[11px] uppercase tracking-wide text-[#7d968d]">Posted</p>
+                    <p className="text-[11px] uppercase tracking-wide text-[#7d968d]"><T>Posted</T></p>
                     <p className="mt-1 text-sm font-semibold text-[#123b32]">{postedLabel}</p>
                   </div>
                 </div>
@@ -509,7 +510,7 @@ export function ItemDetails() {
                       <div className="flex items-center gap-2">
                         <p className="truncate text-sm font-bold text-[#143d33]">{item.seller?.name || 'Seller'}</p>
                         {item.seller?.isVerified ? (
-                          <Badge className="rounded-full bg-[#fff0cd] px-2 py-0 text-[10px] font-semibold text-[#8a5b00]">Verified</Badge>
+                          <Badge className="rounded-full bg-[#fff0cd] px-2 py-0 text-[10px] font-semibold text-[#8a5b00]"><T>Verified</T></Badge>
                         ) : null}
                       </div>
                       <p className="text-xs text-[#6c877f]">
@@ -532,7 +533,7 @@ export function ItemDetails() {
                       onClick={handleContactSeller}
                     >
                       <MessageSquare className="mr-2 h-4 w-4" />
-                      Contact Seller
+                      <T>Contact Seller</T>
                     </Button>
                   )}
                 </div>
@@ -545,11 +546,11 @@ export function ItemDetails() {
         <section className="mt-10 rounded-2xl border border-[#d9e8e0] bg-white p-6">
           <div className="mb-5 flex items-end justify-between gap-3">
             <div>
-              <h2 className="text-2xl font-extrabold text-[#0e3d34]">Related Deals</h2>
+              <h2 className="text-2xl font-extrabold text-[#0e3d34]"><T>Related Deals</T></h2>
               <p className="text-sm text-[#708a81]">Recommended for your search in {categoryLabel}.</p>
             </div>
             <Button variant="ghost" size="sm" className="text-[#018F2D] hover:bg-[#ebf6f1]" onClick={() => navigate('/marketplace')}>
-              View All
+              <T>View All</T>
               <ChevronRight className="ml-1 h-4 w-4" />
             </Button>
           </div>

@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from '@/app/components/ui/alert';
 import { Loader2, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 import { API_URL } from '@/lib/api';
+import { T } from '@/components/T';
 
 export function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -63,7 +64,7 @@ export function ForgotPassword() {
               <Mail className="h-6 w-6 text-green-600" />
             </div>
           </div>
-          <CardTitle>Reset your password</CardTitle>
+          <CardTitle><T>Reset your password</T></CardTitle>
           <CardDescription>When SMTP is configured, a reset email is sent to your inbox. In local/dev mode, the reset link can appear below instead.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -91,13 +92,13 @@ export function ForgotPassword() {
             {resetLink && (
               <Alert>
                 <AlertDescription>
-                  Reset link: <a href={resetLink} className="text-green-600 hover:underline break-all">{resetLink}</a>
+                  <T>Reset link:</T><a href={resetLink} className="text-green-600 hover:underline break-all">{resetLink}</a>
                 </AlertDescription>
               </Alert>
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email"><T>Email</T></Label>
               <Input
                 id="email"
                 type="email"
@@ -112,7 +113,7 @@ export function ForgotPassword() {
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Sending...
+                  <T>Sending...</T>
                 </>
               ) : (
                 'Send reset link'
@@ -124,7 +125,7 @@ export function ForgotPassword() {
           <p className="text-sm text-muted-foreground">
             Remembered your password?{' '}
             <Link to="/login" className="text-green-600 hover:underline">
-              Back to login
+              <T>Back to login</T>
             </Link>
           </p>
         </CardFooter>

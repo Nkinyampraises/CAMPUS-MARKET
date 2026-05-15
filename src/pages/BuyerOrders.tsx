@@ -8,6 +8,7 @@ import { FileText, Store, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
+import { T } from '@/components/T';
 
 const formatMoney = (value: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value || 0);
@@ -64,14 +65,14 @@ export function BuyerOrders() {
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       <Card>
         <CardHeader>
-          <CardTitle>My Orders / Purchases</CardTitle>
+          <CardTitle><T>My Orders / Purchases</T></CardTitle>
           <CardDescription>Show all purchase orders. {orderCountLabel}</CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-sm text-muted-foreground">Loading orders...</p>
+            <p className="text-sm text-muted-foreground"><T>Loading orders...</T></p>
           ) : orders.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No purchase orders yet.</p>
+            <p className="text-sm text-muted-foreground"><T>No purchase orders yet.</T></p>
           ) : (
             <div className="space-y-3">
               {orders.map((order) => {
@@ -94,15 +95,15 @@ export function BuyerOrders() {
                       <p className="font-bold text-blue-600 min-w-[100px]">{formatMoney(order.amount || 0)}</p>
                       <Button variant="outline" size="sm" onClick={() => navigate(`/orders/${order.id}`)}>
                         <Eye className="h-4 w-4 mr-2" />
-                        View Order
+                        <T>View Order</T>
                       </Button>
                       <Button variant="outline" size="sm" onClick={() => navigate(`/buyer/receipt/${order.id}?kind=order`)}>
                         <FileText className="h-4 w-4 mr-2" />
-                        View Receipt
+                        <T>View Receipt</T>
                       </Button>
                       <Button variant="outline" size="sm" onClick={() => navigate(`/profile/${order.sellerId}`)}>
                         <Store className="h-4 w-4 mr-2" />
-                        View Seller
+                        <T>View Seller</T>
                       </Button>
                     </div>
                   </div>

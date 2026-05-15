@@ -9,6 +9,7 @@ import { Textarea } from '@/app/components/ui/textarea';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
+import { T } from '@/components/T';
 
 export function SellerDisputes() {
   const navigate = useNavigate();
@@ -115,19 +116,19 @@ export function SellerDisputes() {
     <div className="container mx-auto px-4 py-8 max-w-5xl space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Seller Dispute Center</CardTitle>
-          <CardDescription>Open disputes on orders or rentals and track dispute status.</CardDescription>
+          <CardTitle><T>Seller Dispute Center</T></CardTitle>
+          <CardDescription><T>Open disputes on orders or rentals and track dispute status.</T></CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="space-y-1">
-            <Label htmlFor="seller-dispute-order">Order or Rental</Label>
+            <Label htmlFor="seller-dispute-order"><T>Order or Rental</T></Label>
             <select
               id="seller-dispute-order"
               className="w-full border rounded-md h-10 px-3 text-sm"
               value={selectedOrderId}
               onChange={(e) => setSelectedOrderId(e.target.value)}
             >
-              <option value="">Select order</option>
+              <option value=""><T>Select order</T></option>
               {orders.map((order) => (
                 <option key={order.id} value={order.id}>
                   {order.id} - {order.listingTitle || 'Item'}
@@ -136,7 +137,7 @@ export function SellerDisputes() {
             </select>
           </div>
           <div className="space-y-1">
-            <Label htmlFor="seller-dispute-description">Issue Details</Label>
+            <Label htmlFor="seller-dispute-description"><T>Issue Details</T></Label>
             <Textarea
               id="seller-dispute-description"
               rows={4}
@@ -153,13 +154,13 @@ export function SellerDisputes() {
 
       <Card>
         <CardHeader>
-          <CardTitle>My Disputes</CardTitle>
+          <CardTitle><T>My Disputes</T></CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-sm text-muted-foreground">Loading disputes...</p>
+            <p className="text-sm text-muted-foreground"><T>Loading disputes...</T></p>
           ) : disputes.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No disputes yet.</p>
+            <p className="text-sm text-muted-foreground"><T>No disputes yet.</T></p>
           ) : (
             <div className="space-y-3">
               {disputes.map((dispute: any) => (

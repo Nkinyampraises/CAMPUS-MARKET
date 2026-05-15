@@ -28,6 +28,7 @@ import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
 import { fetchPublicCatalog, type NamedCatalogOption, resolveNamedCatalogLabel } from '@/lib/catalog';
+import { T } from '@/components/T';
 
 const formatLabel = (value: string | undefined, fallback: string) => {
   if (!value) return fallback;
@@ -138,7 +139,7 @@ export function Profile() {
           <Card className="rounded-2xl border border-[#DDE3E2] bg-white p-8 text-center shadow-sm">
             <div className="inline-flex items-center gap-2 text-[#0f6f58]">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Loading profile...
+              <T>Loading profile...</T>
             </div>
           </Card>
         </div>
@@ -151,7 +152,7 @@ export function Profile() {
       <div className="min-h-screen bg-[#FFFFFF] py-8">
         <div className="w-full px-4 lg:px-8 xl:px-12">
           <Card className="rounded-2xl border border-[#DDE3E2] bg-white p-8 text-center shadow-sm">
-            <p className="text-sm text-[#4A4A4A]">Profile not available.</p>
+            <p className="text-sm text-[#4A4A4A]"><T>Profile not available.</T></p>
           </Card>
         </div>
       </div>
@@ -343,7 +344,7 @@ export function Profile() {
                     <div className="space-y-3">
                       <div className="inline-flex items-center gap-2 rounded-full bg-[#e8f5ef] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#0f6f58]">
                         <Sparkles className="h-3.5 w-3.5" />
-                        Profile Studio
+                        <T>Profile Studio</T>
                       </div>
                       <div>
                         <h1 className="text-3xl font-semibold leading-tight text-[#0b1f1a] sm:text-4xl">
@@ -446,7 +447,7 @@ export function Profile() {
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[#bde9db]">
-                    Profile Strength
+                    <T>Profile Strength</T>
                   </p>
                   <p className="mt-1 text-3xl font-semibold">{completionPercent}%</p>
                 </div>
@@ -472,10 +473,10 @@ export function Profile() {
         <section className="space-y-5">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[#0f6f58]">
-              Account View
+              <T>Account View</T>
             </p>
             <h2 className="mt-2 text-2xl font-semibold text-[#0b1f1a] sm:text-3xl">
-              Profile details
+              <T>Profile details</T>
             </h2>
             <p className="mt-2 max-w-2xl text-sm text-[#4A4A4A]">
               Keep your profile sharp, trustworthy, and easy for other students to understand at a glance.
@@ -487,7 +488,7 @@ export function Profile() {
                 <CardHeader className="space-y-3">
                   <div className="inline-flex w-fit items-center gap-2 rounded-full bg-[#e8f5ef] px-3 py-1 text-xs font-semibold uppercase tracking-[0.15em] text-[#0f6f58]">
                     <User className="h-3.5 w-3.5" />
-                    Personal Profile
+                    <T>Personal Profile</T>
                   </div>
                   <CardTitle className="text-2xl font-semibold text-[#0b1f1a]">
                     {isEditing ? 'Polish your public profile' : 'The details students will see first'}
@@ -510,7 +511,7 @@ export function Profile() {
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex-1 space-y-2">
-                            <Label htmlFor="profile-picture-upload">Profile photo</Label>
+                            <Label htmlFor="profile-picture-upload"><T>Profile photo</T></Label>
                             <Input
                               id="profile-picture-upload"
                               type="file"
@@ -525,7 +526,7 @@ export function Profile() {
                             {uploadingProfilePicture && (
                               <p className="inline-flex items-center gap-2 text-xs font-medium text-[#0f6f58]">
                                 <Loader2 className="h-3 w-3 animate-spin" />
-                                Uploading profile picture...
+                                <T>Uploading profile picture...</T>
                               </p>
                             )}
                           </div>
@@ -534,7 +535,7 @@ export function Profile() {
 
                       <div className="grid gap-4 md:grid-cols-2">
                         <div className="space-y-2">
-                          <Label htmlFor="name">Full name</Label>
+                          <Label htmlFor="name"><T>Full name</T></Label>
                           <Input
                             id="name"
                             value={formData.name}
@@ -544,7 +545,7 @@ export function Profile() {
                         </div>
 
                         <div className="space-y-2">
-                          <Label htmlFor="phone">Phone number</Label>
+                          <Label htmlFor="phone"><T>Phone number</T></Label>
                           <Input
                             id="phone"
                             value={formData.phone}
@@ -554,7 +555,7 @@ export function Profile() {
                         </div>
 
                         <div className="space-y-2">
-                          <Label htmlFor="studentId">Student ID</Label>
+                          <Label htmlFor="studentId"><T>Student ID</T></Label>
                           <Input
                             id="studentId"
                             value={formData.studentId}
@@ -564,16 +565,16 @@ export function Profile() {
                         </div>
 
                         <div className="space-y-2">
-                          <Label>Email address</Label>
+                          <Label><T>Email address</T></Label>
                           <Input value={currentUser.email} disabled className="bg-[#eef3f1]" />
-                          <p className="text-xs text-[#5f7a71]">Email cannot be changed here.</p>
+                          <p className="text-xs text-[#5f7a71]"><T>Email cannot be changed here.</T></p>
                         </div>
 
                         <div className="space-y-2 md:col-span-2">
-                          <Label>University</Label>
+                          <Label><T>University</T></Label>
                           <Input value={universityName} disabled className="bg-[#eef3f1]" />
                           <p className="text-xs text-[#5f7a71]">
-                            Your university stays fixed so your campus identity remains consistent.
+                            <T>Your university stays fixed so your campus identity remains consistent.</T>
                           </p>
                         </div>
                       </div>
@@ -584,7 +585,7 @@ export function Profile() {
                           disabled={uploadingProfilePicture}
                           className="flex-1 rounded-full bg-[#05B43D] text-white hover:bg-[#018F2D]"
                         >
-                          Save changes
+                          <T>Save changes</T>
                         </Button>
                         <Button
                           variant="outline"
@@ -594,7 +595,7 @@ export function Profile() {
                           }}
                           className="flex-1 rounded-full border-[#c2d9cf] text-[#124a3b] hover:bg-[#f3faf7]"
                         >
-                          Cancel
+                          <T>Cancel</T>
                         </Button>
                       </div>
                     </div>
@@ -626,10 +627,10 @@ export function Profile() {
                   <CardHeader className="space-y-3">
                     <div className="inline-flex w-fit items-center gap-2 rounded-full bg-sky-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-sky-700 dark:bg-sky-400/15 dark:text-sky-200">
                       <ShieldCheck className="h-3.5 w-3.5" />
-                      Trust Markers
+                      <T>Trust Markers</T>
                     </div>
                     <CardTitle className="text-xl font-serif text-slate-950 dark:text-white">
-                      Signals that build confidence
+                      <T>Signals that build confidence</T>
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -654,22 +655,22 @@ export function Profile() {
                   <CardHeader className="space-y-3">
                     <div className="inline-flex w-fit items-center gap-2 rounded-full bg-amber-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-amber-700 dark:bg-amber-400/15 dark:text-amber-200">
                       <Award className="h-3.5 w-3.5" />
-                      Visibility
+                      <T>Visibility</T>
                     </div>
                     <CardTitle className="text-xl font-serif text-slate-950 dark:text-white">
-                      Marketplace snapshot
+                      <T>Marketplace snapshot</T>
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="rounded-[1.4rem] border border-slate-200/80 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-900/60">
                       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
-                        Profile visibility
+                        <T>Profile visibility</T>
                       </p>
                       <p className="mt-2 text-sm font-medium text-slate-900 dark:text-slate-100">{visibilityLabel}</p>
                     </div>
                     <div className="rounded-[1.4rem] border border-slate-200/80 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-900/60">
                       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
-                        Current plan
+                        <T>Current plan</T>
                       </p>
                       <p className="mt-2 text-sm font-medium text-slate-900 dark:text-slate-100">{subscriptionLabel}</p>
                     </div>
@@ -688,7 +689,7 @@ export function Profile() {
                         </div>
                       ) : (
                         <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-                          You already have the key ingredients for a trustworthy campus profile.
+                          <T>You already have the key ingredients for a trustworthy campus profile.</T>
                         </p>
                       )}
                     </div>

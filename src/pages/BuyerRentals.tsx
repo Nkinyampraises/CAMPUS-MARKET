@@ -7,6 +7,7 @@ import { Badge } from '@/app/components/ui/badge';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
+import { T } from '@/components/T';
 const RETURNED_KEY = 'buyerReturnedRentals';
 
 const toDateLabel = (value: string | null | undefined) => {
@@ -92,14 +93,14 @@ export function BuyerRentals() {
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       <Card>
         <CardHeader>
-          <CardTitle>My Rentals</CardTitle>
+          <CardTitle><T>My Rentals</T></CardTitle>
           <CardDescription>{rentalCountLabel}</CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-sm text-muted-foreground">Loading rentals...</p>
+            <p className="text-sm text-muted-foreground"><T>Loading rentals...</T></p>
           ) : rentals.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No rental orders found.</p>
+            <p className="text-sm text-muted-foreground"><T>No rental orders found.</T></p>
           ) : (
             <div className="space-y-3">
               {rentals.map((order) => {
@@ -119,7 +120,7 @@ export function BuyerRentals() {
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge variant={rentalStatus === 'active' ? 'default' : 'secondary'}>{rentalStatus}</Badge>
                       <Button variant="outline" size="sm" onClick={() => navigate(`/buyer/rental-details/${order.id}`)}>
-                        Details
+                        <T>Details</T>
                       </Button>
                       <Button
                         variant="outline"

@@ -9,6 +9,7 @@ import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
+import { T } from '@/components/T';
 
 interface AdminSettingsData {
   platformName: string;
@@ -88,19 +89,19 @@ export function AdminSettings() {
   };
 
   if (loading) {
-    return <div className="text-sm text-muted-foreground">Loading settings...</div>;
+    return <div className="text-sm text-muted-foreground"><T>Loading settings...</T></div>;
   }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Platform Settings</CardTitle>
-        <CardDescription>Configure global platform behavior and payout rules.</CardDescription>
+        <CardTitle><T>Platform Settings</T></CardTitle>
+        <CardDescription><T>Configure global platform behavior and payout rules.</T></CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="platform-name">Platform Name</Label>
+            <Label htmlFor="platform-name"><T>Platform Name</T></Label>
             <Input
               id="platform-name"
               value={settings.platformName}
@@ -108,7 +109,7 @@ export function AdminSettings() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="support-email">Support Email</Label>
+            <Label htmlFor="support-email"><T>Support Email</T></Label>
             <Input
               id="support-email"
               type="email"
@@ -117,7 +118,7 @@ export function AdminSettings() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="payout-fee">Platform Commission Percent</Label>
+            <Label htmlFor="payout-fee"><T>Platform Commission Percent</T></Label>
             <Input
               id="payout-fee"
               type="number"
@@ -134,7 +135,7 @@ export function AdminSettings() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="payout-minimum">Minimum Payout Amount</Label>
+            <Label htmlFor="payout-minimum"><T>Minimum Payout Amount</T></Label>
             <Input
               id="payout-minimum"
               type="number"
@@ -150,8 +151,8 @@ export function AdminSettings() {
         <div className="space-y-4">
           <div className="flex flex-col gap-3 border rounded-lg p-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="font-medium">Maintenance Mode</p>
-              <p className="text-xs text-muted-foreground">Disable normal operations during maintenance.</p>
+              <p className="font-medium"><T>Maintenance Mode</T></p>
+              <p className="text-xs text-muted-foreground"><T>Disable normal operations during maintenance.</T></p>
             </div>
             <Switch
               checked={settings.maintenanceMode}
@@ -161,8 +162,8 @@ export function AdminSettings() {
           </div>
           <div className="flex flex-col gap-3 border rounded-lg p-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="font-medium">Allow New Registrations</p>
-              <p className="text-xs text-muted-foreground">Enable or disable new user signups.</p>
+              <p className="font-medium"><T>Allow New Registrations</T></p>
+              <p className="text-xs text-muted-foreground"><T>Enable or disable new user signups.</T></p>
             </div>
             <Switch
               checked={settings.allowNewRegistrations}
@@ -174,8 +175,8 @@ export function AdminSettings() {
           </div>
           <div className="flex flex-col gap-3 border rounded-lg p-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="font-medium">Auto Payout to MTN on Release</p>
-              <p className="text-xs text-muted-foreground">When enabled, released MTN escrow payments are auto-sent to seller mobile money.</p>
+              <p className="font-medium"><T>Auto Payout to MTN on Release</T></p>
+              <p className="text-xs text-muted-foreground"><T>When enabled, released MTN escrow payments are auto-sent to seller mobile money.</T></p>
             </div>
             <Switch
               checked={settings.autoPayoutToMobileMoney}
@@ -191,7 +192,7 @@ export function AdminSettings() {
           {saving ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Saving...
+              <T>Saving...</T>
             </>
           ) : (
             'Save Settings'

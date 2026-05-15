@@ -7,6 +7,7 @@ import { Badge } from '@/app/components/ui/badge';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
+import { T } from '@/components/T';
 
 const mapStatus = (order: any): 'pending' | 'paid' | 'delivered' | 'cancelled' => {
   if (order?.status === 'delivered_released') return 'delivered';
@@ -166,25 +167,25 @@ export function SellerOrders() {
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       <Card>
         <CardHeader>
-          <CardTitle>Seller Orders</CardTitle>
-          <CardDescription>Show all purchase orders from buyers.</CardDescription>
+          <CardTitle><T>Seller Orders</T></CardTitle>
+          <CardDescription><T>Show all purchase orders from buyers.</T></CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-sm text-muted-foreground">Loading orders...</p>
+            <p className="text-sm text-muted-foreground"><T>Loading orders...</T></p>
           ) : sortedOrders.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No purchase orders yet.</p>
+            <p className="text-sm text-muted-foreground"><T>No purchase orders yet.</T></p>
           ) : (
             <div className="overflow-x-auto border rounded-lg">
               <table className="w-full text-sm">
                 <thead className="bg-muted/40">
                   <tr>
-                    <th className="text-left p-3">Order</th>
-                    <th className="text-left p-3">Buyer</th>
-                    <th className="text-left p-3">Amount</th>
-                    <th className="text-left p-3">Status</th>
+                    <th className="text-left p-3"><T>Order</T></th>
+                    <th className="text-left p-3"><T>Buyer</T></th>
+                    <th className="text-left p-3"><T>Amount</T></th>
+                    <th className="text-left p-3"><T>Status</T></th>
                     <th className="text-left p-3">Date</th>
-                    <th className="text-left p-3">Actions</th>
+                    <th className="text-left p-3"><T>Actions</T></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -216,7 +217,7 @@ export function SellerOrders() {
                               disabled={locked || updatingId === order.id}
                               onClick={() => applyDecision(order.id, 'accepted')}
                             >
-                              Accept
+                              <T>Accept</T>
                             </Button>
                             <Button
                               size="sm"
@@ -224,7 +225,7 @@ export function SellerOrders() {
                               disabled={locked || updatingId === order.id}
                               onClick={() => applyDecision(order.id, 'rejected')}
                             >
-                              Reject
+                              <T>Reject</T>
                             </Button>
                             <Button
                               size="sm"
@@ -232,7 +233,7 @@ export function SellerOrders() {
                               disabled={locked || updatingId === order.id}
                               onClick={() => markDelivered(order.id)}
                             >
-                              Mark Delivered
+                              <T>Mark Delivered</T>
                             </Button>
                           </div>
                         </td>

@@ -7,6 +7,7 @@ import { Badge } from '@/app/components/ui/badge';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
+import { T } from '@/components/T';
 
 export function AdminReviews() {
   const navigate = useNavigate();
@@ -185,8 +186,8 @@ export function AdminReviews() {
     <div className="container mx-auto max-w-7xl px-3 py-8 sm:px-4">
       <Card>
         <CardHeader>
-          <CardTitle>Admin Reviews</CardTitle>
-          <CardDescription>View all reviews, delete abusive reviews, and block spam reviewers.</CardDescription>
+          <CardTitle><T>Admin Reviews</T></CardTitle>
+          <CardDescription><T>View all reviews, delete abusive reviews, and block spam reviewers.</T></CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="w-full max-w-sm">
@@ -199,9 +200,9 @@ export function AdminReviews() {
           </div>
 
           {loading ? (
-            <p className="text-sm text-muted-foreground">Loading reviews...</p>
+            <p className="text-sm text-muted-foreground"><T>Loading reviews...</T></p>
           ) : filtered.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No reviews found.</p>
+            <p className="text-sm text-muted-foreground"><T>No reviews found.</T></p>
           ) : (
             <div className="space-y-3">
               {filtered.map((review) => (
@@ -209,7 +210,7 @@ export function AdminReviews() {
                   <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                     <div className="flex items-center gap-2">
                       <Badge variant="secondary">{Number(review.rating || 0)} / 5</Badge>
-                      {review.reviewerIsBlocked ? <Badge variant="destructive">Reviewer Blocked</Badge> : null}
+                      {review.reviewerIsBlocked ? <Badge variant="destructive"><T>Reviewer Blocked</T></Badge> : null}
                     </div>
                     <span className="text-xs text-muted-foreground">
                       {review.timestamp ? new Date(review.timestamp).toLocaleString() : '-'}
@@ -227,7 +228,7 @@ export function AdminReviews() {
                       disabled={busyId === review.id}
                       onClick={() => deleteReview(review.id)}
                     >
-                      Delete Review
+                      <T>Delete Review</T>
                     </Button>
                     <Button
                       size="sm"
@@ -236,7 +237,7 @@ export function AdminReviews() {
                       disabled={busyId === review.id || review.reviewerIsBlocked}
                       onClick={() => blockReviewer(review.id)}
                     >
-                      Block Reviewer
+                      <T>Block Reviewer</T>
                     </Button>
                   </div>
                 </div>

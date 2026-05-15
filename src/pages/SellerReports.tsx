@@ -9,6 +9,7 @@ import { Textarea } from '@/app/components/ui/textarea';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
+import { T } from '@/components/T';
 
 export function SellerReports() {
   const navigate = useNavigate();
@@ -71,38 +72,38 @@ export function SellerReports() {
     <div className="container mx-auto px-4 py-8 max-w-3xl">
       <Card>
         <CardHeader>
-          <CardTitle>Seller Reports</CardTitle>
-          <CardDescription>Report buyer, listing issues, or transaction disputes.</CardDescription>
+          <CardTitle><T>Seller Reports</T></CardTitle>
+          <CardDescription><T>Report buyer, listing issues, or transaction disputes.</T></CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="space-y-1">
-            <Label htmlFor="seller-report-category">Report Type</Label>
+            <Label htmlFor="seller-report-category"><T>Report Type</T></Label>
             <select
               id="seller-report-category"
               className="w-full border rounded-md h-10 px-3 text-sm"
               value={category}
               onChange={(e) => setCategory(e.target.value as 'buyer' | 'listing_issue' | 'transaction_dispute')}
             >
-              <option value="buyer">Buyer</option>
-              <option value="listing_issue">Listing Issue</option>
-              <option value="transaction_dispute">Transaction Dispute</option>
+              <option value="buyer"><T>Buyer</T></option>
+              <option value="listing_issue"><T>Listing Issue</T></option>
+              <option value="transaction_dispute"><T>Transaction Dispute</T></option>
             </select>
           </div>
 
           <div className="space-y-1">
-            <Label htmlFor="seller-report-order">Order ID (optional)</Label>
+            <Label htmlFor="seller-report-order"><T>Order ID (optional)</T></Label>
             <Input id="seller-report-order" value={orderId} onChange={(e) => setOrderId(e.target.value)} />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="seller-report-listing">Listing ID (optional)</Label>
+            <Label htmlFor="seller-report-listing"><T>Listing ID (optional)</T></Label>
             <Input id="seller-report-listing" value={listingId} onChange={(e) => setListingId(e.target.value)} />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="seller-report-target">Buyer/User ID (optional)</Label>
+            <Label htmlFor="seller-report-target"><T>Buyer/User ID (optional)</T></Label>
             <Input id="seller-report-target" value={targetUserId} onChange={(e) => setTargetUserId(e.target.value)} />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="seller-report-description">Description</Label>
+            <Label htmlFor="seller-report-description"><T>Description</T></Label>
             <Textarea
               id="seller-report-description"
               rows={5}
