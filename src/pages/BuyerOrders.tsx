@@ -8,7 +8,6 @@ import { FileText, Store, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
-import { T } from '@/components/T';
 
 const formatMoney = (value: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value || 0);
@@ -65,14 +64,14 @@ export function BuyerOrders() {
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       <Card>
         <CardHeader>
-          <CardTitle><T>My Orders / Purchases</T></CardTitle>
+          <CardTitle>{t('ui.my_orders_purchases', 'My Orders / Purchases')}</CardTitle>
           <CardDescription>Show all purchase orders. {orderCountLabel}</CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-sm text-muted-foreground"><T>Loading orders...</T></p>
+            <p className="text-sm text-muted-foreground">{t('ui.loading_orders', 'Loading orders...')}</p>
           ) : orders.length === 0 ? (
-            <p className="text-sm text-muted-foreground"><T>No purchase orders yet.</T></p>
+            <p className="text-sm text-muted-foreground">{t('ui.no_purchase_orders_yet', 'No purchase orders yet.')}</p>
           ) : (
             <div className="space-y-3">
               {orders.map((order) => {
@@ -95,15 +94,15 @@ export function BuyerOrders() {
                       <p className="font-bold text-blue-600 min-w-[100px]">{formatMoney(order.amount || 0)}</p>
                       <Button variant="outline" size="sm" onClick={() => navigate(`/orders/${order.id}`)}>
                         <Eye className="h-4 w-4 mr-2" />
-                        <T>View Order</T>
+                        {t('ui.view_order', 'View Order')}
                       </Button>
                       <Button variant="outline" size="sm" onClick={() => navigate(`/buyer/receipt/${order.id}?kind=order`)}>
                         <FileText className="h-4 w-4 mr-2" />
-                        <T>View Receipt</T>
+                        {t('ui.view_receipt', 'View Receipt')}
                       </Button>
                       <Button variant="outline" size="sm" onClick={() => navigate(`/profile/${order.sellerId}`)}>
                         <Store className="h-4 w-4 mr-2" />
-                        <T>View Seller</T>
+                        {t('ui.view_seller', 'View Seller')}
                       </Button>
                     </div>
                   </div>

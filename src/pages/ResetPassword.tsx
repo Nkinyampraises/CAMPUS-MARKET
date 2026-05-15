@@ -9,7 +9,6 @@ import { Alert, AlertDescription } from '@/app/components/ui/alert';
 import { Loader2, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
 import { API_URL } from '@/lib/api';
-import { T } from '@/components/T';
 
 export function ResetPassword() {
   const navigate = useNavigate();
@@ -107,7 +106,7 @@ export function ResetPassword() {
               <KeyRound className="h-6 w-6 text-green-600" />
             </div>
           </div>
-          <CardTitle><T>Set a new password</T></CardTitle>
+          <CardTitle>{t('ui.set_a_new_password', 'Set a new password')}</CardTitle>
           <CardDescription>Choose a strong password you haven’t used before.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -119,7 +118,7 @@ export function ResetPassword() {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="password"><T>New Password</T></Label>
+              <Label htmlFor="password">{t('ui.new_password', 'New Password')}</Label>
               <PasswordInput
                 id="password"
                 placeholder="Min. 6 characters"
@@ -130,7 +129,7 @@ export function ResetPassword() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword"><T>Confirm Password</T></Label>
+              <Label htmlFor="confirmPassword">{t('ui.confirm_password', 'Confirm Password')}</Label>
               <PasswordInput
                 id="confirmPassword"
                 placeholder="Re-enter password"
@@ -144,7 +143,7 @@ export function ResetPassword() {
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  <T>Updating...</T>
+                  {t('ui.updating', 'Updating...')}
                 </>
               ) : (
                 'Update password'

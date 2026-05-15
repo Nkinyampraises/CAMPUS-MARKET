@@ -9,7 +9,6 @@ import { Textarea } from '@/app/components/ui/textarea';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
-import { T } from '@/components/T';
 
 export function BuyerReport() {
   const navigate = useNavigate();
@@ -71,41 +70,41 @@ export function BuyerReport() {
     <div className="container mx-auto px-4 py-8 max-w-3xl">
       <Card>
         <CardHeader>
-          <CardTitle><T>Report Problem</T></CardTitle>
+          <CardTitle>{t('ui.report_problem', 'Report Problem')}</CardTitle>
           <CardDescription>
-            <T>Report seller, listing, transaction, or scam attempt.</T>
+            {t('ui.report_seller_listing_transaction_or_scam_attempt', 'Report seller, listing, transaction, or scam attempt.')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="space-y-1">
-            <Label htmlFor="report-category"><T>Report Type</T></Label>
+            <Label htmlFor="report-category">{t('ui.report_type', 'Report Type')}</Label>
             <select
               id="report-category"
               className="w-full border rounded-md h-10 px-3 text-sm"
               value={category}
               onChange={(e) => setCategory(e.target.value as 'seller' | 'listing' | 'transaction' | 'scam_attempt')}
             >
-              <option value="seller"><T>Seller</T></option>
-              <option value="listing"><T>Listing</T></option>
-              <option value="transaction"><T>Transaction</T></option>
-              <option value="scam_attempt"><T>Scam Attempt</T></option>
+              <option value="seller">{t('ui.seller', 'Seller')}</option>
+              <option value="listing">{t('ui.listing', 'Listing')}</option>
+              <option value="transaction">{t('ui.transaction', 'Transaction')}</option>
+              <option value="scam_attempt">{t('ui.scam_attempt', 'Scam Attempt')}</option>
             </select>
           </div>
 
           <div className="space-y-1">
-            <Label htmlFor="report-order"><T>Order ID (optional)</T></Label>
+            <Label htmlFor="report-order">{t('ui.order_id_optional', 'Order ID (optional)')}</Label>
             <Input id="report-order" value={orderId} onChange={(e) => setOrderId(e.target.value)} />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="report-listing"><T>Listing ID (optional)</T></Label>
+            <Label htmlFor="report-listing">{t('ui.listing_id_optional', 'Listing ID (optional)')}</Label>
             <Input id="report-listing" value={listingId} onChange={(e) => setListingId(e.target.value)} />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="report-target"><T>Seller/User ID (optional)</T></Label>
+            <Label htmlFor="report-target">{t('ui.seller_user_id_optional', 'Seller/User ID (optional)')}</Label>
             <Input id="report-target" value={targetUserId} onChange={(e) => setTargetUserId(e.target.value)} />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="report-description"><T>Description</T></Label>
+            <Label htmlFor="report-description">{t('ui.description', 'Description')}</Label>
             <Textarea
               id="report-description"
               rows={5}

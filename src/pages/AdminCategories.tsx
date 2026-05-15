@@ -7,7 +7,6 @@ import { Badge } from '@/app/components/ui/badge';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
-import { T } from '@/components/T';
 
 export function AdminCategories() {
   const navigate = useNavigate();
@@ -201,8 +200,8 @@ export function AdminCategories() {
     <div className="container mx-auto max-w-5xl px-3 py-8 sm:px-4">
       <Card>
         <CardHeader>
-          <CardTitle><T>Admin Categories</T></CardTitle>
-          <CardDescription><T>Add, edit, delete, or disable listing categories.</T></CardDescription>
+          <CardTitle>{t('ui.admin_categories', 'Admin Categories')}</CardTitle>
+          <CardDescription>{t('ui.add_edit_delete_or_disable_listing_categories', 'Add, edit, delete, or disable listing categories.')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col gap-2 sm:flex-row">
@@ -218,9 +217,9 @@ export function AdminCategories() {
           </div>
 
           {loading ? (
-            <p className="text-sm text-muted-foreground"><T>Loading categories...</T></p>
+            <p className="text-sm text-muted-foreground">{t('ui.loading_categories', 'Loading categories...')}</p>
           ) : categories.length === 0 ? (
-            <p className="text-sm text-muted-foreground"><T>No categories found.</T></p>
+            <p className="text-sm text-muted-foreground">{t('ui.no_categories_found', 'No categories found.')}</p>
           ) : (
             <div className="space-y-3">
               {categories.map((category) => (
@@ -255,7 +254,7 @@ export function AdminCategories() {
                       {category.isActive ? 'Disable' : 'Enable'}
                     </Button>
                     <Button size="sm" variant="outline" className="w-full sm:w-auto" disabled={saving} onClick={() => deleteCategory(category.id)}>
-                      <T>Delete</T>
+                      {t('ui.delete', 'Delete')}
                     </Button>
                   </div>
                 </div>

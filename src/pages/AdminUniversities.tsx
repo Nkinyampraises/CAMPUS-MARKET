@@ -7,7 +7,6 @@ import { Badge } from '@/app/components/ui/badge';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
-import { T } from '@/components/T';
 
 export function AdminUniversities() {
   const navigate = useNavigate();
@@ -201,8 +200,8 @@ export function AdminUniversities() {
     <div className="container mx-auto max-w-5xl px-3 py-8 sm:px-4">
       <Card>
         <CardHeader>
-          <CardTitle><T>Admin Universities</T></CardTitle>
-          <CardDescription><T>Add, edit, delete, or disable universities.</T></CardDescription>
+          <CardTitle>{t('ui.admin_universities', 'Admin Universities')}</CardTitle>
+          <CardDescription>{t('ui.add_edit_delete_or_disable_universities', 'Add, edit, delete, or disable universities.')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col gap-2 sm:flex-row">
@@ -218,9 +217,9 @@ export function AdminUniversities() {
           </div>
 
           {loading ? (
-            <p className="text-sm text-muted-foreground"><T>Loading universities...</T></p>
+            <p className="text-sm text-muted-foreground">{t('ui.loading_universities', 'Loading universities...')}</p>
           ) : universities.length === 0 ? (
-            <p className="text-sm text-muted-foreground"><T>No universities found.</T></p>
+            <p className="text-sm text-muted-foreground">{t('ui.no_universities_found', 'No universities found.')}</p>
           ) : (
             <div className="space-y-3">
               {universities.map((uni) => (
@@ -255,7 +254,7 @@ export function AdminUniversities() {
                       {uni.isActive ? 'Disable' : 'Enable'}
                     </Button>
                     <Button size="sm" variant="outline" className="w-full sm:w-auto" disabled={saving} onClick={() => deleteUniversity(uni.id)}>
-                      <T>Delete</T>
+                      {t('ui.delete', 'Delete')}
                     </Button>
                   </div>
                 </div>

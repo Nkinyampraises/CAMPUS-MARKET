@@ -9,7 +9,6 @@ import { Textarea } from '@/app/components/ui/textarea';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
-import { T } from '@/components/T';
 
 export function SellerDisputes() {
   const navigate = useNavigate();
@@ -116,19 +115,19 @@ export function SellerDisputes() {
     <div className="container mx-auto px-4 py-8 max-w-5xl space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle><T>Seller Dispute Center</T></CardTitle>
-          <CardDescription><T>Open disputes on orders or rentals and track dispute status.</T></CardDescription>
+          <CardTitle>{t('ui.seller_dispute_center', 'Seller Dispute Center')}</CardTitle>
+          <CardDescription>{t('ui.open_disputes_on_orders_or_rentals_and_track_dispu', 'Open disputes on orders or rentals and track dispute status.')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="space-y-1">
-            <Label htmlFor="seller-dispute-order"><T>Order or Rental</T></Label>
+            <Label htmlFor="seller-dispute-order">{t('ui.order_or_rental', 'Order or Rental')}</Label>
             <select
               id="seller-dispute-order"
               className="w-full border rounded-md h-10 px-3 text-sm"
               value={selectedOrderId}
               onChange={(e) => setSelectedOrderId(e.target.value)}
             >
-              <option value=""><T>Select order</T></option>
+              <option value="">{t('ui.select_order', 'Select order')}</option>
               {orders.map((order) => (
                 <option key={order.id} value={order.id}>
                   {order.id} - {order.listingTitle || 'Item'}
@@ -137,7 +136,7 @@ export function SellerDisputes() {
             </select>
           </div>
           <div className="space-y-1">
-            <Label htmlFor="seller-dispute-description"><T>Issue Details</T></Label>
+            <Label htmlFor="seller-dispute-description">{t('ui.issue_details', 'Issue Details')}</Label>
             <Textarea
               id="seller-dispute-description"
               rows={4}
@@ -154,13 +153,13 @@ export function SellerDisputes() {
 
       <Card>
         <CardHeader>
-          <CardTitle><T>My Disputes</T></CardTitle>
+          <CardTitle>{t('ui.my_disputes', 'My Disputes')}</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-sm text-muted-foreground"><T>Loading disputes...</T></p>
+            <p className="text-sm text-muted-foreground">{t('ui.loading_disputes', 'Loading disputes...')}</p>
           ) : disputes.length === 0 ? (
-            <p className="text-sm text-muted-foreground"><T>No disputes yet.</T></p>
+            <p className="text-sm text-muted-foreground">{t('ui.no_disputes_yet', 'No disputes yet.')}</p>
           ) : (
             <div className="space-y-3">
               {disputes.map((dispute: any) => (

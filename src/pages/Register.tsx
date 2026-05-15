@@ -15,7 +15,6 @@ import { universities } from '@/data/mockData';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
-import { T } from '@/components/T';
 
 const registerHeroImage =
   'https://images.pexels.com/photos/1454360/pexels-photo-1454360.jpeg?cs=srgb&dl=pexels-olly-1454360.jpg&fm=jpg';
@@ -151,7 +150,7 @@ export function Register() {
               <ShoppingBag className="h-6 w-6" />
             </div>
             <h2 className="mt-6 max-w-md text-5xl font-bold leading-[1.06]">
-              <T>Start Selling and Buying with Confidence.</T>
+              {t('ui.start_selling_and_buying_with_confidence', 'Start Selling and Buying with Confidence.')}
             </h2>
             <p className="mt-5 max-w-lg text-lg leading-relaxed text-emerald-50/90">
               Join UNITRADE and connect with verified students across universities. Create your account once and trade safely.
@@ -161,11 +160,11 @@ export function Register() {
           <div className="relative z-10 grid grid-cols-2 gap-4 border-t border-white/20 p-10 text-white xl:p-12">
             <div>
               <p className="text-3xl font-bold">15k+</p>
-              <p className="mt-1 text-xs uppercase tracking-[0.18em] text-emerald-100/80"><T>Student members</T></p>
+              <p className="mt-1 text-xs uppercase tracking-[0.18em] text-emerald-100/80">{t('ui.student_members', 'Student members')}</p>
             </div>
             <div>
               <p className="text-3xl font-bold">24+</p>
-              <p className="mt-1 text-xs uppercase tracking-[0.18em] text-emerald-100/80"><T>Partner campuses</T></p>
+              <p className="mt-1 text-xs uppercase tracking-[0.18em] text-emerald-100/80">{t('ui.partner_campuses', 'Partner campuses')}</p>
             </div>
           </div>
         </aside>
@@ -173,11 +172,11 @@ export function Register() {
         <Card className="rounded-3xl border border-[#DDE3E2] bg-white shadow-sm">
           <CardHeader className="pb-2">
             <div className="inline-flex w-fit items-center gap-2 rounded-full bg-[#e8f5ef] px-3 py-1 text-xs font-semibold uppercase tracking-[0.15em] text-[#0f6f58]">
-              <T>Create Account</T>
+              {t('ui.create_account', 'Create Account')}
             </div>
-            <CardTitle className="mt-3 text-3xl font-semibold text-[#0b1f1a] sm:text-4xl"><T>Join UNITRADE</T></CardTitle>
+            <CardTitle className="mt-3 text-3xl font-semibold text-[#0b1f1a] sm:text-4xl">{t('ui.join_unitrade', 'Join UNITRADE')}</CardTitle>
             <CardDescription className="text-sm text-[#4A4A4A]">
-              <T>Fill in your details to create a verified student marketplace account.</T>
+              {t('ui.fill_in_your_details_to_create_a_verified_student_', 'Fill in your details to create a verified student marketplace account.')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -201,7 +200,7 @@ export function Register() {
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="name"><T>Full Name</T></Label>
+                  <Label htmlFor="name">{t('ui.full_name', 'Full Name')}</Label>
                   <Input
                     id="name"
                     type="text"
@@ -214,7 +213,7 @@ export function Register() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="email"><T>University Email</T></Label>
+                  <Label htmlFor="email">{t('ui.university_email', 'University Email')}</Label>
                   <Input
                     id="email"
                     type="email"
@@ -227,7 +226,7 @@ export function Register() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="phone"><T>Phone Number</T></Label>
+                  <Label htmlFor="phone">{t('ui.phone_number', 'Phone Number')}</Label>
                   <Input
                     id="phone"
                     type="tel"
@@ -240,7 +239,7 @@ export function Register() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="university"><T>University</T></Label>
+                  <Label htmlFor="university">{t('ui.university', 'University')}</Label>
                   <Select value={formData.university} onValueChange={(value) => handleChange('university', value)} required>
                     <SelectTrigger className="border-[#cfe0d8] bg-white">
                       <SelectValue placeholder="Select your university" />
@@ -256,7 +255,7 @@ export function Register() {
                 </div>
 
                 <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="studentId"><T>Student ID (Optional)</T></Label>
+                  <Label htmlFor="studentId">{t('ui.student_id_optional', 'Student ID (Optional)')}</Label>
                   <Input
                     id="studentId"
                     type="text"
@@ -269,7 +268,7 @@ export function Register() {
               </div>
 
               <div className="space-y-3 rounded-2xl border border-[#DDE3E2] bg-[#f9fcfb] p-4">
-                <Label><T>Profile Picture (Optional)</T></Label>
+                <Label>{t('ui.profile_picture_optional', 'Profile Picture (Optional)')}</Label>
                 <div className="flex items-center gap-4">
                   <Avatar className="h-16 w-16 border border-[#cfe0d8]">
                     {formData.profilePicture ? (
@@ -288,28 +287,28 @@ export function Register() {
                       onChange={(e) => handleProfilePictureUpload(e.target.files?.[0] || null)}
                       className="border-[#cfe0d8] bg-white"
                     />
-                    <p className="mt-1 text-xs text-[#5f7a71]"><T>JPG, PNG, or WEBP up to 5MB</T></p>
+                    <p className="mt-1 text-xs text-[#5f7a71]">{t('ui.jpg_png_or_webp_up_to_5mb', 'JPG, PNG, or WEBP up to 5MB')}</p>
                   </div>
                 </div>
                 {uploadingProfilePicture && (
                   <p className="inline-flex items-center gap-1 text-xs text-[#0f6f58]">
                     <Upload className="h-3 w-3" />
-                    <T>Uploading profile picture...</T>
+                    {t('ui.uploading_profile_picture', 'Uploading profile picture...')}
                   </p>
                 )}
               </div>
 
               <div className="space-y-2">
-                <Label><T>I want to:</T></Label>
+                <Label>{t('ui.i_want_to', 'I want to:')}</Label>
                 <RadioGroup value={formData.userType} onValueChange={(value) => handleChange('userType', value)} className="grid gap-3 sm:grid-cols-2">
                   <Label htmlFor="buyer" className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#cfe0d8] bg-[#f7fcfa] p-3">
                     <RadioGroupItem value="buyer" id="buyer" className="mt-0.5" />
                     <div>
                       <p className="flex items-center gap-2 font-medium text-[#0f2c24]">
                         <ShoppingCart className="h-4 w-4 text-[#0f6f58]" />
-                        <T>Buy Items</T>
+                        {t('ui.buy_items', 'Buy Items')}
                       </p>
-                      <p className="text-xs text-[#5f7a71]"><T>Browse and purchase from sellers</T></p>
+                      <p className="text-xs text-[#5f7a71]">{t('ui.browse_and_purchase_from_sellers', 'Browse and purchase from sellers')}</p>
                     </div>
                   </Label>
                   <Label htmlFor="seller" className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#cfe0d8] bg-[#f7fcfa] p-3">
@@ -317,9 +316,9 @@ export function Register() {
                     <div>
                       <p className="flex items-center gap-2 font-medium text-[#0f2c24]">
                         <Store className="h-4 w-4 text-[#0f6f58]" />
-                        <T>Sell Items</T>
+                        {t('ui.sell_items', 'Sell Items')}
                       </p>
-                      <p className="text-xs text-[#5f7a71]"><T>List products and serve student buyers</T></p>
+                      <p className="text-xs text-[#5f7a71]">{t('ui.list_products_and_serve_student_buyers', 'List products and serve student buyers')}</p>
                     </div>
                   </Label>
                 </RadioGroup>
@@ -327,7 +326,7 @@ export function Register() {
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="password"><T>Password</T></Label>
+                  <Label htmlFor="password">{t('ui.password', 'Password')}</Label>
                   <PasswordInput
                     id="password"
                     placeholder="Min. 6 characters"
@@ -339,7 +338,7 @@ export function Register() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="confirmPassword"><T>Confirm Password</T></Label>
+                  <Label htmlFor="confirmPassword">{t('ui.confirm_password', 'Confirm Password')}</Label>
                   <PasswordInput
                     id="confirmPassword"
                     placeholder="Re-enter password"
@@ -359,7 +358,7 @@ export function Register() {
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    <T>Creating Account...</T>
+                    {t('ui.creating_account', 'Creating Account...')}
                   </>
                 ) : (
                   'Sign Up'
@@ -371,7 +370,7 @@ export function Register() {
             <p className="text-sm text-[#5f7a71]">
               Already have an account?{' '}
               <Link to="/login" className="font-semibold text-[#0f6f58] hover:underline">
-                <T>Login</T>
+                {t('ui.login', 'Login')}
               </Link>
             </p>
           </CardFooter>

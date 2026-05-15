@@ -21,7 +21,6 @@ import {
   Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { T } from '@/components/T';
 
 type AssistantRecommendation = {
   id: string;
@@ -782,7 +781,7 @@ export function AiAssistant() {
         <section className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
             <h1 className="text-4xl font-extrabold text-[#111111]">
-              <span className="text-[#05B43D]"><T>Sasha</T></span> {t('assistant.title', 'AI Assistant')}
+              <span className="text-[#05B43D]">{t('ui.sasha', 'Sasha')}</span> {t('assistant.title', 'AI Assistant')}
             </h1>
             <p className="mt-3 text-base font-semibold text-[#4A4A4A]">
               {t(

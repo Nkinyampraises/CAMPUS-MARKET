@@ -7,7 +7,6 @@ import { Badge } from '@/app/components/ui/badge';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
-import { T } from '@/components/T';
 
 const mapStatus = (order: any): 'pending' | 'paid' | 'delivered' | 'cancelled' => {
   if (order?.status === 'delivered_released') return 'delivered';
@@ -167,25 +166,25 @@ export function SellerOrders() {
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       <Card>
         <CardHeader>
-          <CardTitle><T>Seller Orders</T></CardTitle>
-          <CardDescription><T>Show all purchase orders from buyers.</T></CardDescription>
+          <CardTitle>{t('ui.seller_orders', 'Seller Orders')}</CardTitle>
+          <CardDescription>{t('ui.show_all_purchase_orders_from_buyers', 'Show all purchase orders from buyers.')}</CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-sm text-muted-foreground"><T>Loading orders...</T></p>
+            <p className="text-sm text-muted-foreground">{t('ui.loading_orders', 'Loading orders...')}</p>
           ) : sortedOrders.length === 0 ? (
-            <p className="text-sm text-muted-foreground"><T>No purchase orders yet.</T></p>
+            <p className="text-sm text-muted-foreground">{t('ui.no_purchase_orders_yet', 'No purchase orders yet.')}</p>
           ) : (
             <div className="overflow-x-auto border rounded-lg">
               <table className="w-full text-sm">
                 <thead className="bg-muted/40">
                   <tr>
-                    <th className="text-left p-3"><T>Order</T></th>
-                    <th className="text-left p-3"><T>Buyer</T></th>
-                    <th className="text-left p-3"><T>Amount</T></th>
-                    <th className="text-left p-3"><T>Status</T></th>
+                    <th className="text-left p-3">{t('ui.order', 'Order')}</th>
+                    <th className="text-left p-3">{t('ui.buyer', 'Buyer')}</th>
+                    <th className="text-left p-3">{t('ui.amount', 'Amount')}</th>
+                    <th className="text-left p-3">{t('ui.status', 'Status')}</th>
                     <th className="text-left p-3">Date</th>
-                    <th className="text-left p-3"><T>Actions</T></th>
+                    <th className="text-left p-3">{t('ui.actions', 'Actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -217,7 +216,7 @@ export function SellerOrders() {
                               disabled={locked || updatingId === order.id}
                               onClick={() => applyDecision(order.id, 'accepted')}
                             >
-                              <T>Accept</T>
+                              {t('ui.accept', 'Accept')}
                             </Button>
                             <Button
                               size="sm"
@@ -225,7 +224,7 @@ export function SellerOrders() {
                               disabled={locked || updatingId === order.id}
                               onClick={() => applyDecision(order.id, 'rejected')}
                             >
-                              <T>Reject</T>
+                              {t('ui.reject', 'Reject')}
                             </Button>
                             <Button
                               size="sm"
@@ -233,7 +232,7 @@ export function SellerOrders() {
                               disabled={locked || updatingId === order.id}
                               onClick={() => markDelivered(order.id)}
                             >
-                              <T>Mark Delivered</T>
+                              {t('ui.mark_delivered', 'Mark Delivered')}
                             </Button>
                           </div>
                         </td>

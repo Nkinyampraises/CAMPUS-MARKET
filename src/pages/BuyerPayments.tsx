@@ -8,7 +8,6 @@ import { Download } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
-import { T } from '@/components/T';
 
 const formatMoney = (value: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value || 0);
@@ -68,12 +67,12 @@ export function BuyerPayments() {
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       <Card>
         <CardHeader>
-          <CardTitle><T>Payment History</T></CardTitle>
-          <CardDescription><T>All your transaction records</T></CardDescription>
+          <CardTitle>{t('ui.payment_history', 'Payment History')}</CardTitle>
+          <CardDescription>{t('ui.all_your_transaction_records', 'All your transaction records')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center gap-2">
-            <label htmlFor="payment-method-filter" className="text-sm text-muted-foreground"><T>Filter by:</T></label>
+            <label htmlFor="payment-method-filter" className="text-sm text-muted-foreground">{t('ui.filter_by', 'Filter by:')}</label>
             <select
               id="payment-method-filter"
               className="border rounded-md h-9 px-3 text-sm"
@@ -81,16 +80,16 @@ export function BuyerPayments() {
               onChange={(e) => setFilterMethod(e.target.value as 'all' | 'mtn-momo' | 'orange-money' | 'cash')}
             >
               <option value="all">All</option>
-              <option value="mtn-momo"><T>MTN MoMo</T></option>
-              <option value="orange-money"><T>Orange Money</T></option>
+              <option value="mtn-momo">{t('ui.mtn_momo', 'MTN MoMo')}</option>
+              <option value="orange-money">{t('ui.orange_money', 'Orange Money')}</option>
               <option value="cash">Cash</option>
             </select>
           </div>
 
           {loading ? (
-            <p className="text-sm text-muted-foreground"><T>Loading transactions...</T></p>
+            <p className="text-sm text-muted-foreground">{t('ui.loading_transactions', 'Loading transactions...')}</p>
           ) : filtered.length === 0 ? (
-            <p className="text-sm text-muted-foreground"><T>No transactions found for this filter.</T></p>
+            <p className="text-sm text-muted-foreground">{t('ui.no_transactions_found_for_this_filter', 'No transactions found for this filter.')}</p>
           ) : (
             <div className="space-y-3">
               {filtered.map((transaction) => (
@@ -112,7 +111,7 @@ export function BuyerPayments() {
                       onClick={() => navigate(`/buyer/receipt/${transaction.id}?kind=transaction`)}
                     >
                       <Download className="h-4 w-4 mr-2" />
-                      <T>Download Receipt</T>
+                      {t('ui.download_receipt', 'Download Receipt')}
                     </Button>
                   </div>
                 </div>

@@ -7,7 +7,6 @@ import { ArrowLeft, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
-import { T } from '@/components/T';
 
 const formatMoney = (value: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value || 0);
@@ -121,32 +120,32 @@ export function BuyerReceipt() {
         </Button>
         <Button variant="outline" onClick={() => window.print()}>
           <Printer className="h-4 w-4 mr-2" />
-          <T>Print / Save PDF</T>
+          {t('ui.print_save_pdf', 'Print / Save PDF')}
         </Button>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle><T>Payment Receipt</T></CardTitle>
+          <CardTitle>{t('ui.payment_receipt', 'Payment Receipt')}</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-sm text-muted-foreground"><T>Loading receipt...</T></p>
+            <p className="text-sm text-muted-foreground">{t('ui.loading_receipt', 'Loading receipt...')}</p>
           ) : !receipt ? (
-            <p className="text-sm text-muted-foreground"><T>Receipt not available.</T></p>
+            <p className="text-sm text-muted-foreground">{t('ui.receipt_not_available', 'Receipt not available.')}</p>
           ) : (
             <div className="space-y-2 text-sm">
-              <p><span className="text-muted-foreground"><T>Receipt ID:</T></span> {receipt.id}</p>
-              <p><span className="text-muted-foreground"><T>Date:</T></span> {createdAtLabel}</p>
-              <p><span className="text-muted-foreground"><T>Item:</T></span> {receipt.itemTitle}</p>
-              <p><span className="text-muted-foreground"><T>Seller:</T></span> {receipt.sellerName}</p>
-              <p><span className="text-muted-foreground"><T>Payment Method:</T></span> {paymentLabel(receipt.paymentMethod)}</p>
-              <p><span className="text-muted-foreground"><T>Reference:</T></span> {receipt.reference || '-'}</p>
-              <p><span className="text-muted-foreground"><T>Status:</T></span> {receipt.status || '-'}</p>
+              <p><span className="text-muted-foreground">{t('ui.receipt_id', 'Receipt ID:')}</span> {receipt.id}</p>
+              <p><span className="text-muted-foreground">{t('ui.date', 'Date:')}</span> {createdAtLabel}</p>
+              <p><span className="text-muted-foreground">{t('ui.item', 'Item:')}</span> {receipt.itemTitle}</p>
+              <p><span className="text-muted-foreground">{t('ui.seller', 'Seller:')}</span> {receipt.sellerName}</p>
+              <p><span className="text-muted-foreground">{t('ui.payment_method', 'Payment Method:')}</span> {paymentLabel(receipt.paymentMethod)}</p>
+              <p><span className="text-muted-foreground">{t('ui.reference', 'Reference:')}</span> {receipt.reference || '-'}</p>
+              <p><span className="text-muted-foreground">{t('ui.status', 'Status:')}</span> {receipt.status || '-'}</p>
               <hr className="my-3" />
-              <p><span className="text-muted-foreground"><T>Base Amount:</T></span> {formatMoney(receipt.amount || 0)}</p>
-              <p><span className="text-muted-foreground"><T>Transaction Fee:</T></span> {formatMoney(receipt.transactionFee || 0)}</p>
-              <p className="font-semibold"><span className="text-muted-foreground"><T>Total Paid:</T></span> {formatMoney(receipt.totalCharged || 0)}</p>
+              <p><span className="text-muted-foreground">{t('ui.base_amount', 'Base Amount:')}</span> {formatMoney(receipt.amount || 0)}</p>
+              <p><span className="text-muted-foreground">{t('ui.transaction_fee', 'Transaction Fee:')}</span> {formatMoney(receipt.transactionFee || 0)}</p>
+              <p className="font-semibold"><span className="text-muted-foreground">{t('ui.total_paid', 'Total Paid:')}</span> {formatMoney(receipt.totalCharged || 0)}</p>
             </div>
           )}
         </CardContent>

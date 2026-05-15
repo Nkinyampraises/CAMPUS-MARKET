@@ -7,7 +7,6 @@ import { Badge } from '@/app/components/ui/badge';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
-import { T } from '@/components/T';
 const RETURNED_KEY = 'buyerReturnedRentals';
 
 const toDateLabel = (value: string | null | undefined) => {
@@ -93,14 +92,14 @@ export function BuyerRentals() {
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       <Card>
         <CardHeader>
-          <CardTitle><T>My Rentals</T></CardTitle>
+          <CardTitle>{t('ui.my_rentals', 'My Rentals')}</CardTitle>
           <CardDescription>{rentalCountLabel}</CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-sm text-muted-foreground"><T>Loading rentals...</T></p>
+            <p className="text-sm text-muted-foreground">{t('ui.loading_rentals', 'Loading rentals...')}</p>
           ) : rentals.length === 0 ? (
-            <p className="text-sm text-muted-foreground"><T>No rental orders found.</T></p>
+            <p className="text-sm text-muted-foreground">{t('ui.no_rental_orders_found', 'No rental orders found.')}</p>
           ) : (
             <div className="space-y-3">
               {rentals.map((order) => {
@@ -120,7 +119,7 @@ export function BuyerRentals() {
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge variant={rentalStatus === 'active' ? 'default' : 'secondary'}>{rentalStatus}</Badge>
                       <Button variant="outline" size="sm" onClick={() => navigate(`/buyer/rental-details/${order.id}`)}>
-                        <T>Details</T>
+                        {t('ui.details', 'Details')}
                       </Button>
                       <Button
                         variant="outline"

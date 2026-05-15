@@ -10,7 +10,6 @@ import { ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
-import { T } from '@/components/T';
 const RETURNED_KEY = 'buyerReturnedRentals';
 
 const formatMoney = (value: number) =>
@@ -151,31 +150,31 @@ export function RentalDetails() {
     <div className="container mx-auto px-4 py-8 max-w-4xl space-y-6">
       <Button variant="ghost" onClick={() => navigate('/buyer/rentals')}>
         <ArrowLeft className="h-4 w-4 mr-2" />
-        <T>Back to Rentals</T>
+        {t('ui.back_to_rentals', 'Back to Rentals')}
       </Button>
 
       <Card>
         <CardHeader>
-          <CardTitle><T>Rental Details</T></CardTitle>
-          <CardDescription><T>Track rental status and request extension</T></CardDescription>
+          <CardTitle>{t('ui.rental_details', 'Rental Details')}</CardTitle>
+          <CardDescription>{t('ui.track_rental_status_and_request_extension', 'Track rental status and request extension')}</CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-sm text-muted-foreground"><T>Loading rental details...</T></p>
+            <p className="text-sm text-muted-foreground">{t('ui.loading_rental_details', 'Loading rental details...')}</p>
           ) : !order ? (
-            <p className="text-sm text-muted-foreground"><T>Rental details not found.</T></p>
+            <p className="text-sm text-muted-foreground">{t('ui.rental_details_not_found', 'Rental details not found.')}</p>
           ) : (
             <div className="space-y-2 text-sm">
-              <p><span className="text-muted-foreground"><T>Item:</T></span> {listing?.title || order.listingTitle || '-'}</p>
-              <p><span className="text-muted-foreground"><T>Rental period:</T></span> {rentalPeriod}</p>
-              <p><span className="text-muted-foreground"><T>Rental start:</T></span> {startDate ? startDate.toLocaleDateString() : '-'}</p>
-              <p><span className="text-muted-foreground"><T>Rental end:</T></span> {endDate ? endDate.toLocaleDateString() : '-'}</p>
-              <p><span className="text-muted-foreground"><T>Total rental cost:</T></span> {formatMoney(order.amount || 0)}</p>
+              <p><span className="text-muted-foreground">{t('ui.item', 'Item:')}</span> {listing?.title || order.listingTitle || '-'}</p>
+              <p><span className="text-muted-foreground">{t('ui.rental_period', 'Rental period:')}</span> {rentalPeriod}</p>
+              <p><span className="text-muted-foreground">{t('ui.rental_start', 'Rental start:')}</span> {startDate ? startDate.toLocaleDateString() : '-'}</p>
+              <p><span className="text-muted-foreground">{t('ui.rental_end', 'Rental end:')}</span> {endDate ? endDate.toLocaleDateString() : '-'}</p>
+              <p><span className="text-muted-foreground">{t('ui.total_rental_cost', 'Total rental cost:')}</span> {formatMoney(order.amount || 0)}</p>
               <div className="flex items-center gap-2">
-                <span className="text-muted-foreground"><T>Status:</T></span>
+                <span className="text-muted-foreground">{t('ui.status', 'Status:')}</span>
                 <Badge variant={status === 'active' ? 'default' : 'secondary'}>{status}</Badge>
               </div>
-              <p><span className="text-muted-foreground"><T>Return tracking:</T></span> {isReturned ? 'Returned by buyer' : 'Not returned yet'}</p>
+              <p><span className="text-muted-foreground">{t('ui.return_tracking', 'Return tracking:')}</span> {isReturned ? 'Returned by buyer' : 'Not returned yet'}</p>
               <div className="pt-2">
                 <Button variant="outline" onClick={markReturned} disabled={isReturned}>
                   {isReturned ? 'Already Returned' : 'Mark Returned'}
@@ -188,11 +187,11 @@ export function RentalDetails() {
 
       <Card>
         <CardHeader>
-          <CardTitle><T>Request Extension</T></CardTitle>
+          <CardTitle>{t('ui.request_extension', 'Request Extension')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="space-y-1">
-            <Label htmlFor="extension-reason"><T>Reason</T></Label>
+            <Label htmlFor="extension-reason">{t('ui.reason', 'Reason')}</Label>
             <Textarea
               id="extension-reason"
               rows={4}

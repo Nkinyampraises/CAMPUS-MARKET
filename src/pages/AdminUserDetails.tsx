@@ -6,7 +6,6 @@ import { Badge } from '@/app/components/ui/badge';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
-import { T } from '@/components/T';
 
 const formatMoney = (value: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value || 0);
@@ -61,37 +60,37 @@ export function AdminUserDetails() {
   return (
     <div className="container mx-auto max-w-7xl space-y-6 px-3 py-8 sm:px-4">
       {loading ? (
-        <p className="text-sm text-muted-foreground"><T>Loading user details...</T></p>
+        <p className="text-sm text-muted-foreground">{t('ui.loading_user_details', 'Loading user details...')}</p>
       ) : !user ? (
-        <p className="text-sm text-muted-foreground"><T>User not found.</T></p>
+        <p className="text-sm text-muted-foreground">{t('ui.user_not_found', 'User not found.')}</p>
       ) : (
         <>
           <Card>
             <CardHeader>
-              <CardTitle><T>Full Profile View</T></CardTitle>
+              <CardTitle>{t('ui.full_profile_view', 'Full Profile View')}</CardTitle>
               <CardDescription>{user.name}</CardDescription>
             </CardHeader>
             <CardContent className="grid grid-cols-1 gap-3 text-sm md:grid-cols-2">
-              <p className="break-words"><span className="text-muted-foreground"><T>Name:</T></span> {user.name || '-'}</p>
-              <p className="break-all"><span className="text-muted-foreground"><T>Email:</T></span> {user.email || '-'}</p>
-              <p className="break-words"><span className="text-muted-foreground"><T>Phone:</T></span> {user.phone || '-'}</p>
-              <p className="break-words"><span className="text-muted-foreground"><T>University:</T></span> {user.university || '-'}</p>
-              <p className="break-words"><span className="text-muted-foreground"><T>Student ID:</T></span> {user.studentId || '-'}</p>
-              <p className="break-words"><span className="text-muted-foreground"><T>Role:</T></span> {user.userType || '-'}</p>
-              <p className="break-words"><span className="text-muted-foreground"><T>Rating:</T></span> {Number(user.rating || 0).toFixed(2)} ({user.reviewCount || 0} reviews)</p>
-              <p className="break-words"><span className="text-muted-foreground"><T>Status:</T></span> {user.isBanned ? 'Banned' : 'Active'}</p>
+              <p className="break-words"><span className="text-muted-foreground">{t('ui.name', 'Name:')}</span> {user.name || '-'}</p>
+              <p className="break-all"><span className="text-muted-foreground">{t('ui.email', 'Email:')}</span> {user.email || '-'}</p>
+              <p className="break-words"><span className="text-muted-foreground">{t('ui.phone', 'Phone:')}</span> {user.phone || '-'}</p>
+              <p className="break-words"><span className="text-muted-foreground">{t('ui.university', 'University:')}</span> {user.university || '-'}</p>
+              <p className="break-words"><span className="text-muted-foreground">{t('ui.student_id', 'Student ID:')}</span> {user.studentId || '-'}</p>
+              <p className="break-words"><span className="text-muted-foreground">{t('ui.role', 'Role:')}</span> {user.userType || '-'}</p>
+              <p className="break-words"><span className="text-muted-foreground">{t('ui.rating', 'Rating:')}</span> {Number(user.rating || 0).toFixed(2)} ({user.reviewCount || 0} reviews)</p>
+              <p className="break-words"><span className="text-muted-foreground">{t('ui.status', 'Status:')}</span> {user.isBanned ? 'Banned' : 'Active'}</p>
             </CardContent>
           </Card>
 
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle><T>User Activity Log</T></CardTitle>
-                <CardDescription><T>Recent platform events</T></CardDescription>
+                <CardTitle>{t('ui.user_activity_log', 'User Activity Log')}</CardTitle>
+                <CardDescription>{t('ui.recent_platform_events', 'Recent platform events')}</CardDescription>
               </CardHeader>
               <CardContent>
                 {activityLog.length === 0 ? (
-                  <p className="text-sm text-muted-foreground"><T>No activity log entries.</T></p>
+                  <p className="text-sm text-muted-foreground">{t('ui.no_activity_log_entries', 'No activity log entries.')}</p>
                 ) : (
                   <div className="space-y-3 max-h-[420px] overflow-auto pr-1">
                     {activityLog.slice(0, 100).map((entry: any, index: number) => (
@@ -112,11 +111,11 @@ export function AdminUserDetails() {
 
             <Card>
               <CardHeader>
-                <CardTitle><T>User Listings</T></CardTitle>
+                <CardTitle>{t('ui.user_listings', 'User Listings')}</CardTitle>
               </CardHeader>
               <CardContent>
                 {listings.length === 0 ? (
-                  <p className="text-sm text-muted-foreground"><T>No listings.</T></p>
+                  <p className="text-sm text-muted-foreground">{t('ui.no_listings', 'No listings.')}</p>
                 ) : (
                   <div className="space-y-3 max-h-[420px] overflow-auto pr-1">
                     {listings.map((listing: any) => (
@@ -144,11 +143,11 @@ export function AdminUserDetails() {
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle><T>Reviews Received</T></CardTitle>
+                <CardTitle>{t('ui.reviews_received', 'Reviews Received')}</CardTitle>
               </CardHeader>
               <CardContent>
                 {reviewsReceived.length === 0 ? (
-                  <p className="text-sm text-muted-foreground"><T>No reviews received.</T></p>
+                  <p className="text-sm text-muted-foreground">{t('ui.no_reviews_received', 'No reviews received.')}</p>
                 ) : (
                   <div className="space-y-3 max-h-[360px] overflow-auto pr-1">
                     {reviewsReceived.map((review: any) => (
@@ -167,11 +166,11 @@ export function AdminUserDetails() {
 
             <Card>
               <CardHeader>
-                <CardTitle><T>Transactions History</T></CardTitle>
+                <CardTitle>{t('ui.transactions_history', 'Transactions History')}</CardTitle>
               </CardHeader>
               <CardContent>
                 {transactionsHistory.length === 0 ? (
-                  <p className="text-sm text-muted-foreground"><T>No transactions.</T></p>
+                  <p className="text-sm text-muted-foreground">{t('ui.no_transactions', 'No transactions.')}</p>
                 ) : (
                   <div className="space-y-3 max-h-[360px] overflow-auto pr-1">
                     {transactionsHistory.map((transaction: any) => (
@@ -198,11 +197,11 @@ export function AdminUserDetails() {
 
           <Card>
             <CardHeader>
-              <CardTitle><T>Reports Against User</T></CardTitle>
+              <CardTitle>{t('ui.reports_against_user', 'Reports Against User')}</CardTitle>
             </CardHeader>
             <CardContent>
               {reportsAgainstUser.length === 0 ? (
-                <p className="text-sm text-muted-foreground"><T>No reports against this user.</T></p>
+                <p className="text-sm text-muted-foreground">{t('ui.no_reports_against_this_user', 'No reports against this user.')}</p>
               ) : (
                 <div className="space-y-3 max-h-[360px] overflow-auto pr-1">
                   {reportsAgainstUser.map((report: any) => (

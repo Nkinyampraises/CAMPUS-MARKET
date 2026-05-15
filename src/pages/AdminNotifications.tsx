@@ -17,7 +17,6 @@ import { Bell, Loader2, Send } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
-import { T } from '@/components/T';
 
 interface Broadcast {
   id: string;
@@ -180,12 +179,12 @@ export function AdminNotifications() {
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle><T>Send Broadcast</T></CardTitle>
-          <CardDescription><T>Send announcements to buyers, sellers, or all users.</T></CardDescription>
+          <CardTitle>{t('ui.send_broadcast', 'Send Broadcast')}</CardTitle>
+          <CardDescription>{t('ui.send_announcements_to_buyers_sellers_or_all_users', 'Send announcements to buyers, sellers, or all users.')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="broadcast-title"><T>Title</T></Label>
+            <Label htmlFor="broadcast-title">{t('ui.title', 'Title')}</Label>
             <Input
               id="broadcast-title"
               value={title}
@@ -194,7 +193,7 @@ export function AdminNotifications() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="broadcast-message"><T>Message</T></Label>
+            <Label htmlFor="broadcast-message">{t('ui.message', 'Message')}</Label>
             <Textarea
               id="broadcast-message"
               value={message}
@@ -205,28 +204,28 @@ export function AdminNotifications() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label><T>Priority</T></Label>
+              <Label>{t('ui.priority', 'Priority')}</Label>
               <Select value={priority} onValueChange={(v: 'normal' | 'high' | 'urgent') => setPriority(v)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="normal"><T>Normal</T></SelectItem>
+                  <SelectItem value="normal">{t('ui.normal', 'Normal')}</SelectItem>
                   <SelectItem value="high">High</SelectItem>
-                  <SelectItem value="urgent"><T>Urgent</T></SelectItem>
+                  <SelectItem value="urgent">{t('ui.urgent', 'Urgent')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label><T>Target</T></Label>
+              <Label>{t('ui.target', 'Target')}</Label>
               <Select value={target} onValueChange={(v: 'all' | 'buyers' | 'sellers') => setTarget(v)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all"><T>All users</T></SelectItem>
-                  <SelectItem value="buyers"><T>Buyers only</T></SelectItem>
-                  <SelectItem value="sellers"><T>Sellers only</T></SelectItem>
+                  <SelectItem value="all">{t('ui.all_users', 'All users')}</SelectItem>
+                  <SelectItem value="buyers">{t('ui.buyers_only', 'Buyers only')}</SelectItem>
+                  <SelectItem value="sellers">{t('ui.sellers_only', 'Sellers only')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -239,12 +238,12 @@ export function AdminNotifications() {
             {submitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                <T>Sending...</T>
+                {t('ui.sending', 'Sending...')}
               </>
             ) : (
               <>
                 <Send className="mr-2 h-4 w-4" />
-                <T>Send Broadcast</T>
+                {t('ui.send_broadcast', 'Send Broadcast')}
               </>
             )}
           </Button>
@@ -253,14 +252,14 @@ export function AdminNotifications() {
 
       <Card>
         <CardHeader>
-          <CardTitle><T>Reports Inbox</T></CardTitle>
-          <CardDescription><T>All buyer/seller reports and support requests received by admin.</T></CardDescription>
+          <CardTitle>{t('ui.reports_inbox', 'Reports Inbox')}</CardTitle>
+          <CardDescription>{t('ui.all_buyer_seller_reports_and_support_requests_rece', 'All buyer/seller reports and support requests received by admin.')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           {supportLoading ? (
-            <div className="text-sm text-muted-foreground"><T>Loading reports...</T></div>
+            <div className="text-sm text-muted-foreground">{t('ui.loading_reports', 'Loading reports...')}</div>
           ) : supportReports.length === 0 ? (
-            <div className="text-sm text-muted-foreground"><T>No reports yet.</T></div>
+            <div className="text-sm text-muted-foreground">{t('ui.no_reports_yet', 'No reports yet.')}</div>
           ) : (
             supportReports.map((report) => (
               <div key={report.id} className="border rounded-lg p-4">
@@ -288,7 +287,7 @@ export function AdminNotifications() {
                     disabled={actioningReportId === report.id}
                     onClick={() => updateSupportReportStatus(report.id, 'reviewed')}
                   >
-                    <T>Mark Reviewed</T>
+                    {t('ui.mark_reviewed', 'Mark Reviewed')}
                   </Button>
                   <Button
                     size="sm"
@@ -297,7 +296,7 @@ export function AdminNotifications() {
                     disabled={actioningReportId === report.id}
                     onClick={() => updateSupportReportStatus(report.id, 'resolved')}
                   >
-                    <T>Mark Resolved</T>
+                    {t('ui.mark_resolved', 'Mark Resolved')}
                   </Button>
                   <Button
                     size="sm"
@@ -306,7 +305,7 @@ export function AdminNotifications() {
                     disabled={actioningReportId === report.id}
                     onClick={() => updateSupportReportStatus(report.id, 'rejected')}
                   >
-                    <T>Reject</T>
+                    {t('ui.reject', 'Reject')}
                   </Button>
                 </div>
               </div>
@@ -317,14 +316,14 @@ export function AdminNotifications() {
 
       <Card>
         <CardHeader>
-          <CardTitle><T>Broadcast History</T></CardTitle>
-          <CardDescription><T>Latest announcements sent from admin dashboard.</T></CardDescription>
+          <CardTitle>{t('ui.broadcast_history', 'Broadcast History')}</CardTitle>
+          <CardDescription>{t('ui.latest_announcements_sent_from_admin_dashboard', 'Latest announcements sent from admin dashboard.')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           {loading ? (
-            <div className="text-sm text-muted-foreground"><T>Loading broadcasts...</T></div>
+            <div className="text-sm text-muted-foreground">{t('ui.loading_broadcasts', 'Loading broadcasts...')}</div>
           ) : broadcasts.length === 0 ? (
-            <div className="text-sm text-muted-foreground"><T>No broadcasts yet.</T></div>
+            <div className="text-sm text-muted-foreground">{t('ui.no_broadcasts_yet', 'No broadcasts yet.')}</div>
           ) : (
             broadcasts.map((broadcast) => (
               <div key={broadcast.id} className="border rounded-lg p-4">

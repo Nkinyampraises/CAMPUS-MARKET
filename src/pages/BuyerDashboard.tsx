@@ -9,7 +9,6 @@ import { Bell, DollarSign, Flag, Heart, MessageSquare, PackageCheck, ShieldAlert
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
-import { T } from '@/components/T';
 
 const formatMoney = (value: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value || 0);
@@ -141,7 +140,7 @@ export function BuyerDashboard() {
       <div className="container mx-auto px-4">
         <div className="mb-8 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-4xl font-extrabold text-[#111111]"><span className="text-[#05B43D]"><T>Buyer</T></span> <T>Dashboard</T></h1>
+            <h1 className="text-4xl font-extrabold text-[#111111]"><span className="text-[#05B43D]">{t('ui.buyer', 'Buyer')}</span> {t('ui.dashboard', 'Dashboard')}</h1>
             <p className="text-muted-foreground">Achats protégés par dépôt fiduciaire pour {currentUser.name}</p>
           </div>
         </div>
@@ -165,7 +164,7 @@ export function BuyerDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.pending}</div>
-              <p className="text-xs text-muted-foreground"><T>En attente de confirmation vendeur</T></p>
+              <p className="text-xs text-muted-foreground">{t('ui.en_attente_de_confirmation_vendeur', 'En attente de confirmation vendeur')}</p>
             </CardContent>
           </Card>
 
@@ -176,7 +175,7 @@ export function BuyerDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-blue-600">{formatMoney(stats.totalSpent)}</div>
-              <p className="text-xs text-muted-foreground"><T>Sur toutes les commandes</T></p>
+              <p className="text-xs text-muted-foreground">{t('ui.sur_toutes_les_commandes', 'Sur toutes les commandes')}</p>
             </CardContent>
           </Card>
 
@@ -187,16 +186,16 @@ export function BuyerDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-red-600">{favoriteItems.length}</div>
-              <p className="text-xs text-muted-foreground"><T>Articles en liste de souhaits</T></p>
+              <p className="text-xs text-muted-foreground">{t('ui.articles_en_liste_de_souhaits', 'Articles en liste de souhaits')}</p>
             </CardContent>
           </Card>
         </div>
 
         <Tabs defaultValue="orders" className="space-y-4">
             <TabsList>
-              <TabsTrigger value="orders"><T>Mes commandes</T></TabsTrigger>
+              <TabsTrigger value="orders">{t('ui.mes_commandes', 'Mes commandes')}</TabsTrigger>
               <TabsTrigger value="favorites">Saved Items ({safeFavoriteItems.length})</TabsTrigger>
-              <TabsTrigger value="messages"><T>Messages</T></TabsTrigger>
+              <TabsTrigger value="messages">{t('ui.messages', 'Messages')}</TabsTrigger>
             </TabsList>
 
           <TabsContent value="orders" className="space-y-4">
@@ -204,7 +203,7 @@ export function BuyerDashboard() {
               <Card>
                 <CardHeader>
                   <CardTitle>Commandes en dépôt fiduciaire</CardTitle>
-                  <CardDescription><T>Statut de paiement et flux de confirmation de livraison.</T></CardDescription>
+                  <CardDescription>{t('ui.statut_de_paiement_et_flux_de_confirmation_de_livr', 'Statut de paiement et flux de confirmation de livraison.')}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
@@ -231,7 +230,7 @@ export function BuyerDashboard() {
                             variant="outline"
                             onClick={() => navigate(`/orders/${order.id}`)}
                           >
-                            <T>View Order</T>
+                            {t('ui.view_order', 'View Order')}
                           </Button>
                         </div>
                       </div>
@@ -243,10 +242,10 @@ export function BuyerDashboard() {
               <Card>
                 <CardContent className="p-12 text-center">
                   <ShoppingBag className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2"><T>No orders yet</T></h3>
-                  <p className="text-muted-foreground mb-4"><T>Start shopping to create your first escrow-protected order.</T></p>
+                  <h3 className="text-lg font-semibold mb-2">{t('ui.no_orders_yet', 'No orders yet')}</h3>
+                  <p className="text-muted-foreground mb-4">{t('ui.start_shopping_to_create_your_first_escrow_protect', 'Start shopping to create your first escrow-protected order.')}</p>
                   <Button className="bg-[#05B43D] hover:bg-[#018F2D]" onClick={() => navigate('/marketplace')}>
-                    <T>Browse Marketplace</T>
+                    {t('ui.browse_marketplace', 'Browse Marketplace')}
                   </Button>
                 </CardContent>
               </Card>
@@ -266,7 +265,7 @@ export function BuyerDashboard() {
                       <h3 className="font-semibold mb-2 line-clamp-2">{item.title || 'Untitled item'}</h3>
                       <p className="text-lg font-bold text-green-600 mb-3">{formatMoney(item.price || 0)}</p>
                       <Button className="w-full" onClick={(e) => { e.stopPropagation(); navigate(`/item/${item.id}`); }}>
-                        <T>View Details</T>
+                        {t('ui.view_details', 'View Details')}
                       </Button>
                     </CardContent>
                   </Card>
@@ -276,10 +275,10 @@ export function BuyerDashboard() {
               <Card>
                 <CardContent className="p-12 text-center">
                   <Heart className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2"><T>No saved items</T></h3>
-                  <p className="text-muted-foreground mb-4"><T>Save items while browsing.</T></p>
+                  <h3 className="text-lg font-semibold mb-2">{t('ui.no_saved_items', 'No saved items')}</h3>
+                  <p className="text-muted-foreground mb-4">{t('ui.save_items_while_browsing', 'Save items while browsing.')}</p>
                   <Button className="bg-[#05B43D] hover:bg-[#018F2D]" onClick={() => navigate('/marketplace')}>
-                    <T>Browse Marketplace</T>
+                    {t('ui.browse_marketplace', 'Browse Marketplace')}
                   </Button>
                 </CardContent>
               </Card>
@@ -289,13 +288,13 @@ export function BuyerDashboard() {
           <TabsContent value="messages">
             <Card>
               <CardHeader>
-                <CardTitle><T>Messages</T></CardTitle>
-                <CardDescription><T>Chat with sellers about your orders.</T></CardDescription>
+                <CardTitle>{t('ui.messages', 'Messages')}</CardTitle>
+                <CardDescription>{t('ui.chat_with_sellers_about_your_orders', 'Chat with sellers about your orders.')}</CardDescription>
               </CardHeader>
               <CardContent>
                 <Button className="bg-[#05B43D] hover:bg-[#018F2D] w-full" onClick={() => navigate('/messages')}>
                   <MessageSquare className="mr-2 h-4 w-4" />
-                  <T>Open Messages</T>
+                  {t('ui.open_messages', 'Open Messages')}
                 </Button>
               </CardContent>
             </Card>

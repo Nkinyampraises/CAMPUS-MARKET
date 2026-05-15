@@ -8,7 +8,6 @@ import { RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
-import { T } from '@/components/T';
 
 type ReportStatus = 'open' | 'reviewed' | 'resolved' | 'rejected';
 
@@ -120,14 +119,14 @@ export function AdminInbox() {
       <div className="flex flex-wrap items-center justify-end gap-2">
         <Button variant="outline" onClick={() => fetchReports(true)} disabled={refreshing}>
           <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-          <T>Refresh</T>
+          {t('ui.refresh', 'Refresh')}
         </Button>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle><T>Admin Inbox</T></CardTitle>
-          <CardDescription><T>All contact support and report problem submissions.</T></CardDescription>
+          <CardTitle>{t('ui.admin_inbox', 'Admin Inbox')}</CardTitle>
+          <CardDescription>{t('ui.all_contact_support_and_report_problem_submissions', 'All contact support and report problem submissions.')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
@@ -142,16 +141,16 @@ export function AdminInbox() {
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value as 'all' | 'support' | 'report')}
             >
-              <option value="all"><T>All Types</T></option>
-              <option value="support"><T>Support</T></option>
-              <option value="report"><T>Reports</T></option>
+              <option value="all">{t('ui.all_types', 'All Types')}</option>
+              <option value="support">{t('ui.support', 'Support')}</option>
+              <option value="report">{t('ui.reports', 'Reports')}</option>
             </select>
             <select
               className="border rounded-md h-10 px-3 text-sm"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as 'all' | ReportStatus)}
             >
-              <option value="all"><T>All Statuses</T></option>
+              <option value="all">{t('ui.all_statuses', 'All Statuses')}</option>
               <option value="open">open</option>
               <option value="reviewed">reviewed</option>
               <option value="resolved">resolved</option>
@@ -160,9 +159,9 @@ export function AdminInbox() {
           </div>
 
           {loading ? (
-            <p className="text-sm text-muted-foreground"><T>Loading inbox...</T></p>
+            <p className="text-sm text-muted-foreground">{t('ui.loading_inbox', 'Loading inbox...')}</p>
           ) : filteredReports.length === 0 ? (
-            <p className="text-sm text-muted-foreground"><T>No submissions found.</T></p>
+            <p className="text-sm text-muted-foreground">{t('ui.no_submissions_found', 'No submissions found.')}</p>
           ) : (
             <div className="space-y-3">
               {filteredReports.map((report) => {
@@ -197,7 +196,7 @@ export function AdminInbox() {
                         disabled={actioningReportId === report.id}
                         onClick={() => updateReportStatus(report.id, 'reviewed')}
                       >
-                        <T>Mark Reviewed</T>
+                        {t('ui.mark_reviewed', 'Mark Reviewed')}
                       </Button>
                       <Button
                         size="sm"
@@ -206,7 +205,7 @@ export function AdminInbox() {
                         disabled={actioningReportId === report.id}
                         onClick={() => updateReportStatus(report.id, 'resolved')}
                       >
-                        <T>Mark Resolved</T>
+                        {t('ui.mark_resolved', 'Mark Resolved')}
                       </Button>
                       <Button
                         size="sm"
@@ -215,7 +214,7 @@ export function AdminInbox() {
                         disabled={actioningReportId === report.id}
                         onClick={() => updateReportStatus(report.id, 'rejected')}
                       >
-                        <T>Reject</T>
+                        {t('ui.reject', 'Reject')}
                       </Button>
                     </div>
                   </div>

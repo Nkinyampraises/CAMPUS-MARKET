@@ -14,7 +14,6 @@ import { ResilientImage } from '@/components/ResilientImage';
 import { useAutoTranslate } from '@/hooks/useAutoTranslate';
 
 import { API_URL } from '@/lib/api';
-import { T } from '@/components/T';
 
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat('fr-CM', {
@@ -103,10 +102,10 @@ function ProductCard({
             src={primaryImage}
             alt={item.title}
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-            fallback={<div className="flex h-full items-center justify-center text-xs text-[#8a8a8a]"><T>No image available</T></div>}
+            fallback={<div className="flex h-full items-center justify-center text-xs text-[#8a8a8a]">{t('ui.no_image_available', 'No image available')}</div>}
           />
         ) : (
-          <div className="flex h-full items-center justify-center text-xs text-[#8a8a8a]"><T>No image available</T></div>
+          <div className="flex h-full items-center justify-center text-xs text-[#8a8a8a]">{t('ui.no_image_available', 'No image available')}</div>
         )}
         <button
           type="button"
@@ -549,7 +548,7 @@ export function Marketplace() {
         <section className="mb-6 flex flex-wrap items-start justify-between gap-6">
           <div className="max-w-xl">
             <h1 className="text-4xl font-extrabold text-[#111111]">
-              {t('marketplace.title', 'Student')} <span className="text-[#05B43D]"><T>Marketplace</T></span>
+              {t('marketplace.title', 'Student')} <span className="text-[#05B43D]">{t('ui.marketplace', 'Marketplace')}</span>
             </h1>
             <p className="mt-3 text-base font-semibold text-[#4A4A4A]">
               Find the best deals on campus. Verified student sellers{' '}

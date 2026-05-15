@@ -9,7 +9,6 @@ import { Textarea } from '@/app/components/ui/textarea';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
-import { T } from '@/components/T';
 
 const FAQS = [
   {
@@ -82,8 +81,8 @@ export function SellerHelp() {
     <div className="container mx-auto px-4 py-8 max-w-4xl space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle><T>Seller Help</T></CardTitle>
-          <CardDescription><T>FAQs and contact support.</T></CardDescription>
+          <CardTitle>{t('ui.seller_help', 'Seller Help')}</CardTitle>
+          <CardDescription>{t('ui.faqs_and_contact_support', 'FAQs and contact support.')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {FAQS.map((item) => (
@@ -97,11 +96,11 @@ export function SellerHelp() {
 
       <Card>
         <CardHeader>
-          <CardTitle><T>Contact Support</T></CardTitle>
+          <CardTitle>{t('ui.contact_support', 'Contact Support')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="space-y-1">
-            <Label htmlFor="seller-help-subject"><T>Subject</T></Label>
+            <Label htmlFor="seller-help-subject">{t('ui.subject', 'Subject')}</Label>
             <Input
               id="seller-help-subject"
               value={subject}
@@ -110,7 +109,7 @@ export function SellerHelp() {
             />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="seller-help-message"><T>Message</T></Label>
+            <Label htmlFor="seller-help-message">{t('ui.message', 'Message')}</Label>
             <Textarea
               id="seller-help-message"
               rows={5}

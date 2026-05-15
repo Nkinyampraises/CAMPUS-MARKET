@@ -9,7 +9,6 @@ import { MeetupMap } from '@/components/MeetupMap';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
-import { T } from '@/components/T';
 
 const formatMoney = (value: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value || 0);
@@ -200,32 +199,32 @@ export function SellerOrderDetails() {
     <div className="container mx-auto px-4 py-8 max-w-5xl space-y-6">
       <Button variant="ghost" onClick={() => navigate('/seller/orders')}>
         <ArrowLeft className="h-4 w-4 mr-2" />
-        <T>Back to Orders</T>
+        {t('ui.back_to_orders', 'Back to Orders')}
       </Button>
 
       {loading ? (
-        <p className="text-sm text-muted-foreground"><T>Loading order details...</T></p>
+        <p className="text-sm text-muted-foreground">{t('ui.loading_order_details', 'Loading order details...')}</p>
       ) : !order ? (
-        <p className="text-sm text-muted-foreground"><T>Order details not found.</T></p>
+        <p className="text-sm text-muted-foreground">{t('ui.order_details_not_found', 'Order details not found.')}</p>
       ) : (
         <>
           <Card>
             <CardHeader>
-              <CardTitle><T>Order Details</T></CardTitle>
+              <CardTitle>{t('ui.order_details', 'Order Details')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
-              <p><span className="text-muted-foreground"><T>Order ID:</T></span> {order.id}</p>
-              <p><span className="text-muted-foreground"><T>Item:</T></span> {listing?.title || order.listingTitle || '-'}</p>
-              <p><span className="text-muted-foreground"><T>Amount:</T></span> {formatMoney(order.amount || 0)}</p>
+              <p><span className="text-muted-foreground">{t('ui.order_id', 'Order ID:')}</span> {order.id}</p>
+              <p><span className="text-muted-foreground">{t('ui.item', 'Item:')}</span> {listing?.title || order.listingTitle || '-'}</p>
+              <p><span className="text-muted-foreground">{t('ui.amount', 'Amount:')}</span> {formatMoney(order.amount || 0)}</p>
               <div className="flex items-center gap-2">
-                <span className="text-muted-foreground"><T>Status:</T></span>
+                <span className="text-muted-foreground">{t('ui.status', 'Status:')}</span>
                 <Badge variant={order.status === 'delivered_released' ? 'default' : 'secondary'}>
                   {mapStatus(order.status)}
                 </Badge>
               </div>
-              <p><span className="text-muted-foreground"><T>Created:</T></span> {order.createdAt ? new Date(order.createdAt).toLocaleString() : '-'}</p>
-              <p><span className="text-muted-foreground"><T>Pickup:</T></span> {order.pickupDate || '-'} {order.pickupTime || '-'}</p>
-              <p><span className="text-muted-foreground"><T>Location:</T></span> {order.pickupLocation || '-'}</p>
+              <p><span className="text-muted-foreground">{t('ui.created', 'Created:')}</span> {order.createdAt ? new Date(order.createdAt).toLocaleString() : '-'}</p>
+              <p><span className="text-muted-foreground">{t('ui.pickup', 'Pickup:')}</span> {order.pickupDate || '-'} {order.pickupTime || '-'}</p>
+              <p><span className="text-muted-foreground">{t('ui.location', 'Location:')}</span> {order.pickupLocation || '-'}</p>
               {order.pickupLocation ? (
                 <div className="pt-2">
                   <MeetupMap
@@ -242,20 +241,20 @@ export function SellerOrderDetails() {
 
           <Card>
             <CardHeader>
-              <CardTitle><T>Buyer Info</T></CardTitle>
+              <CardTitle>{t('ui.buyer_info', 'Buyer Info')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
-              <p><span className="text-muted-foreground"><T>Name:</T></span> {buyer?.name || '-'}</p>
-              <p><span className="text-muted-foreground"><T>Email:</T></span> {buyer?.email || '-'}</p>
-              <p><span className="text-muted-foreground"><T>Phone:</T></span> {buyer?.phone || '-'}</p>
+              <p><span className="text-muted-foreground">{t('ui.name', 'Name:')}</span> {buyer?.name || '-'}</p>
+              <p><span className="text-muted-foreground">{t('ui.email', 'Email:')}</span> {buyer?.email || '-'}</p>
+              <p><span className="text-muted-foreground">{t('ui.phone', 'Phone:')}</span> {buyer?.phone || '-'}</p>
               <div className="flex flex-wrap gap-2 pt-2">
                 <Button variant="outline" onClick={openChat}>
                   <MessageSquare className="h-4 w-4 mr-2" />
-                  <T>Chat Buyer</T>
+                  {t('ui.chat_buyer', 'Chat Buyer')}
                 </Button>
                 <Button variant="outline" onClick={goToReport}>
                   <Flag className="h-4 w-4 mr-2" />
-                  <T>Report Buyer</T>
+                  {t('ui.report_buyer', 'Report Buyer')}
                 </Button>
               </div>
             </CardContent>
@@ -263,29 +262,29 @@ export function SellerOrderDetails() {
 
           <Card>
             <CardHeader>
-              <CardTitle><T>Payment Info</T></CardTitle>
+              <CardTitle>{t('ui.payment_info', 'Payment Info')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
-              <p><span className="text-muted-foreground"><T>Method:</T></span> {paymentMethodLabel(order.paymentMethod)}</p>
-              <p><span className="text-muted-foreground"><T>Reference:</T></span> {order.transactionRef || '-'}</p>
-              <p><span className="text-muted-foreground"><T>Transaction Fee:</T></span> {formatMoney(order.transactionFee || 0)}</p>
-              <p><span className="text-muted-foreground"><T>Total Charged:</T></span> {formatMoney(order.totalCharged || order.amount || 0)}</p>
+              <p><span className="text-muted-foreground">{t('ui.method', 'Method:')}</span> {paymentMethodLabel(order.paymentMethod)}</p>
+              <p><span className="text-muted-foreground">{t('ui.reference', 'Reference:')}</span> {order.transactionRef || '-'}</p>
+              <p><span className="text-muted-foreground">{t('ui.transaction_fee', 'Transaction Fee:')}</span> {formatMoney(order.transactionFee || 0)}</p>
+              <p><span className="text-muted-foreground">{t('ui.total_charged', 'Total Charged:')}</span> {formatMoney(order.totalCharged || order.amount || 0)}</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle><T>Seller Actions</T></CardTitle>
+              <CardTitle>{t('ui.seller_actions', 'Seller Actions')}</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-wrap gap-2">
               <Button variant="outline" disabled={!canMutate || updating} onClick={() => applyDecision('accepted')}>
-                <T>Accept Order</T>
+                {t('ui.accept_order', 'Accept Order')}
               </Button>
               <Button variant="outline" disabled={!canMutate || updating} onClick={() => applyDecision('rejected')}>
-                <T>Reject Order</T>
+                {t('ui.reject_order', 'Reject Order')}
               </Button>
               <Button variant="outline" disabled={!canMutate || updating} onClick={markDelivered}>
-                <T>Mark Delivered</T>
+                {t('ui.mark_delivered', 'Mark Delivered')}
               </Button>
             </CardContent>
           </Card>

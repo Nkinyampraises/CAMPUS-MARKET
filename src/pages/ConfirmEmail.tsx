@@ -5,7 +5,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription } from '@/app/components/ui/alert';
 import { Loader2, MailCheck } from 'lucide-react';
 import { API_URL } from '@/lib/api';
-import { T } from '@/components/T';
 
 type ConfirmationStatus = 'loading' | 'success' | 'error';
 
@@ -88,7 +87,7 @@ export function ConfirmEmail() {
               )}
             </div>
           </div>
-          <CardTitle><T>Confirm your email</T></CardTitle>
+          <CardTitle>{t('ui.confirm_your_email', 'Confirm your email')}</CardTitle>
           <CardDescription>We’re checking your confirmation link.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -98,7 +97,7 @@ export function ConfirmEmail() {
         </CardContent>
         <CardFooter className="flex flex-col gap-2">
           <Button asChild className="w-full bg-[#05B43D] hover:bg-[#018F2D]">
-            <Link to="/login"><T>Go to login</T></Link>
+            <Link to="/login">{t('ui.go_to_login', 'Go to login')}</Link>
           </Button>
         </CardFooter>
       </Card>

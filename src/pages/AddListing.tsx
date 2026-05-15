@@ -14,7 +14,6 @@ import { ImageUploader } from '@/components/ImageUploader';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
-import { T } from '@/components/T';
 
 type NamedOption = {
   id: string;
@@ -188,10 +187,10 @@ export function AddListing() {
     return (
       <div className="min-h-screen bg-[#FFFFFF] px-4 py-12">
         <div className="mx-auto max-w-xl rounded-2xl border border-[#DDE3E2] bg-white p-8 text-center shadow-sm">
-          <h1 className="text-2xl font-semibold text-[#0b1f1a]"><T>Access Denied</T></h1>
-          <p className="mt-3 text-[#4A4A4A]"><T>Administrators cannot create listings.</T></p>
+          <h1 className="text-2xl font-semibold text-[#0b1f1a]">{t('ui.access_denied', 'Access Denied')}</h1>
+          <p className="mt-3 text-[#4A4A4A]">{t('ui.administrators_cannot_create_listings', 'Administrators cannot create listings.')}</p>
           <Button className="mt-6 bg-[#05B43D] text-white hover:bg-[#018F2D]" onClick={() => navigate('/admin')}>
-            <T>Go to Admin Dashboard</T>
+            {t('ui.go_to_admin_dashboard', 'Go to Admin Dashboard')}
           </Button>
         </div>
       </div>
@@ -204,11 +203,11 @@ export function AddListing() {
         <section className="mb-6 rounded-2xl border border-[#DDE3E2] bg-white p-6 shadow-sm sm:p-7">
           <div className="inline-flex items-center gap-2 rounded-full bg-[#e8f5ef] px-3 py-1 text-xs font-semibold uppercase tracking-[0.15em] text-[#0f6f58]">
             <Sparkles className="h-3.5 w-3.5" />
-            <T>Seller Studio</T>
+            {t('ui.seller_studio', 'Seller Studio')}
           </div>
           <div className="mt-3 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <h1 className="text-4xl font-extrabold text-[#111111] sm:text-5xl"><T>Create a</T><span className="text-[#05B43D]"><T>New Listing</T></span></h1>
+              <h1 className="text-4xl font-extrabold text-[#111111] sm:text-5xl">{t('ui.create_a', 'Create a')}<span className="text-[#05B43D]">{t('ui.new_listing', 'New Listing')}</span></h1>
               <p className="mt-2 max-w-3xl text-sm text-[#4A4A4A]">
                 Add clear details, good photos, and accurate pricing to attract serious buyers faster.
               </p>
@@ -219,7 +218,7 @@ export function AddListing() {
               onClick={() => navigate('/dashboard')}
               className="border-[#bdd8cd] text-[#124a3b] hover:bg-[#f3faf7]"
             >
-              <T>Cancel</T>
+              {t('ui.cancel', 'Cancel')}
             </Button>
           </div>
         </section>
@@ -312,7 +311,7 @@ export function AddListing() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="new">New</SelectItem>
-                      <SelectItem value="like-new"><T>Like New</T></SelectItem>
+                      <SelectItem value="like-new">{t('ui.like_new', 'Like New')}</SelectItem>
                       <SelectItem value="good">Good</SelectItem>
                       <SelectItem value="fair">Fair</SelectItem>
                     </SelectContent>
@@ -361,15 +360,15 @@ export function AddListing() {
 
                 {formData.type === 'rent' && (
                   <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="rentalPeriod"><T>Rental Period</T></Label>
+                    <Label htmlFor="rentalPeriod">{t('ui.rental_period', 'Rental Period')}</Label>
                     <Select value={formData.rentalPeriod} onValueChange={(value) => handleChange('rentalPeriod', value)}>
                       <SelectTrigger className="border-[#cfe0d8] bg-white">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="daily"><T>Daily</T></SelectItem>
-                        <SelectItem value="weekly"><T>Weekly</T></SelectItem>
-                        <SelectItem value="monthly"><T>Monthly</T></SelectItem>
+                        <SelectItem value="daily">{t('ui.daily', 'Daily')}</SelectItem>
+                        <SelectItem value="weekly">{t('ui.weekly', 'Weekly')}</SelectItem>
+                        <SelectItem value="monthly">{t('ui.monthly', 'Monthly')}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -395,13 +394,13 @@ export function AddListing() {
                 onClick={() => navigate('/dashboard')}
                 disabled={loading}
               >
-                <T>Cancel</T>
+                {t('ui.cancel', 'Cancel')}
               </Button>
               <Button type="submit" className="flex-1 bg-[#05B43D] text-white hover:bg-[#018F2D]" disabled={loading}>
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    <T>Creating...</T>
+                    {t('ui.creating', 'Creating...')}
                   </>
                 ) : (
                   'Create Listing'
@@ -441,17 +440,17 @@ export function AddListing() {
                 <CardDescription>{t("listing.quickSummary", "Quick summary before publishing.")}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-2 text-sm text-[#4A4A4A]">
-                <p><span className="font-medium text-[#0f2c24]"><T>Title:</T></span> {formData.title || 'Not set'}</p>
-                <p><span className="font-medium text-[#0f2c24]"><T>Type:</T></span> {formData.type === 'rent' ? 'For Rent' : 'For Sale'}</p>
-                <p><span className="font-medium text-[#0f2c24]"><T>Category:</T></span> {categoryLabel}</p>
-                <p><span className="font-medium text-[#0f2c24]"><T>Location:</T></span> {locationLabel}</p>
+                <p><span className="font-medium text-[#0f2c24]">{t('ui.title', 'Title:')}</span> {formData.title || 'Not set'}</p>
+                <p><span className="font-medium text-[#0f2c24]">{t('ui.type', 'Type:')}</span> {formData.type === 'rent' ? 'For Rent' : 'For Sale'}</p>
+                <p><span className="font-medium text-[#0f2c24]">{t('ui.category', 'Category:')}</span> {categoryLabel}</p>
+                <p><span className="font-medium text-[#0f2c24]">{t('ui.location', 'Location:')}</span> {locationLabel}</p>
                 <p>
-                  <span className="font-medium text-[#0f2c24]"><T>Price:</T></span>{' '}
+                  <span className="font-medium text-[#0f2c24]">{t('ui.price', 'Price:')}</span>{' '}
                   {Number.isFinite(parsedPreviewPrice) && parsedPreviewPrice > 0
                     ? `${new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(parsedPreviewPrice)} FCFA`
                     : 'Not set'}
                 </p>
-                <p><span className="font-medium text-[#0f2c24]"><T>Photos:</T></span> {formData.images.length}/5</p>
+                <p><span className="font-medium text-[#0f2c24]">{t('ui.photos', 'Photos:')}</span> {formData.images.length}/5</p>
               </CardContent>
             </Card>
           </aside>

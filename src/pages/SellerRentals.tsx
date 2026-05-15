@@ -7,7 +7,6 @@ import { Badge } from '@/app/components/ui/badge';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
-import { T } from '@/components/T';
 
 const dateLabel = (value: string | null | undefined) => {
   if (!value) return '-';
@@ -170,25 +169,25 @@ export function SellerRentals() {
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       <Card>
         <CardHeader>
-          <CardTitle><T>Seller Rentals</T></CardTitle>
-          <CardDescription><T>Show all rental transactions with actions.</T></CardDescription>
+          <CardTitle>{t('ui.seller_rentals', 'Seller Rentals')}</CardTitle>
+          <CardDescription>{t('ui.show_all_rental_transactions_with_actions', 'Show all rental transactions with actions.')}</CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-sm text-muted-foreground"><T>Loading rentals...</T></p>
+            <p className="text-sm text-muted-foreground">{t('ui.loading_rentals', 'Loading rentals...')}</p>
           ) : sortedRentals.length === 0 ? (
-            <p className="text-sm text-muted-foreground"><T>No rental transactions found.</T></p>
+            <p className="text-sm text-muted-foreground">{t('ui.no_rental_transactions_found', 'No rental transactions found.')}</p>
           ) : (
             <div className="overflow-x-auto border rounded-lg">
               <table className="w-full text-sm">
                 <thead className="bg-muted/40">
                   <tr>
                     <th className="text-left p-3">Item</th>
-                    <th className="text-left p-3"><T>Rental Start</T></th>
-                    <th className="text-left p-3"><T>Rental End</T></th>
-                    <th className="text-left p-3"><T>Buyer</T></th>
-                    <th className="text-left p-3"><T>Status</T></th>
-                    <th className="text-left p-3"><T>Actions</T></th>
+                    <th className="text-left p-3">{t('ui.rental_start', 'Rental Start')}</th>
+                    <th className="text-left p-3">{t('ui.rental_end', 'Rental End')}</th>
+                    <th className="text-left p-3">{t('ui.buyer', 'Buyer')}</th>
+                    <th className="text-left p-3">{t('ui.status', 'Status')}</th>
+                    <th className="text-left p-3">{t('ui.actions', 'Actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -218,7 +217,7 @@ export function SellerRentals() {
                               disabled={locked || updatingId === order.id}
                               onClick={() => applyDecision(order.id, 'accepted')}
                             >
-                              <T>Accept Rental</T>
+                              {t('ui.accept_rental', 'Accept Rental')}
                             </Button>
                             <Button
                               size="sm"
@@ -226,7 +225,7 @@ export function SellerRentals() {
                               disabled={locked || updatingId === order.id}
                               onClick={() => applyDecision(order.id, 'rejected')}
                             >
-                              <T>Reject</T>
+                              {t('ui.reject', 'Reject')}
                             </Button>
                             <Button
                               size="sm"
@@ -234,7 +233,7 @@ export function SellerRentals() {
                               disabled={locked || updatingId === order.id}
                               onClick={() => markReturned(order.id)}
                             >
-                              <T>Mark Returned</T>
+                              {t('ui.mark_returned', 'Mark Returned')}
                             </Button>
                           </div>
                         </td>

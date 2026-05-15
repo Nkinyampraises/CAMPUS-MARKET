@@ -10,7 +10,6 @@ import { Star, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
-import { T } from '@/components/T';
 
 type TransactionRecord = {
   id: string;
@@ -192,7 +191,7 @@ export function Review() {
     return (
       <div className="container mx-auto px-4 py-12 text-center">
         <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-        <p className="text-muted-foreground"><T>Loading transaction...</T></p>
+        <p className="text-muted-foreground">{t('ui.loading_transaction', 'Loading transaction...')}</p>
       </div>
     );
   }
@@ -201,7 +200,7 @@ export function Review() {
     return (
       <div className="container mx-auto px-4 py-12 text-center">
         <h1 className="text-2xl font-bold mb-4">{error}</h1>
-        <Button onClick={() => navigate('/')}><T>Go Home</T></Button>
+        <Button onClick={() => navigate('/')}>{t('ui.go_home', 'Go Home')}</Button>
       </div>
     );
   }
@@ -209,9 +208,9 @@ export function Review() {
   if (existingReview) {
     return (
       <div className="container mx-auto px-4 py-12 text-center">
-        <h1 className="text-2xl font-bold mb-4"><T>Already Reviewed</T></h1>
-        <p className="text-muted-foreground mb-4"><T>You already submitted a review for this transaction.</T></p>
-        <Button onClick={() => navigate('/')}><T>Go Home</T></Button>
+        <h1 className="text-2xl font-bold mb-4">{t('ui.already_reviewed', 'Already Reviewed')}</h1>
+        <p className="text-muted-foreground mb-4">{t('ui.you_already_submitted_a_review_for_this_transactio', 'You already submitted a review for this transaction.')}</p>
+        <Button onClick={() => navigate('/')}>{t('ui.go_home', 'Go Home')}</Button>
       </div>
     );
   }
@@ -221,8 +220,8 @@ export function Review() {
       <div className="container mx-auto px-4 max-w-2xl">
         <Card>
           <CardHeader>
-            <CardTitle><T>Leave a Review</T></CardTitle>
-            <CardDescription><T>Share your experience with this seller</T></CardDescription>
+            <CardTitle>{t('ui.leave_a_review', 'Leave a Review')}</CardTitle>
+            <CardDescription>{t('ui.share_your_experience_with_this_seller', 'Share your experience with this seller')}</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -236,12 +235,12 @@ export function Review() {
                 <p className="text-sm text-muted-foreground mb-1">Item</p>
                 <p className="font-semibold mb-3">{itemTitle}</p>
 
-                <p className="text-sm text-muted-foreground mb-1"><T>Seller</T></p>
+                <p className="text-sm text-muted-foreground mb-1">{t('ui.seller', 'Seller')}</p>
                 <p className="font-semibold">{seller?.name || 'Seller'}</p>
               </div>
 
               <div className="space-y-2">
-                <Label><T>Rating</T></Label>
+                <Label>{t('ui.rating', 'Rating')}</Label>
                 <div className="flex items-center gap-2">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <button
@@ -264,7 +263,7 @@ export function Review() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="comment"><T>Your Review</T></Label>
+                <Label htmlFor="comment">{t('ui.your_review', 'Your Review')}</Label>
                 <Textarea
                   id="comment"
                   placeholder="Share your experience... (minimum 10 characters)"
@@ -284,13 +283,13 @@ export function Review() {
                   onClick={() => navigate('/dashboard')}
                   disabled={loading}
                 >
-                  <T>Cancel</T>
+                  {t('ui.cancel', 'Cancel')}
                 </Button>
                 <Button type="submit" className="flex-1 bg-[#05B43D] hover:bg-[#018F2D]" disabled={loading || rating === 0}>
                   {loading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      <T>Submitting...</T>
+                      {t('ui.submitting', 'Submitting...')}
                     </>
                   ) : (
                     'Submit Review'

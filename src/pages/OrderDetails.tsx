@@ -14,7 +14,6 @@ import { MeetupMap } from '@/components/MeetupMap';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
-import { T } from '@/components/T';
 
 const formatMoney = (value: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value || 0);
@@ -200,7 +199,7 @@ export function OrderDetails() {
     return (
       <div className="container mx-auto px-4 py-12 text-center">
         <Loader2 className="h-7 w-7 animate-spin mx-auto mb-2" />
-        <T>Loading order...</T>
+        {t('ui.loading_order', 'Loading order...')}
       </div>
     );
   }
@@ -208,7 +207,7 @@ export function OrderDetails() {
   if (!orderData?.order) {
     return (
       <div className="container mx-auto px-4 py-12 text-center">
-        <p><T>Order not found</T></p>
+        <p>{t('ui.order_not_found', 'Order not found')}</p>
       </div>
     );
   }
@@ -241,7 +240,7 @@ export function OrderDetails() {
       <div className="w-full px-4 lg:px-8 xl:px-12">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-4xl font-extrabold tracking-tight text-[#111111]"><T>Order</T><span className="text-[#05B43D]"><T>Details</T></span></h1>
+            <h1 className="text-4xl font-extrabold tracking-tight text-[#111111]">{t('ui.order', 'Order')}<span className="text-[#05B43D]">{t('ui.details', 'Details')}</span></h1>
             <p className="mt-1 text-sm text-[#8A8A8A]">{t("order.trackDesc", "Track escrow status, delivery proof, and confirmation steps.")}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -268,7 +267,7 @@ export function OrderDetails() {
                       />
                     ) : (
                       <div className="flex aspect-[4/3] items-center justify-center text-sm text-[#6b897f]">
-                        <T>No image available</T>
+                        {t('ui.no_image_available', 'No image available')}
                       </div>
                     )}
                   </div>
@@ -284,11 +283,11 @@ export function OrderDetails() {
 
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <div className="rounded-xl border border-[#d8e6df] bg-[#F3F5F4] p-3">
-                        <p className="text-[11px] uppercase tracking-wide text-[#7f988f]"><T>Amount</T></p>
+                        <p className="text-[11px] uppercase tracking-wide text-[#7f988f]">{t('ui.amount', 'Amount')}</p>
                         <p className="mt-1 text-lg font-black text-[#0b5d4c]">{formatMoney(order.amount)}</p>
                       </div>
                       <div className="rounded-xl border border-[#d8e6df] bg-[#F3F5F4] p-3">
-                        <p className="text-[11px] uppercase tracking-wide text-[#7f988f]"><T>Created</T></p>
+                        <p className="text-[11px] uppercase tracking-wide text-[#7f988f]">{t('ui.created', 'Created')}</p>
                         <p className="mt-1 text-sm font-semibold text-[#1b4a3f]">
                           {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : '-'}
                         </p>
@@ -305,24 +304,24 @@ export function OrderDetails() {
                   <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-[#fff4de]">
                     <CalendarClock className="h-4 w-4 text-[#8b5a00]" />
                   </span>
-                  <T>Pickup Details</T>
+                  {t('ui.pickup_details', 'Pickup Details')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div className="rounded-xl border border-[#d8e6df] bg-[#F3F5F4] p-3">
-                    <p className="text-[11px] uppercase tracking-wide text-[#7f988f]"><T>Pickup Date</T></p>
+                    <p className="text-[11px] uppercase tracking-wide text-[#7f988f]">{t('ui.pickup_date', 'Pickup Date')}</p>
                     <p className="mt-1 text-sm font-semibold text-[#1b4a3f]">{order.pickupDate || '-'}</p>
                   </div>
                   <div className="rounded-xl border border-[#d8e6df] bg-[#F3F5F4] p-3">
-                    <p className="text-[11px] uppercase tracking-wide text-[#7f988f]"><T>Pickup Time</T></p>
+                    <p className="text-[11px] uppercase tracking-wide text-[#7f988f]">{t('ui.pickup_time', 'Pickup Time')}</p>
                     <p className="mt-1 text-sm font-semibold text-[#1b4a3f]">{order.pickupTime || '-'}</p>
                   </div>
                 </div>
                 <div className="rounded-xl border border-[#d8e6df] bg-[#F3F5F4] p-3">
                   <p className="inline-flex items-center gap-1 text-[11px] uppercase tracking-wide text-[#7f988f]">
                     <MapPin className="h-3.5 w-3.5" />
-                    <T>Pickup Point</T>
+                    {t('ui.pickup_point', 'Pickup Point')}
                   </p>
                   <p className="mt-1 text-sm font-semibold text-[#1b4a3f]">{order.pickupLocation || '-'}</p>
                 </div>
@@ -348,9 +347,9 @@ export function OrderDetails() {
                   <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-[#e9f5ef]">
                     <CreditCard className="h-4 w-4 text-[#018F2D]" />
                   </span>
-                  <T>Delivery & Escrow Confirmation</T>
+                  {t('ui.delivery_escrow_confirmation', 'Delivery & Escrow Confirmation')}
                 </CardTitle>
-                <CardDescription><T>Seller uploads proof, then buyer confirms to release escrow.</T></CardDescription>
+                <CardDescription>{t('ui.seller_uploads_proof_then_buyer_confirms_to_releas', 'Seller uploads proof, then buyer confirms to release escrow.')}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <Alert className="border-[#c7dfd3] bg-[#f5fcf8] text-[#224f44]">
@@ -362,7 +361,7 @@ export function OrderDetails() {
 
                 {proofImageUrl ? (
                   <div className="space-y-2">
-                    <Label className="text-sm text-[#355f55]"><T>Delivery Proof</T></Label>
+                    <Label className="text-sm text-[#355f55]">{t('ui.delivery_proof', 'Delivery Proof')}</Label>
                     <img
                       src={proofImageUrl}
                       alt="Delivery proof"
@@ -371,15 +370,15 @@ export function OrderDetails() {
                   </div>
                 ) : (
                   <div className="rounded-xl border border-dashed border-[#c9dcd3] bg-[#F3F5F4] p-4 text-sm text-[#66837a]">
-                    <T>No delivery proof uploaded yet.</T>
+                    {t('ui.no_delivery_proof_uploaded_yet', 'No delivery proof uploaded yet.')}
                   </div>
                 )}
 
                 {permissions?.canSellerUploadProof ? (
                   <Card className="rounded-xl border border-[#DDE3E2] bg-[#fcfefd] shadow-none">
                     <CardHeader>
-                      <CardTitle className="text-base text-[#134037]"><T>Seller Delivery Confirmation</T></CardTitle>
-                      <CardDescription><T>Upload buyer handover proof to enable buyer confirmation.</T></CardDescription>
+                      <CardTitle className="text-base text-[#134037]">{t('ui.seller_delivery_confirmation', 'Seller Delivery Confirmation')}</CardTitle>
+                      <CardDescription>{t('ui.upload_buyer_handover_proof_to_enable_buyer_confir', 'Upload buyer handover proof to enable buyer confirmation.')}</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-3">
                       <Input
@@ -407,8 +406,8 @@ export function OrderDetails() {
                 {permissions?.isBuyer && order.status === 'paid_pending_delivery' ? (
                   <Card className="rounded-xl border border-[#DDE3E2] bg-[#fcfefd] shadow-none">
                     <CardHeader>
-                      <CardTitle className="text-base text-[#134037]"><T>Buyer Confirmation</T></CardTitle>
-                      <CardDescription><T>Confirm only if you have received the item and are satisfied.</T></CardDescription>
+                      <CardTitle className="text-base text-[#134037]">{t('ui.buyer_confirmation', 'Buyer Confirmation')}</CardTitle>
+                      <CardDescription>{t('ui.confirm_only_if_you_have_received_the_item_and_are', 'Confirm only if you have received the item and are satisfied.')}</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-3">
                       <div className="flex items-center gap-2">
@@ -428,7 +427,7 @@ export function OrderDetails() {
                         <Label htmlFor="satisfied-check">{t("order.satisfied", "I am satisfied with this product.")}</Label>
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="issue-reason"><T>Issue / Refund reason (if not satisfied)</T></Label>
+                        <Label htmlFor="issue-reason">{t('ui.issue_refund_reason_if_not_satisfied', 'Issue / Refund reason (if not satisfied)')}</Label>
                         <Textarea
                           id="issue-reason"
                           value={issueReason}
@@ -451,7 +450,7 @@ export function OrderDetails() {
                           onClick={handleDirectRefund}
                           disabled={saving}
                         >
-                          <T>Request Refund</T>
+                          {t('ui.request_refund', 'Request Refund')}
                         </Button>
                       </div>
                     </CardContent>
@@ -466,7 +465,7 @@ export function OrderDetails() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base text-[#103a31]">
                   <UserRound className="h-4 w-4 text-[#018F2D]" />
-                  <T>Buyer Information</T>
+                  {t('ui.buyer_information', 'Buyer Information')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
@@ -494,12 +493,12 @@ export function OrderDetails() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base text-[#103a31]">
                   <UserRound className="h-4 w-4 text-[#018F2D]" />
-                  <T>Seller Information</T>
+                  {t('ui.seller_information', 'Seller Information')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
-                <p><span className="text-[#6a857d]"><T>Name:</T></span> <span className="font-medium text-[#143f35]">{seller?.name || '-'}</span></p>
-                <p><span className="text-[#6a857d]"><T>Phone:</T></span> <span className="font-medium text-[#143f35]">{seller?.phone || '-'}</span></p>
+                <p><span className="text-[#6a857d]">{t('ui.name', 'Name:')}</span> <span className="font-medium text-[#143f35]">{seller?.name || '-'}</span></p>
+                <p><span className="text-[#6a857d]">{t('ui.phone', 'Phone:')}</span> <span className="font-medium text-[#143f35]">{seller?.phone || '-'}</span></p>
               </CardContent>
             </Card>
 
@@ -508,17 +507,17 @@ export function OrderDetails() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base text-[#103a31]">
                     <Wallet className="h-4 w-4 text-[#018F2D]" />
-                    <T>Seller Wallet</T>
+                    {t('ui.seller_wallet', 'Seller Wallet')}
                   </CardTitle>
-                  <CardDescription><T>Pending funds cannot be withdrawn.</T></CardDescription>
+                  <CardDescription>{t('ui.pending_funds_cannot_be_withdrawn', 'Pending funds cannot be withdrawn.')}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm">
                   <div className="rounded-xl border border-[#d8e6df] bg-[#F3F5F4] p-3">
-                    <p className="text-[11px] uppercase tracking-wide text-[#7f988f]"><T>Pending Balance</T></p>
+                    <p className="text-[11px] uppercase tracking-wide text-[#7f988f]">{t('ui.pending_balance', 'Pending Balance')}</p>
                     <p className="mt-1 font-semibold text-[#133f35]">{formatMoney(sellerWallet?.pendingBalance || 0)}</p>
                   </div>
                   <div className="rounded-xl border border-[#d8e6df] bg-[#F3F5F4] p-3">
-                    <p className="text-[11px] uppercase tracking-wide text-[#7f988f]"><T>Available Balance</T></p>
+                    <p className="text-[11px] uppercase tracking-wide text-[#7f988f]">{t('ui.available_balance', 'Available Balance')}</p>
                     <p className="mt-1 font-semibold text-[#133f35]">{formatMoney(sellerWallet?.availableBalance || 0)}</p>
                   </div>
                 </CardContent>

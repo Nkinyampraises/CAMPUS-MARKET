@@ -10,7 +10,6 @@ import { Alert, AlertDescription } from '@/app/components/ui/alert';
 import { Loader2, Mail, Lock, ShieldCheck, BadgeCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import appLogo from '@/assets/image/logoi.png';
-import { T } from '@/components/T';
 
 const loginHeroImage =
   'https://images.pexels.com/photos/9158720/pexels-photo-9158720.jpeg?cs=srgb&dl=pexels-mikhail-nilov-9158720.jpg&fm=jpg';
@@ -89,11 +88,11 @@ export function Login() {
           <div className="relative z-10 px-10 pt-10 text-white xl:px-14 xl:pt-12">
             <div className="mb-20 flex items-center gap-3">
               <img src={appLogo} alt="UNITRADE logo" className="h-11 w-11 rounded-2xl object-cover" />
-              <p className="text-[2rem] font-bold tracking-tight"><T>UNITRADE</T></p>
+              <p className="text-[2rem] font-bold tracking-tight">{t('ui.unitrade', 'UNITRADE')}</p>
             </div>
 
             <h2 className="max-w-sm text-6xl font-bold leading-[1.03]">
-              <T>Academic Commerce</T><span className="text-[#05B43D]"><T>Redefined.</T></span>
+              {t('ui.academic_commerce', 'Academic Commerce')}<span className="text-[#05B43D]">{t('ui.redefined', 'Redefined.')}</span>
             </h2>
             <p className="mt-8 max-w-[35rem] text-[1.95rem] leading-[1.45] text-emerald-50/90">
               The exclusive marketplace for Cameroon&apos;s academic community. Buy, sell, and trade with verified peers
@@ -103,11 +102,11 @@ export function Login() {
             <div className="mt-16 grid max-w-xl grid-cols-2 gap-10">
               <div className="space-y-1">
                 <p className="text-5xl font-semibold leading-none text-emerald-300">15k+</p>
-                <p className="text-[1.05rem] uppercase tracking-[0.2em] text-emerald-50/85"><T>Active students</T></p>
+                <p className="text-[1.05rem] uppercase tracking-[0.2em] text-emerald-50/85">{t('ui.active_students', 'Active students')}</p>
               </div>
               <div className="space-y-1 border-l border-emerald-200/40 pl-10">
                 <p className="text-5xl font-semibold leading-none text-emerald-300">24+</p>
-                <p className="text-[1.05rem] uppercase tracking-[0.2em] text-emerald-50/85"><T>Partner institutions</T></p>
+                <p className="text-[1.05rem] uppercase tracking-[0.2em] text-emerald-50/85">{t('ui.partner_institutions', 'Partner institutions')}</p>
               </div>
             </div>
           </div>
@@ -115,20 +114,20 @@ export function Login() {
           <div className="relative z-10 flex items-center gap-10 px-10 pb-8 text-xs uppercase tracking-[0.18em] text-emerald-100/80 xl:px-14">
             <span className="inline-flex items-center gap-2">
               <ShieldCheck className="h-4 w-4" />
-              <T>SSL secured</T>
+              {t('ui.ssl_secured', 'SSL secured')}
             </span>
             <span className="inline-flex items-center gap-2">
               <BadgeCheck className="h-4 w-4" />
-              <T>Student verified</T>
+              {t('ui.student_verified', 'Student verified')}
             </span>
           </div>
         </section>
 
         <section className="flex items-center justify-center px-5 py-10 sm:px-9 lg:px-16 xl:px-20">
           <div className="w-full max-w-[520px]">
-            <h1 className="text-4xl font-bold leading-tight text-[#161616] sm:text-5xl"><T>Welcome Back</T></h1>
+            <h1 className="text-4xl font-bold leading-tight text-[#161616] sm:text-5xl">{t('ui.welcome_back', 'Welcome Back')}</h1>
             <p className="mt-4 max-w-md text-xl text-[#4b4b4b]">
-              <T>Please enter your student credentials to access your account.</T>
+              {t('ui.please_enter_your_student_credentials_to_access_yo', 'Please enter your student credentials to access your account.')}
             </p>
 
             <form onSubmit={handleSubmit} className="mt-10 space-y-6">
@@ -140,7 +139,7 @@ export function Login() {
 
               <div className="space-y-3">
                 <Label htmlFor="email" className="text-[1.04rem] font-medium text-[#212121]">
-                  <T>Institutional Email</T>
+                  {t('ui.institutional_email', 'Institutional Email')}
                 </Label>
                 <div className="relative">
                   <Mail className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#7f8b84]" />
@@ -159,10 +158,10 @@ export function Login() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-3">
                   <Label htmlFor="password" className="text-[1.04rem] font-medium text-[#212121]">
-                    <T>Password</T>
+                    {t('ui.password', 'Password')}
                   </Label>
                   <Link to="/forgot-password" className="text-sm font-medium text-[#018F2D] hover:underline">
-                    <T>Forgot Password?</T>
+                    {t('ui.forgot_password', 'Forgot Password?')}
                   </Link>
                 </div>
                 <div className="relative">
@@ -186,7 +185,7 @@ export function Login() {
                   className="h-5 w-5 rounded-md border-[#c9d0cb] data-[state=checked]:border-[#05B43D] data-[state=checked]:bg-[#05B43D]"
                 />
                 <Label htmlFor="remember-device" className="cursor-pointer text-[1.02rem] font-normal text-[#404040]">
-                  <T>Remember me on this device</T>
+                  {t('ui.remember_me_on_this_device', 'Remember me on this device')}
                 </Label>
               </div>
 
@@ -198,7 +197,7 @@ export function Login() {
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    <T>Logging in...</T>
+                    {t('ui.logging_in', 'Logging in...')}
                   </>
                 ) : (
                   'Sign In to Account'
@@ -207,7 +206,7 @@ export function Login() {
 
               <div className="flex items-center gap-4 text-xs uppercase tracking-[0.2em] text-[#b8b8b8]">
                 <span className="h-px flex-1 bg-[#e1e1e1]" />
-                <T>New to UNITRADE?</T>
+                {t('ui.new_to_unitrade', 'New to UNITRADE?')}
                 <span className="h-px flex-1 bg-[#e1e1e1]" />
               </div>
 
@@ -217,7 +216,7 @@ export function Login() {
                 asChild
                 className="h-14 w-full rounded-xl bg-[#e2e2e2] text-[1.05rem] font-semibold text-[#1e1e1e] hover:bg-[#d7d7d7]"
               >
-                <Link to="/register"><T>Create Student Account</T></Link>
+                <Link to="/register">{t('ui.create_student_account', 'Create Student Account')}</Link>
               </Button>
 
               {confirmationMessage && (
@@ -226,7 +225,7 @@ export function Login() {
                     {confirmationMessage}{' '}
                     {confirmationLink && (
                       <a href={confirmationLink} className="font-semibold underline underline-offset-2">
-                        <T>Open confirmation link</T>
+                        {t('ui.open_confirmation_link', 'Open confirmation link')}
                       </a>
                     )}
                   </AlertDescription>
@@ -249,7 +248,7 @@ export function Login() {
             <div className="mt-12 flex items-center justify-center gap-8 text-[0.66rem] uppercase tracking-[0.2em] text-[#9b9b9b]">
               <span className="inline-flex items-center gap-2">
                 <BadgeCheck className="h-3.5 w-3.5" />
-                <T>UB verified</T>
+                {t('ui.ub_verified', 'UB verified')}
               </span>
               <span className="inline-flex items-center gap-2">
                 <ShieldCheck className="h-3.5 w-3.5" />
@@ -261,10 +260,10 @@ export function Login() {
               <p>© 2026 UNITRADE Cameroon</p>
               <div className="flex items-center gap-5">
                 <a href="#" className="hover:text-[#737373]">
-                  <T>Privacy policy</T>
+                  {t('ui.privacy_policy', 'Privacy policy')}
                 </a>
                 <a href="#" className="hover:text-[#737373]">
-                  <T>Terms of service</T>
+                  {t('ui.terms_of_service', 'Terms of service')}
                 </a>
               </div>
             </div>

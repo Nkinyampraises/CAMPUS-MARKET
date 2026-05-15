@@ -9,7 +9,6 @@ import { Switch } from '@/app/components/ui/switch';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
-import { T } from '@/components/T';
 
 export function SellerSettings() {
   const navigate = useNavigate();
@@ -97,18 +96,18 @@ export function SellerSettings() {
     <div className="container mx-auto px-4 py-8 max-w-4xl space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle><T>Seller Settings</T></CardTitle>
-          <CardDescription><T>Change password and notification preferences.</T></CardDescription>
+          <CardTitle>{t('ui.seller_settings', 'Seller Settings')}</CardTitle>
+          <CardDescription>{t('ui.change_password_and_notification_preferences', 'Change password and notification preferences.')}</CardDescription>
         </CardHeader>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle><T>Change Password</T></CardTitle>
+          <CardTitle>{t('ui.change_password', 'Change Password')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="space-y-1">
-            <Label htmlFor="seller-current-password"><T>Current Password</T></Label>
+            <Label htmlFor="seller-current-password">{t('ui.current_password', 'Current Password')}</Label>
             <PasswordInput
               id="seller-current-password"
               value={currentPassword}
@@ -116,7 +115,7 @@ export function SellerSettings() {
             />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="seller-new-password"><T>New Password</T></Label>
+            <Label htmlFor="seller-new-password">{t('ui.new_password', 'New Password')}</Label>
             <PasswordInput
               id="seller-new-password"
               value={newPassword}
@@ -124,7 +123,7 @@ export function SellerSettings() {
             />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="seller-confirm-password"><T>Confirm New Password</T></Label>
+            <Label htmlFor="seller-confirm-password">{t('ui.confirm_new_password', 'Confirm New Password')}</Label>
             <PasswordInput
               id="seller-confirm-password"
               value={confirmPassword}
@@ -139,11 +138,11 @@ export function SellerSettings() {
 
       <Card>
         <CardHeader>
-          <CardTitle><T>Notification Preferences</T></CardTitle>
+          <CardTitle>{t('ui.notification_preferences', 'Notification Preferences')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-center justify-between">
-            <Label htmlFor="seller-notif-orders"><T>New order alerts</T></Label>
+            <Label htmlFor="seller-notif-orders">{t('ui.new_order_alerts', 'New order alerts')}</Label>
             <Switch
               id="seller-notif-orders"
               checked={notificationPreferences.orders}
@@ -153,7 +152,7 @@ export function SellerSettings() {
             />
           </div>
           <div className="flex items-center justify-between">
-            <Label htmlFor="seller-notif-messages"><T>New message alerts</T></Label>
+            <Label htmlFor="seller-notif-messages">{t('ui.new_message_alerts', 'New message alerts')}</Label>
             <Switch
               id="seller-notif-messages"
               checked={notificationPreferences.messages}
@@ -163,7 +162,7 @@ export function SellerSettings() {
             />
           </div>
           <div className="flex items-center justify-between">
-            <Label htmlFor="seller-notif-payouts"><T>Payout status updates</T></Label>
+            <Label htmlFor="seller-notif-payouts">{t('ui.payout_status_updates', 'Payout status updates')}</Label>
             <Switch
               id="seller-notif-payouts"
               checked={notificationPreferences.payments}

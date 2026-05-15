@@ -6,7 +6,6 @@ import { Badge } from '@/app/components/ui/badge';
 import { Eye } from 'lucide-react';
 
 import { API_URL } from '@/lib/api';
-import { T } from '@/components/T';
 const RECENTLY_VIEWED_KEY = 'recentlyViewedItemIds';
 
 const formatMoney = (value: number) =>
@@ -54,16 +53,16 @@ export function RecentlyViewed() {
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       <div className="mb-4 flex items-center justify-end">
         <Button variant="outline" onClick={clearHistory}>
-          <T>Clear History</T>
+          {t('ui.clear_history', 'Clear History')}
         </Button>
       </div>
 
-      <h1 className="text-2xl font-bold mb-4"><T>Recently Viewed Items</T></h1>
+      <h1 className="text-2xl font-bold mb-4">{t('ui.recently_viewed_items', 'Recently Viewed Items')}</h1>
 
       {loading ? (
-        <p className="text-sm text-muted-foreground"><T>Loading items...</T></p>
+        <p className="text-sm text-muted-foreground">{t('ui.loading_items', 'Loading items...')}</p>
       ) : items.length === 0 ? (
-        <p className="text-sm text-muted-foreground"><T>No recently viewed items yet.</T></p>
+        <p className="text-sm text-muted-foreground">{t('ui.no_recently_viewed_items_yet', 'No recently viewed items yet.')}</p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {items.map((item) => (
@@ -81,7 +80,7 @@ export function RecentlyViewed() {
                 </div>
                 <p className="text-green-600 font-bold">{formatMoney(item.price || 0)}</p>
                 <Button className="w-full" onClick={() => navigate(`/item/${item.id}`)}>
-                  <T>View Item</T>
+                  {t('ui.view_item', 'View Item')}
                 </Button>
               </CardContent>
             </Card>

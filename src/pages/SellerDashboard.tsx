@@ -18,7 +18,6 @@ import { DollarSign, Heart, MessageSquare, Package, Plus, ShoppingBag, Wallet } 
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
-import { T } from '@/components/T';
 
 const formatMoney = (value: number) =>
   `${new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(Number(value) || 0)} FCFA`;
@@ -267,17 +266,17 @@ export function SellerDashboard() {
       <div className="container mx-auto px-4">
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-4xl font-extrabold text-[#111111]"><span className="text-[#05B43D]"><T>Seller</T></span> <T>Dashboard</T></h1>
+            <h1 className="text-4xl font-extrabold text-[#111111]"><span className="text-[#05B43D]">{t('ui.seller', 'Seller')}</span> {t('ui.dashboard', 'Dashboard')}</h1>
             <p className="text-muted-foreground">Gérer les annonces, preuves de livraison et libérations de dépôt fiduciaire.</p>
           </div>
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
             <Button variant="outline" className="w-full sm:w-auto" onClick={() => setShowWithdrawDialog(true)}>
               <Wallet className="mr-2 h-4 w-4" />
-              <T>Withdraw Funds</T>
+              {t('ui.withdraw_funds', 'Withdraw Funds')}
             </Button>
             <Button className="w-full bg-[#05B43D] hover:bg-[#018F2D] sm:w-auto" onClick={() => navigate('/add-listing')}>
               <Plus className="mr-2 h-4 w-4" />
-              <T>Add New Listing</T>
+              {t('ui.add_new_listing', 'Add New Listing')}
             </Button>
           </div>
         </div>
@@ -301,7 +300,7 @@ export function SellerDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.pendingEscrowOrders}</div>
-              <p className="text-xs text-muted-foreground"><T>En attente de confirmation acheteur</T></p>
+              <p className="text-xs text-muted-foreground">{t('ui.en_attente_de_confirmation_acheteur', 'En attente de confirmation acheteur')}</p>
             </CardContent>
           </Card>
 
@@ -350,8 +349,8 @@ export function SellerDashboard() {
             {orders.length > 0 ? (
               <Card>
                 <CardHeader>
-                  <CardTitle><T>Buyer Orders</T></CardTitle>
-                  <CardDescription><T>Upload delivery proof from each order page to unlock confirmation.</T></CardDescription>
+                  <CardTitle>{t('ui.buyer_orders', 'Buyer Orders')}</CardTitle>
+                  <CardDescription>{t('ui.upload_delivery_proof_from_each_order_page_to_unlo', 'Upload delivery proof from each order page to unlock confirmation.')}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {orders.map((order) => (
@@ -373,7 +372,7 @@ export function SellerDashboard() {
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="font-bold text-green-600">{formatMoney(order.amount || 0)}</p>
                         <Button variant="outline" size="sm" onClick={() => navigate(`/seller/order-details/${order.id}`)}>
-                          <T>Open Order</T>
+                          {t('ui.open_order', 'Open Order')}
                         </Button>
                       </div>
                     </div>
@@ -384,7 +383,7 @@ export function SellerDashboard() {
               <Card>
                 <CardContent className="p-12 text-center">
                   <ShoppingBag className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2"><T>Aucune vente pour l'instant</T></h3>
+                  <h3 className="text-lg font-semibold mb-2">{t('ui.aucune_vente_pour_l_instant', 'Aucune vente pour l\'instant')}</h3>
                   <p className="text-muted-foreground">Vos commandes acheteurs apparaîtront ici.</p>
                 </CardContent>
               </Card>
@@ -410,7 +409,7 @@ export function SellerDashboard() {
                           View
                         </Button>
                         <Button variant="outline" size="sm" onClick={() => handleDeleteListing(item.id)}>
-                          <T>Delete</T>
+                          {t('ui.delete', 'Delete')}
                         </Button>
                       </div>
                     </CardContent>
@@ -421,10 +420,10 @@ export function SellerDashboard() {
               <Card>
                 <CardContent className="p-12 text-center">
                   <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2"><T>No listings yet</T></h3>
+                  <h3 className="text-lg font-semibold mb-2">{t('ui.no_listings_yet', 'No listings yet')}</h3>
                   <Button className="bg-[#05B43D] hover:bg-[#018F2D]" onClick={() => navigate('/add-listing')}>
                     <Plus className="mr-2 h-4 w-4" />
-                    <T>Add Listing</T>
+                    {t('ui.add_listing', 'Add Listing')}
                   </Button>
                 </CardContent>
               </Card>
@@ -434,13 +433,13 @@ export function SellerDashboard() {
           <TabsContent value="messages">
             <Card>
               <CardHeader>
-                <CardTitle><T>Messages</T></CardTitle>
-                <CardDescription><T>Chat with buyers.</T></CardDescription>
+                <CardTitle>{t('ui.messages', 'Messages')}</CardTitle>
+                <CardDescription>{t('ui.chat_with_buyers', 'Chat with buyers.')}</CardDescription>
               </CardHeader>
               <CardContent>
                 <Button className="bg-[#05B43D] hover:bg-[#018F2D] w-full" onClick={() => navigate('/messages')}>
                   <MessageSquare className="mr-2 h-4 w-4" />
-                  <T>Open Messages</T>
+                  {t('ui.open_messages', 'Open Messages')}
                 </Button>
               </CardContent>
             </Card>
@@ -451,8 +450,8 @@ export function SellerDashboard() {
       <Dialog open={showWithdrawDialog} onOpenChange={setShowWithdrawDialog}>
         <DialogContent className="max-w-xl">
           <DialogHeader>
-            <DialogTitle><T>Retirer les fonds</T></DialogTitle>
-            <DialogDescription><T>Only available balance can be withdrawn to mobile money.</T></DialogDescription>
+            <DialogTitle>{t('ui.retirer_les_fonds', 'Retirer les fonds')}</DialogTitle>
+            <DialogDescription>{t('ui.only_available_balance_can_be_withdrawn_to_mobile_', 'Only available balance can be withdrawn to mobile money.')}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -467,28 +466,28 @@ export function SellerDashboard() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="space-y-2">
-                <Label><T>Amount</T></Label>
+                <Label>{t('ui.amount', 'Amount')}</Label>
                 <Input value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} placeholder="5000" type="number" min={0} step="any" />
               </div>
               <div className="space-y-2">
-                <Label><T>Phone Number</T></Label>
+                <Label>{t('ui.phone_number', 'Phone Number')}</Label>
                 <Input value={withdrawPhone} onChange={(e) => setWithdrawPhone(e.target.value)} placeholder="671234567" />
               </div>
               <div className="space-y-2">
-                <Label><T>Provider</T></Label>
+                <Label>{t('ui.provider', 'Provider')}</Label>
                 <select
                   className="w-full border rounded-md h-10 px-3 text-sm"
                   value={withdrawProvider}
                   onChange={(e) => setWithdrawProvider(e.target.value as 'mtn-momo' | 'orange-money')}
                 >
-                  <option value="mtn-momo"><T>MTN MoMo</T></option>
-                  <option value="orange-money"><T>Orange Money</T></option>
+                  <option value="mtn-momo">{t('ui.mtn_momo', 'MTN MoMo')}</option>
+                  <option value="orange-money">{t('ui.orange_money', 'Orange Money')}</option>
                 </select>
               </div>
             </div>
             <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
               <Button variant="outline" onClick={() => setShowWithdrawDialog(false)}>
-                <T>Cancel</T>
+                {t('ui.cancel', 'Cancel')}
               </Button>
               <Button className="bg-[#05B43D] hover:bg-[#018F2D]" disabled={withdrawing} onClick={handleWithdraw}>
                 {withdrawing ? 'Processing...' : 'Withdraw to Mobile Money'}

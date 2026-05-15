@@ -7,7 +7,6 @@ import { Badge } from '@/app/components/ui/badge';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
-import { T } from '@/components/T';
 
 export function AdminReviews() {
   const navigate = useNavigate();
@@ -186,8 +185,8 @@ export function AdminReviews() {
     <div className="container mx-auto max-w-7xl px-3 py-8 sm:px-4">
       <Card>
         <CardHeader>
-          <CardTitle><T>Admin Reviews</T></CardTitle>
-          <CardDescription><T>View all reviews, delete abusive reviews, and block spam reviewers.</T></CardDescription>
+          <CardTitle>{t('ui.admin_reviews', 'Admin Reviews')}</CardTitle>
+          <CardDescription>{t('ui.view_all_reviews_delete_abusive_reviews_and_block_', 'View all reviews, delete abusive reviews, and block spam reviewers.')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="w-full max-w-sm">
@@ -200,9 +199,9 @@ export function AdminReviews() {
           </div>
 
           {loading ? (
-            <p className="text-sm text-muted-foreground"><T>Loading reviews...</T></p>
+            <p className="text-sm text-muted-foreground">{t('ui.loading_reviews', 'Loading reviews...')}</p>
           ) : filtered.length === 0 ? (
-            <p className="text-sm text-muted-foreground"><T>No reviews found.</T></p>
+            <p className="text-sm text-muted-foreground">{t('ui.no_reviews_found', 'No reviews found.')}</p>
           ) : (
             <div className="space-y-3">
               {filtered.map((review) => (
@@ -210,7 +209,7 @@ export function AdminReviews() {
                   <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                     <div className="flex items-center gap-2">
                       <Badge variant="secondary">{Number(review.rating || 0)} / 5</Badge>
-                      {review.reviewerIsBlocked ? <Badge variant="destructive"><T>Reviewer Blocked</T></Badge> : null}
+                      {review.reviewerIsBlocked ? <Badge variant="destructive">{t('ui.reviewer_blocked', 'Reviewer Blocked')}</Badge> : null}
                     </div>
                     <span className="text-xs text-muted-foreground">
                       {review.timestamp ? new Date(review.timestamp).toLocaleString() : '-'}
@@ -228,7 +227,7 @@ export function AdminReviews() {
                       disabled={busyId === review.id}
                       onClick={() => deleteReview(review.id)}
                     >
-                      <T>Delete Review</T>
+                      {t('ui.delete_review', 'Delete Review')}
                     </Button>
                     <Button
                       size="sm"
@@ -237,7 +236,7 @@ export function AdminReviews() {
                       disabled={busyId === review.id || review.reviewerIsBlocked}
                       onClick={() => blockReviewer(review.id)}
                     >
-                      <T>Block Reviewer</T>
+                      {t('ui.block_reviewer', 'Block Reviewer')}
                     </Button>
                   </div>
                 </div>

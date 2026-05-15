@@ -12,7 +12,6 @@ import { ImageUploader } from '@/components/ImageUploader';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
-import { T } from '@/components/T';
 
 type ListingType = 'sell' | 'rent';
 type RentalPeriod = 'daily' | 'weekly' | 'monthly';
@@ -256,7 +255,7 @@ export function SellerEditListing() {
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <p className="text-sm text-muted-foreground"><T>Loading listing...</T></p>
+        <p className="text-sm text-muted-foreground">{t('ui.loading_listing', 'Loading listing...')}</p>
       </div>
     );
   }
@@ -266,18 +265,18 @@ export function SellerEditListing() {
       <div className="container mx-auto px-4 max-w-4xl">
         <Button variant="ghost" className="mb-4" onClick={() => navigate('/seller/manage-listings')}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          <T>Back to Listings</T>
+          {t('ui.back_to_listings', 'Back to Listings')}
         </Button>
 
         <Card>
           <CardHeader>
-            <CardTitle><T>Edit Listing</T></CardTitle>
-            <CardDescription><T>Edit listing details, images, and status.</T></CardDescription>
+            <CardTitle>{t('ui.edit_listing', 'Edit Listing')}</CardTitle>
+            <CardDescription>{t('ui.edit_listing_details_images_and_status', 'Edit listing details, images, and status.')}</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={saveListing} className="space-y-5">
               <div className="space-y-2">
-                <Label htmlFor="title"><T>Title</T></Label>
+                <Label htmlFor="title">{t('ui.title', 'Title')}</Label>
                 <Input
                   id="title"
                   value={formData.title}
@@ -286,7 +285,7 @@ export function SellerEditListing() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description"><T>Description</T></Label>
+                <Label htmlFor="description">{t('ui.description', 'Description')}</Label>
                 <Textarea
                   id="description"
                   rows={5}
@@ -297,7 +296,7 @@ export function SellerEditListing() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label><T>Category</T></Label>
+                  <Label>{t('ui.category', 'Category')}</Label>
                   <Select value={formData.category} onValueChange={(value) => setFormData((prev) => ({ ...prev, category: value }))}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select category" />
@@ -313,7 +312,7 @@ export function SellerEditListing() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label><T>Status</T></Label>
+                  <Label>{t('ui.status', 'Status')}</Label>
                   <Select value={formData.status} onValueChange={(value) => setFormData((prev) => ({ ...prev, status: value as ListingStatus }))}>
                     <SelectTrigger>
                       <SelectValue />
@@ -344,7 +343,7 @@ export function SellerEditListing() {
                 </div>
                 {formData.type === 'rent' ? (
                   <div className="space-y-2">
-                    <Label><T>Rental Period</T></Label>
+                    <Label>{t('ui.rental_period', 'Rental Period')}</Label>
                     <Select
                       value={formData.rentalPeriod}
                       onValueChange={(value) => setFormData((prev) => ({ ...prev, rentalPeriod: value as RentalPeriod }))}
@@ -375,7 +374,7 @@ export function SellerEditListing() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label><T>Condition</T></Label>
+                  <Label>{t('ui.condition', 'Condition')}</Label>
                   <Select value={formData.condition} onValueChange={(value) => setFormData((prev) => ({ ...prev, condition: value as Condition }))}>
                     <SelectTrigger>
                       <SelectValue />
@@ -391,7 +390,7 @@ export function SellerEditListing() {
               </div>
 
               <div className="space-y-2">
-                <Label><T>Location</T></Label>
+                <Label>{t('ui.location', 'Location')}</Label>
                 <Select value={formData.location} onValueChange={(value) => setFormData((prev) => ({ ...prev, location: value }))}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select location" />
@@ -408,7 +407,7 @@ export function SellerEditListing() {
               </div>
 
               <div className="space-y-3">
-                <Label><T>Images</T></Label>
+                <Label>{t('ui.images', 'Images')}</Label>
                 <ImageUploader
                   images={formData.images}
                   onChange={(images) => setFormData((prev) => ({ ...prev, images }))}
@@ -422,7 +421,7 @@ export function SellerEditListing() {
                         <img src={image} alt="Listing" className="w-full h-20 object-cover rounded" />
                         <Button size="sm" variant="outline" className="w-full" type="button" onClick={() => removeImage(image)}>
                           <Trash2 className="h-4 w-4 mr-2" />
-                          <T>Remove</T>
+                          {t('ui.remove', 'Remove')}
                         </Button>
                       </div>
                     ))}
@@ -432,7 +431,7 @@ export function SellerEditListing() {
 
               <div className="flex gap-3">
                 <Button type="button" variant="outline" className="flex-1" onClick={() => navigate('/seller/manage-listings')} disabled={saving}>
-                  <T>Cancel</T>
+                  {t('ui.cancel', 'Cancel')}
                 </Button>
                 <Button type="submit" className="flex-1 bg-[#05B43D] hover:bg-[#018F2D]" disabled={saving}>
                   {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}

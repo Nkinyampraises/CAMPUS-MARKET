@@ -27,7 +27,6 @@ import { AdminNotifications } from './AdminNotifications';
 import { AdminPayouts } from './AdminPayouts';
 
 import { API_URL } from '@/lib/api';
-import { T } from '@/components/T';
 
 const formatCurrency = (amount: number) => {
   const value = Number(amount);
@@ -269,7 +268,7 @@ export function Admin() {
           {/* Check if user is admin */}
           {currentUser?.role !== 'admin' ? (
             <div>
-              <p><T>You are not authorized to view this page.</T></p>
+              <p>{t('ui.you_are_not_authorized_to_view_this_page', 'You are not authorized to view this page.')}</p>
             </div>
 
           ) : (
@@ -279,9 +278,9 @@ export function Admin() {
 
         {/* Header */}
         <div className="mb-8">
-          <h1 className="mb-2 text-2xl font-bold sm:text-3xl"><T>Admin Dashboard</T></h1>
+          <h1 className="mb-2 text-2xl font-bold sm:text-3xl">{t('ui.admin_dashboard', 'Admin Dashboard')}</h1>
           <p className="text-muted-foreground">
-            <T>Manage users, listings, and monitor platform activity</T>
+            {t('ui.manage_users_listings_and_monitor_platform_activit', 'Manage users, listings, and monitor platform activity')}
           </p>
         </div>
 
@@ -289,20 +288,20 @@ export function Admin() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium"><T>Total Users</T></CardTitle>
+              <CardTitle className="text-sm font-medium">{t('ui.total_users', 'Total Users')}</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{totalUsers}</div>
               <p className="text-xs text-muted-foreground">
-                <T>Registered students</T>
+                {t('ui.registered_students', 'Registered students')}
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium"><T>Total Listings</T></CardTitle>
+              <CardTitle className="text-sm font-medium">{t('ui.total_listings', 'Total Listings')}</CardTitle>
               <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -315,31 +314,31 @@ export function Admin() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium"><T>Transactions</T></CardTitle>
+              <CardTitle className="text-sm font-medium">{t('ui.transactions', 'Transactions')}</CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{totalTransactions}</div>
               <p className="text-xs text-muted-foreground">
-                <T>All time</T>
+                {t('ui.all_time', 'All time')}
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium"><T>Total Messages</T></CardTitle>
+              <CardTitle className="text-sm font-medium">{t('ui.total_messages', 'Total Messages')}</CardTitle>
               <MessageSquare className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{totalMessages}</div>
-              <p className="text-xs text-muted-foreground"><T>Platform wide</T></p>
+              <p className="text-xs text-muted-foreground">{t('ui.platform_wide', 'Platform wide')}</p>
             </CardContent>
           </Card>
 
           <Card className="lg:col-span-1">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium"><T>Platform Revenue</T></CardTitle>
+              <CardTitle className="text-sm font-medium">{t('ui.platform_revenue', 'Platform Revenue')}</CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -358,13 +357,13 @@ export function Admin() {
         {/* Tabs */}
         <Tabs defaultValue="users" className="space-y-4">
           <TabsList className="w-full overflow-x-auto">
-            <TabsTrigger value="users" className="px-2 text-xs sm:px-3 sm:text-sm"><T>Users</T></TabsTrigger>
-            <TabsTrigger value="listings" className="px-2 text-xs sm:px-3 sm:text-sm"><T>Listings</T></TabsTrigger>
-            <TabsTrigger value="transactions" className="px-2 text-xs sm:px-3 sm:text-sm"><T>Transactions</T></TabsTrigger>
-            <TabsTrigger value="messages" className="px-2 text-xs sm:px-3 sm:text-sm"><T>Messages</T></TabsTrigger>
-            <TabsTrigger value="payouts" className="px-2 text-xs sm:px-3 sm:text-sm"><T>Payouts</T></TabsTrigger>
-            <TabsTrigger value="notifications" className="px-2 text-xs sm:px-3 sm:text-sm"><T>Broadcasts</T></TabsTrigger>
-            <TabsTrigger value="settings" className="px-2 text-xs sm:px-3 sm:text-sm"><T>Settings</T></TabsTrigger>
+            <TabsTrigger value="users" className="px-2 text-xs sm:px-3 sm:text-sm">{t('ui.users', 'Users')}</TabsTrigger>
+            <TabsTrigger value="listings" className="px-2 text-xs sm:px-3 sm:text-sm">{t('ui.listings', 'Listings')}</TabsTrigger>
+            <TabsTrigger value="transactions" className="px-2 text-xs sm:px-3 sm:text-sm">{t('ui.transactions', 'Transactions')}</TabsTrigger>
+            <TabsTrigger value="messages" className="px-2 text-xs sm:px-3 sm:text-sm">{t('ui.messages', 'Messages')}</TabsTrigger>
+            <TabsTrigger value="payouts" className="px-2 text-xs sm:px-3 sm:text-sm">{t('ui.payouts', 'Payouts')}</TabsTrigger>
+            <TabsTrigger value="notifications" className="px-2 text-xs sm:px-3 sm:text-sm">{t('ui.broadcasts', 'Broadcasts')}</TabsTrigger>
+            <TabsTrigger value="settings" className="px-2 text-xs sm:px-3 sm:text-sm">{t('ui.settings', 'Settings')}</TabsTrigger>
           </TabsList>
 
           {/* Users Tab */}
@@ -373,12 +372,12 @@ export function Admin() {
               <CardHeader>
                 <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
                   <div>
-                    <CardTitle><T>User Management</T></CardTitle>
-                    <CardDescription><T>Manage student accounts and verifications</T></CardDescription>
+                    <CardTitle>{t('ui.user_management', 'User Management')}</CardTitle>
+                    <CardDescription>{t('ui.manage_student_accounts_and_verifications', 'Manage student accounts and verifications')}</CardDescription>
                   </div>
                   <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2 xl:w-auto xl:grid-cols-none xl:flex">
-                    <Button className="w-full sm:w-auto" onClick={() => navigate('/admin/user-management')}><T>User Management</T></Button>
-                    <Button className="w-full sm:w-auto" onClick={() => navigate('/admin-approvals')}><T>Pending Approvals</T></Button>
+                    <Button className="w-full sm:w-auto" onClick={() => navigate('/admin/user-management')}>{t('ui.user_management', 'User Management')}</Button>
+                    <Button className="w-full sm:w-auto" onClick={() => navigate('/admin-approvals')}>{t('ui.pending_approvals', 'Pending Approvals')}</Button>
                   </div>
                   <div className="relative w-full xl:w-64">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -403,7 +402,7 @@ export function Admin() {
                           {user.isVerified && (
                             <Badge variant="secondary" className="text-xs">
                               <CheckCircle className="h-3 w-3 mr-1" />
-                              <T>Verified</T>
+                              {t('ui.verified', 'Verified')}
                             </Badge>
                           )}
                         </div>
@@ -421,7 +420,7 @@ export function Admin() {
                           onClick={() => navigate(`/admin/user-details/${user.id}`)}
                         >
                           <Eye className="mr-1 h-3 w-3" />
-                          <T>Details</T>
+                          {t('ui.details', 'Details')}
                         </Button>
                         {!user.isVerified && (
                           <Button
@@ -432,7 +431,7 @@ export function Admin() {
                             onClick={() => handleApproveUser(user.id)}
                           >
                             <CheckCircle className="mr-1 h-3 w-3" />
-                            <T>Verify</T>
+                            {t('ui.verify', 'Verify')}
                           </Button>
                         )}
                         <Button
@@ -459,8 +458,8 @@ export function Admin() {
           <TabsContent value="listings" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle><T>Listing Management</T></CardTitle>
-                <CardDescription><T>Review and moderate marketplace listings</T></CardDescription>
+                <CardTitle>{t('ui.listing_management', 'Listing Management')}</CardTitle>
+                <CardDescription>{t('ui.review_and_moderate_marketplace_listings', 'Review and moderate marketplace listings')}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -528,8 +527,8 @@ export function Admin() {
           <TabsContent value="transactions" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle><T>Transaction History</T></CardTitle>
-                <CardDescription><T>Monitor all platform transactions</T></CardDescription>
+                <CardTitle>{t('ui.transaction_history', 'Transaction History')}</CardTitle>
+                <CardDescription>{t('ui.monitor_all_platform_transactions', 'Monitor all platform transactions')}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -587,8 +586,8 @@ export function Admin() {
           <TabsContent value="messages" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle><T>Platform Messages</T></CardTitle>
-                <CardDescription><T>Monitor communication between users</T></CardDescription>
+                <CardTitle>{t('ui.platform_messages', 'Platform Messages')}</CardTitle>
+                <CardDescription>{t('ui.monitor_communication_between_users', 'Monitor communication between users')}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -630,7 +629,7 @@ export function Admin() {
                     );
                   })}
                   {conversations.length === 0 && (
-                    <p className="text-center text-muted-foreground py-8"><T>No conversations found</T></p>
+                    <p className="text-center text-muted-foreground py-8">{t('ui.no_conversations_found', 'No conversations found')}</p>
                   )}
                 </div>
               </CardContent>

@@ -9,7 +9,6 @@ import { Textarea } from '@/app/components/ui/textarea';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
-import { T } from '@/components/T';
 
 export function BuyerDisputes() {
   const navigate = useNavigate();
@@ -115,19 +114,19 @@ export function BuyerDisputes() {
     <div className="container mx-auto px-4 py-8 max-w-5xl space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle><T>Dispute Center</T></CardTitle>
-          <CardDescription><T>Open dispute for an order and track dispute status.</T></CardDescription>
+          <CardTitle>{t('ui.dispute_center', 'Dispute Center')}</CardTitle>
+          <CardDescription>{t('ui.open_dispute_for_an_order_and_track_dispute_status', 'Open dispute for an order and track dispute status.')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="space-y-1">
-            <Label htmlFor="dispute-order"><T>Order</T></Label>
+            <Label htmlFor="dispute-order">{t('ui.order', 'Order')}</Label>
             <select
               id="dispute-order"
               className="w-full border rounded-md h-10 px-3 text-sm"
               value={selectedOrderId}
               onChange={(e) => setSelectedOrderId(e.target.value)}
             >
-              <option value=""><T>Select order</T></option>
+              <option value="">{t('ui.select_order', 'Select order')}</option>
               {orders.map((order) => (
                 <option key={order.id} value={order.id}>
                   {order.id} · {order.listingTitle || 'Item'}
@@ -136,7 +135,7 @@ export function BuyerDisputes() {
             </select>
           </div>
           <div className="space-y-1">
-            <Label htmlFor="dispute-description"><T>Issue Details</T></Label>
+            <Label htmlFor="dispute-description">{t('ui.issue_details', 'Issue Details')}</Label>
             <Textarea
               id="dispute-description"
               rows={4}
@@ -153,13 +152,13 @@ export function BuyerDisputes() {
 
       <Card>
         <CardHeader>
-          <CardTitle><T>My Disputes</T></CardTitle>
+          <CardTitle>{t('ui.my_disputes', 'My Disputes')}</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-sm text-muted-foreground"><T>Loading disputes...</T></p>
+            <p className="text-sm text-muted-foreground">{t('ui.loading_disputes', 'Loading disputes...')}</p>
           ) : disputes.length === 0 ? (
-            <p className="text-sm text-muted-foreground"><T>No disputes yet.</T></p>
+            <p className="text-sm text-muted-foreground">{t('ui.no_disputes_yet', 'No disputes yet.')}</p>
           ) : (
             <div className="space-y-3">
               {disputes.map((dispute: any) => (
