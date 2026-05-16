@@ -7,7 +7,7 @@ import { PasswordInput } from '@/app/components/ui/password-input';
 import { Label } from '@/app/components/ui/label';
 import { Checkbox } from '@/app/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/app/components/ui/alert';
-import { Loader2, Mail, Lock, ShieldCheck, BadgeCheck } from 'lucide-react';
+import { Loader2, Mail, Lock, ShieldCheck, BadgeCheck, Sparkles, MessageSquare, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 import appLogo from '@/assets/image/logoi.png';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -80,197 +80,214 @@ export function Login() {
     }
   };
 
+  const features = [
+    {
+      icon: <Sparkles className="h-5 w-5 text-[#05B43D]" />,
+      bg: 'bg-[#e8f9ee]',
+      title: t('ui.sasha_ai_assistant', 'Sasha AI Assistant'),
+      desc: t('ui.get_smart_product_recommendations_room_setup_ideas_a', 'Get smart product recommendations, room setup ideas, and instant answers from Sasha.'),
+    },
+    {
+      icon: <MessageSquare className="h-5 w-5 text-[#05B43D]" />,
+      bg: 'bg-[#e8f9ee]',
+      title: t('ui.buy_sell_securely', 'Buy & Sell Securely'),
+      desc: t('ui.escrow_protection_ensures_your_money_is_safe_until_i', 'Escrow protection ensures your money is safe until item is received and confirmed.'),
+    },
+    {
+      icon: <ShieldCheck className="h-5 w-5 text-[#05B43D]" />,
+      bg: 'bg-[#e8f9ee]',
+      title: t('ui.verified_students_only', 'Verified Students Only'),
+      desc: t('ui.exclusively_for_cameroon_university_students_safe_me', 'Exclusively for Cameroon university students. Safe meetups on campus, verified identities.'),
+    },
+  ];
+
   return (
-    <div className="min-h-screen bg-[#f5f5f5]">
-      <div className="mx-auto grid min-h-screen max-w-[1440px] lg:grid-cols-[1.05fr_0.95fr]">
-        <section className="relative hidden overflow-hidden lg:flex lg:flex-col lg:justify-between">
-          <img src={loginHeroImage} alt="Black student studying with laptop" className="absolute inset-0 h-full w-full object-cover" />
-          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(31,175,154,0.55)_0%,rgba(26,150,135,0.6)_40%,rgba(21,120,110,0.7)_100%)]" />
+    <div className="min-h-screen bg-[#f4f5f0] flex items-center justify-center p-4 lg:p-8">
+      <div className="w-full max-w-[1100px] grid lg:grid-cols-2 gap-0 overflow-hidden rounded-2xl shadow-2xl shadow-black/10">
 
-          <div className="relative z-10 px-10 pt-10 text-white xl:px-14 xl:pt-12">
-            <div className="mb-20 flex items-center gap-3">
-              <img src={appLogo} alt="UNITRADE logo" className="h-11 w-11 rounded-2xl object-cover" />
-              <p className="text-[2rem] font-bold tracking-tight">{t('ui.unitrade', 'UNITRADE')}</p>
-            </div>
-
-            <h2 className="max-w-sm text-6xl font-bold leading-[1.03]">
-              {t('ui.academic_commerce', 'Academic Commerce')}<span className="text-[#05B43D]">{t('ui.redefined', 'Redefined.')}</span>
-            </h2>
-            <p className="mt-8 max-w-[35rem] text-[1.95rem] leading-[1.45] text-emerald-50/90">
-              The exclusive marketplace for Cameroon&apos;s academic community. Buy, sell, and trade with verified peers
-              across university campuses.
-            </p>
-
-            <div className="mt-16 grid max-w-xl grid-cols-2 gap-10">
-              <div className="space-y-1">
-                <p className="text-5xl font-semibold leading-none text-emerald-300">15k+</p>
-                <p className="text-[1.05rem] uppercase tracking-[0.2em] text-emerald-50/85">{t('ui.active_students', 'Active students')}</p>
-              </div>
-              <div className="space-y-1 border-l border-emerald-200/40 pl-10">
-                <p className="text-5xl font-semibold leading-none text-emerald-300">24+</p>
-                <p className="text-[1.05rem] uppercase tracking-[0.2em] text-emerald-50/85">{t('ui.partner_institutions', 'Partner institutions')}</p>
-              </div>
-            </div>
+        {/* ── Left: Login Form ────────────────────────────── */}
+        <div className="bg-white px-8 py-10 sm:px-12 sm:py-12">
+          {/* Logo */}
+          <div className="mb-8 flex items-center gap-2.5">
+            <img src={appLogo} alt="UNITRADE" className="h-9 w-9 rounded-xl object-cover" />
+            <span className="text-xl font-extrabold text-[#05B43D]">UNITRADE</span>
           </div>
 
-          <div className="relative z-10 flex items-center gap-10 px-10 pb-8 text-xs uppercase tracking-[0.18em] text-emerald-100/80 xl:px-14">
-            <span className="inline-flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4" />
-              {t('ui.ssl_secured', 'SSL secured')}
-            </span>
-            <span className="inline-flex items-center gap-2">
-              <BadgeCheck className="h-4 w-4" />
-              {t('ui.student_verified', 'Student verified')}
-            </span>
-          </div>
-        </section>
+          <h1 className="text-3xl font-extrabold text-[#111111]">{t('ui.welcome_back', 'Welcome Back')}</h1>
+          <p className="mt-2 text-base text-[#8A8A8A]">
+            {t('ui.securely_access_your_campus_marketplace', 'Securely access your campus marketplace.')}
+          </p>
 
-        <section className="flex items-center justify-center px-5 py-10 sm:px-9 lg:px-16 xl:px-20">
-          <div className="w-full max-w-[520px]">
-            <h1 className="text-4xl font-bold leading-tight text-[#161616] sm:text-5xl">{t('ui.welcome_back', 'Welcome Back')}</h1>
-            <p className="mt-4 max-w-md text-xl text-[#4b4b4b]">
-              {t('ui.please_enter_your_student_credentials_to_access_yo', 'Please enter your student credentials to access your account.')}
-            </p>
+          <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+            {error && (
+              <Alert variant="destructive" className="rounded-xl">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
 
-            <form onSubmit={handleSubmit} className="mt-10 space-y-6">
-              {error && (
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
+            {/* Email */}
+            <div className="space-y-1.5">
+              <Label htmlFor="email" className="text-xs font-bold uppercase tracking-widest text-[#4A4A4A]">
+                {t('ui.email_address', 'Email Address')}
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="student@ubuea.cm"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="h-12 rounded-xl border-[#DDE3E2] bg-[#F3F5F4] text-base text-[#111111] placeholder:text-[#aaaaaa] focus-visible:border-[#05B43D] focus-visible:ring-[#05B43D]/20"
+                required
+              />
+            </div>
+
+            {/* Password */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password" className="text-xs font-bold uppercase tracking-widest text-[#4A4A4A]">
+                  {t('ui.password', 'Password')}
+                </Label>
+                <Link to="/forgot-password" className="text-sm font-semibold text-[#05B43D] hover:text-[#018F2D] hover:underline">
+                  {t('ui.forgot', 'Forgot?')}
+                </Link>
+              </div>
+              <PasswordInput
+                id="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="h-12 rounded-xl border-[#DDE3E2] bg-[#F3F5F4] text-base text-[#111111] placeholder:text-[#aaaaaa] focus-visible:border-[#05B43D] focus-visible:ring-[#05B43D]/20"
+                required
+              />
+            </div>
+
+            {/* Remember me */}
+            <div className="flex items-center gap-2.5">
+              <Checkbox
+                id="remember-device"
+                checked={rememberDevice}
+                onCheckedChange={(checked) => setRememberDevice(checked === true)}
+                className="h-4 w-4 rounded border-[#DDE3E2] data-[state=checked]:border-[#05B43D] data-[state=checked]:bg-[#05B43D]"
+              />
+              <Label htmlFor="remember-device" className="cursor-pointer text-sm font-normal text-[#4A4A4A]">
+                {t('ui.remember_me_on_this_device', 'Remember me on this device')}
+              </Label>
+            </div>
+
+            {/* Sign In button */}
+            <Button
+              type="submit"
+              className="h-12 w-full rounded-xl bg-[#05B43D] text-base font-bold text-white shadow-lg shadow-[#05B43D]/30 hover:bg-[#018F2D] transition-all"
+              disabled={loading}
+            >
+              {loading ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t('ui.signing_in', 'Signing in...')}</>
+              ) : (
+                <span className="flex items-center gap-2">{t('ui.sign_in', 'Sign In')} <ArrowRight className="h-4 w-4" /></span>
               )}
+            </Button>
 
-              <div className="space-y-3">
-                <Label htmlFor="email" className="text-[1.04rem] font-medium text-[#212121]">
-                  {t('ui.institutional_email', 'Institutional Email')}
-                </Label>
-                <div className="relative">
-                  <Mail className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#7f8b84]" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="student@ubuea.cm"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="h-14 rounded-xl border-[#e3e3e3] bg-white pl-12 text-base text-[#1d1d1d] placeholder:text-[#a9afac] focus-visible:border-[#0a5f48] focus-visible:ring-[#0a5f48]/20"
-                    required
-                  />
-                </div>
-              </div>
+            {/* Divider */}
+            <div className="flex items-center gap-3 text-xs text-[#aaaaaa]">
+              <span className="h-px flex-1 bg-[#DDE3E2]" />
+              {t('ui.or_continue_with', 'OR CONTINUE WITH')}
+              <span className="h-px flex-1 bg-[#DDE3E2]" />
+            </div>
 
-              <div className="space-y-3">
-                <div className="flex items-center justify-between gap-3">
-                  <Label htmlFor="password" className="text-[1.04rem] font-medium text-[#212121]">
-                    {t('ui.password', 'Password')}
-                  </Label>
-                  <Link to="/forgot-password" className="text-sm font-medium text-[#018F2D] hover:underline">
-                    {t('ui.forgot_password', 'Forgot Password?')}
-                  </Link>
-                </div>
-                <div className="relative">
-                  <Lock className="pointer-events-none absolute left-4 top-1/2 z-10 h-5 w-5 -translate-y-1/2 text-[#7f8b84]" />
-                  <PasswordInput
-                    id="password"
-                    placeholder="Enter your password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="h-14 rounded-xl border-[#e3e3e3] bg-white pl-12 text-base text-[#1d1d1d] placeholder:text-[#a9afac] focus-visible:border-[#0a5f48] focus-visible:ring-[#0a5f48]/20"
-                    required
-                  />
-                </div>
-              </div>
+            {/* Register link */}
+            <p className="text-center text-sm text-[#4A4A4A]">
+              {t('ui.dont_have_an_account', "Don't have an account?")}{' '}
+              <Link to="/register" className="font-bold text-[#05B43D] hover:text-[#018F2D] hover:underline">
+                {t('ui.sign_up_free', 'Sign up free')}
+              </Link>
+            </p>
 
-              <div className="flex items-center gap-3">
-                <Checkbox
-                  id="remember-device"
-                  checked={rememberDevice}
-                  onCheckedChange={(checked) => setRememberDevice(checked === true)}
-                  className="h-5 w-5 rounded-md border-[#c9d0cb] data-[state=checked]:border-[#05B43D] data-[state=checked]:bg-[#05B43D]"
-                />
-                <Label htmlFor="remember-device" className="cursor-pointer text-[1.02rem] font-normal text-[#404040]">
-                  {t('ui.remember_me_on_this_device', 'Remember me on this device')}
-                </Label>
-              </div>
+            {confirmationMessage && (
+              <Alert className="rounded-xl border-[#05B43D]/30 bg-[#e8f9ee] text-[#018F2D]">
+                <AlertDescription>
+                  {confirmationMessage}{' '}
+                  {confirmationLink && (
+                    <a href={confirmationLink} className="font-bold underline underline-offset-2">
+                      {t('ui.open_link', 'Open link')}
+                    </a>
+                  )}
+                </AlertDescription>
+              </Alert>
+            )}
 
-              <Button
-                type="submit"
-                className="h-14 w-full rounded-xl bg-[#05B43D] text-[1.05rem] font-semibold text-white shadow-[0_20px_28px_-20px_rgba(31,175,154,0.6)] hover:bg-[#018F2D]"
-                disabled={loading}
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {t('ui.logging_in', 'Logging in...')}
-                  </>
-                ) : (
-                  'Sign In to Account'
-                )}
-              </Button>
-
-              <div className="flex items-center gap-4 text-xs uppercase tracking-[0.2em] text-[#b8b8b8]">
-                <span className="h-px flex-1 bg-[#e1e1e1]" />
-                {t('ui.new_to_unitrade', 'New to UNITRADE?')}
-                <span className="h-px flex-1 bg-[#e1e1e1]" />
-              </div>
-
-              <Button
+            <p className="text-center text-sm text-[#8A8A8A]">
+              {t('ui.didnt_receive_verification', "Didn't receive verification?")}{' '}
+              <button
                 type="button"
-                variant="secondary"
-                asChild
-                className="h-14 w-full rounded-xl bg-[#e2e2e2] text-[1.05rem] font-semibold text-[#1e1e1e] hover:bg-[#d7d7d7]"
+                onClick={handleResendConfirmation}
+                disabled={resendingConfirmation}
+                className="font-bold text-[#05B43D] hover:underline disabled:opacity-50"
               >
-                <Link to="/register">{t('ui.create_student_account', 'Create Student Account')}</Link>
-              </Button>
+                {resendingConfirmation ? t('ui.sending', 'Sending...') : t('ui.resend_confirmation', 'Resend Confirmation')}
+              </button>
+            </p>
+          </form>
 
-              {confirmationMessage && (
-                <Alert className="border-emerald-200/70 bg-emerald-50 text-[#018F2D]">
-                  <AlertDescription>
-                    {confirmationMessage}{' '}
-                    {confirmationLink && (
-                      <a href={confirmationLink} className="font-semibold underline underline-offset-2">
-                        {t('ui.open_confirmation_link', 'Open confirmation link')}
-                      </a>
-                    )}
-                  </AlertDescription>
-                </Alert>
-              )}
+          <p className="mt-8 text-center text-xs text-[#aaaaaa]">
+            © 2026 UNITRADE Cameroon &nbsp;·&nbsp;
+            <a href="#" className="hover:text-[#05B43D]">{t('ui.privacy', 'Privacy')}</a>
+            &nbsp;·&nbsp;
+            <a href="#" className="hover:text-[#05B43D]">{t('ui.terms', 'Terms')}</a>
+          </p>
+        </div>
 
-              <p className="pt-4 text-center text-[1.02rem] text-[#4a4a4a]">
-                Didn&apos;t receive verification?{' '}
-                <button
-                  type="button"
-                  onClick={handleResendConfirmation}
-                  disabled={resendingConfirmation}
-                  className="font-semibold text-[#018F2D] underline-offset-2 hover:underline disabled:opacity-60"
-                >
-                  {resendingConfirmation ? 'Sending...' : 'Resend Confirmation'}
-                </button>
-              </p>
-            </form>
+        {/* ── Right: Why UNITRADE ─────────────────────────── */}
+        <div className="hidden lg:flex lg:flex-col bg-[#F3F5F4] px-10 py-12">
+          <h2 className="mb-8 text-2xl font-extrabold text-[#111111]">
+            {t('ui.why_unitrade', 'Why UNITRADE?')}
+          </h2>
 
-            <div className="mt-12 flex items-center justify-center gap-8 text-[0.66rem] uppercase tracking-[0.2em] text-[#9b9b9b]">
-              <span className="inline-flex items-center gap-2">
-                <BadgeCheck className="h-3.5 w-3.5" />
-                {t('ui.ub_verified', 'UB verified')}
-              </span>
-              <span className="inline-flex items-center gap-2">
-                <ShieldCheck className="h-3.5 w-3.5" />
-                256-bit AES
-              </span>
-            </div>
-
-            <div className="mt-10 flex flex-wrap items-center justify-between gap-4 text-[0.72rem] uppercase tracking-[0.18em] text-[#a2a2a2]">
-              <p>© 2026 UNITRADE Cameroon</p>
-              <div className="flex items-center gap-5">
-                <a href="#" className="hover:text-[#737373]">
-                  {t('ui.privacy_policy', 'Privacy policy')}
-                </a>
-                <a href="#" className="hover:text-[#737373]">
-                  {t('ui.terms_of_service', 'Terms of service')}
-                </a>
+          <div className="flex flex-col gap-4">
+            {features.map((f, i) => (
+              <div key={i} className="flex items-start gap-4 rounded-2xl border border-[#DDE3E2] bg-white p-5 shadow-sm">
+                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${f.bg}`}>
+                  {f.icon}
+                </div>
+                <div>
+                  <p className="text-base font-bold text-[#111111]">{f.title}</p>
+                  <p className="mt-1 text-sm leading-relaxed text-[#8A8A8A]">{f.desc}</p>
+                </div>
               </div>
+            ))}
+          </div>
+
+          {/* Stats */}
+          <div className="mt-8 grid grid-cols-2 gap-4">
+            <div className="rounded-2xl border border-[#DDE3E2] bg-white p-4 text-center">
+              <p className="text-3xl font-extrabold text-[#05B43D]">15k+</p>
+              <p className="mt-1 text-xs font-semibold uppercase tracking-widest text-[#8A8A8A]">{t('ui.active_students', 'Active Students')}</p>
+            </div>
+            <div className="rounded-2xl border border-[#DDE3E2] bg-white p-4 text-center">
+              <p className="text-3xl font-extrabold text-[#05B43D]">24+</p>
+              <p className="mt-1 text-xs font-semibold uppercase tracking-widest text-[#8A8A8A]">{t('ui.universities', 'Universities')}</p>
             </div>
           </div>
-        </section>
+
+          {/* CTA */}
+          <Button
+            type="button"
+            asChild
+            className="mt-auto pt-8"
+          >
+            <Link
+              to="/register"
+              className="flex h-12 w-full items-center justify-center rounded-xl bg-[#05B43D] text-base font-bold text-white shadow-lg shadow-[#05B43D]/30 hover:bg-[#018F2D] transition-all"
+            >
+              {t('ui.create_account', 'Create Account')}
+            </Link>
+          </Button>
+
+          <div className="mt-4 flex items-center justify-center gap-6 text-xs text-[#aaaaaa]">
+            <span className="flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5 text-[#05B43D]" /> SSL Secured</span>
+            <span className="flex items-center gap-1.5"><BadgeCheck className="h-3.5 w-3.5 text-[#05B43D]" /> Student Verified</span>
+          </div>
+        </div>
+
       </div>
     </div>
   );
