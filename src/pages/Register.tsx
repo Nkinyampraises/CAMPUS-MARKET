@@ -149,19 +149,19 @@ export function Register() {
 
   return (
     <div className="min-h-screen bg-[#f4f5f0] flex items-center justify-center p-4 lg:p-8">
-      <div className="w-full max-w-[1100px] grid lg:grid-cols-2 gap-0 overflow-hidden rounded-2xl shadow-2xl shadow-black/10">
+      <div className="w-full max-w-[1400px] grid lg:grid-cols-[1.2fr_0.8fr] gap-0 overflow-hidden rounded-2xl shadow-2xl shadow-black/10">
 
         {/* ── Left: Register Form ─────────────────────────── */}
-        <div className="bg-white px-8 py-10 sm:px-10 overflow-y-auto max-h-screen">
+        <div className="bg-white px-10 py-10 sm:px-14">
           {/* Logo */}
           <div className="mb-6 flex items-center gap-2.5">
             <ShoppingBag className="h-8 w-8 rounded-xl bg-[#05B43D] p-1.5 text-white" />
             <span className="text-xl font-extrabold text-[#05B43D]">UNITRADE</span>
           </div>
 
-          <h1 className="text-2xl font-extrabold text-[#111111]">{t('ui.create_your_account', 'Create your account')}</h1>
-          <p className="mt-1.5 text-sm text-[#05B43D] font-medium">
-            {t('ui.join_students_buying_and_selling_on_campus', 'Join 15k+ students buying and selling on campus.')}
+          <h1 className="text-3xl font-extrabold text-[#111111]">{t('ui.join_unitrade', 'Join UNITRADE')}</h1>
+          <p className="mt-1.5 text-sm text-[#8A8A8A]">
+            {t('ui.fill_in_your_details_to_create_a_verified_student_', 'Fill in your details to create a verified student marketplace account.')}
           </p>
 
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
@@ -277,7 +277,7 @@ export function Register() {
             {/* Submit */}
             <button type="submit" disabled={loading}
               className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#05B43D] text-base font-bold text-white shadow-lg shadow-[#05B43D]/30 hover:bg-[#018F2D] transition-all disabled:opacity-60">
-              {loading ? <><Loader2 className="h-4 w-4 animate-spin" />{t('ui.creating_account', 'Creating Account...')}</> : <>{t('ui.create_account', 'Create Account')} <ArrowRight className="h-4 w-4" /></>}
+              {loading ? <><Loader2 className="h-4 w-4 animate-spin" />{t('ui.creating_account', 'Creating Account...')}</> : <>{t('ui.sign_up', 'Sign Up')} <ArrowRight className="h-4 w-4" /></>}
             </button>
 
             <p className="text-center text-sm text-[#8A8A8A]">
