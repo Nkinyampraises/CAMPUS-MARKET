@@ -8,6 +8,7 @@ import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 type ListingStatus = 'available' | 'sold' | 'rented' | 'reserved' | 'inactive';
 type NamedOption = { id: string; name: string };
@@ -15,6 +16,7 @@ type NamedOption = { id: string; name: string };
 export function SellerManageListings() {
   const navigate = useNavigate();
   const { currentUser, accessToken, refreshAuthToken, logout } = useAuth();
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [listings, setListings] = useState<any[]>([]);
   const [categoryCatalog, setCategoryCatalog] = useState<NamedOption[]>([]);

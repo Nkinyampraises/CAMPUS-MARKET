@@ -10,6 +10,7 @@ import { Loader2, Wallet } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface Payout {
   sellerId: string;
@@ -68,6 +69,7 @@ const formatMoney = (amount: number) =>
 
 export function AdminPayouts() {
   const { accessToken, refreshAuthToken, logout } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [payouts, setPayouts] = useState<Payout[]>([]);
   const [platformWallet, setPlatformWallet] = useState<PlatformRevenueWallet | null>(null);

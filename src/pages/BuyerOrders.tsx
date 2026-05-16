@@ -8,6 +8,7 @@ import { FileText, Store, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const formatMoney = (value: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value || 0);
@@ -22,6 +23,7 @@ const normalizePurchaseStatus = (status: string) => {
 export function BuyerOrders() {
   const navigate = useNavigate();
   const { currentUser, accessToken } = useAuth();
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<any[]>([]);
 

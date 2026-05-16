@@ -13,7 +13,13 @@
       "Bash(python tmp/ai/merge_datasets.py)",
       "Bash(git add *)",
       "Bash(python tmp/apply_T_component.py)",
-      "Bash(python tmp/pretranslate.py)"
+      "Bash(python tmp/pretranslate.py)",
+      "Bash(python -c \"import json,sys; [print\\(d['deploy']['status'].ljust\\(12\\), d['deploy']['commit']['message'][:55]\\) for d in json.load\\(sys.stdin\\)]\")",
+      "Bash(node -e ' *)",
+      "Bash(python tmp/fix_apostrophes.py)",
+      "Bash(npx vite *)",
+      "Bash(npm run *)",
+      "Bash(python tmp/fix_use_language.py)"
     ]
   }
 }

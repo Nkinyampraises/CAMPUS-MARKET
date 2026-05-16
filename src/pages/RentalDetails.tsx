@@ -10,6 +10,7 @@ import { ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 const RETURNED_KEY = 'buyerReturnedRentals';
 
 const formatMoney = (value: number) =>
@@ -25,6 +26,7 @@ export function RentalDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { currentUser, accessToken } = useAuth();
+  const { t } = useLanguage();
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);

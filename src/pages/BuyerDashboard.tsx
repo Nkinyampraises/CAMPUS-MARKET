@@ -9,12 +9,14 @@ import { Bell, DollarSign, Flag, Heart, MessageSquare, PackageCheck, ShieldAlert
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const formatMoney = (value: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value || 0);
 
 export function BuyerDashboard() {
   const { currentUser, accessToken, refreshAuthToken, logout } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
 
   const [orders, setOrders] = useState<any[]>([]);

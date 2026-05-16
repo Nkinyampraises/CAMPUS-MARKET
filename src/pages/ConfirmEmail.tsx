@@ -5,10 +5,12 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription } from '@/app/components/ui/alert';
 import { Loader2, MailCheck } from 'lucide-react';
 import { API_URL } from '@/lib/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 type ConfirmationStatus = 'loading' | 'success' | 'error';
 
 export function ConfirmEmail() {
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [status, setStatus] = useState<ConfirmationStatus>('loading');
   const [message, setMessage] = useState('Confirming your email...');

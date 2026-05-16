@@ -7,6 +7,7 @@ import { Badge } from '@/app/components/ui/badge';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const mapStatus = (order: any): 'pending' | 'paid' | 'delivered' | 'cancelled' => {
   if (order?.status === 'delivered_released') return 'delivered';
@@ -21,6 +22,7 @@ const formatMoney = (value: number) =>
 export function SellerOrders() {
   const navigate = useNavigate();
   const { currentUser, accessToken, refreshAuthToken, logout } = useAuth();
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState('');
   const [orders, setOrders] = useState<any[]>([]);

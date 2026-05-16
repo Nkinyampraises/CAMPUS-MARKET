@@ -12,6 +12,7 @@ import { ImageUploader } from '@/components/ImageUploader';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 type ListingType = 'sell' | 'rent';
 type RentalPeriod = 'daily' | 'weekly' | 'monthly';
@@ -23,6 +24,7 @@ export function SellerEditListing() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { currentUser, accessToken, refreshAuthToken, logout } = useAuth();
+  const { t } = useLanguage();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

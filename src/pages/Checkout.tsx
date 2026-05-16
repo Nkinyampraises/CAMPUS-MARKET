@@ -20,6 +20,7 @@ import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
 import { fetchPublicCatalog, type NamedCatalogOption, resolveNamedCatalogLabel } from '@/lib/catalog';
+import { useLanguage } from '@/contexts/LanguageContext';
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
 
 const fallbackPickupLocations = [
@@ -90,6 +91,7 @@ export function Checkout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { currentUser, isAuthenticated } = useAuth();
+  const { t } = useLanguage();
 
   const locationInputRef = useRef<HTMLInputElement | null>(null);
 

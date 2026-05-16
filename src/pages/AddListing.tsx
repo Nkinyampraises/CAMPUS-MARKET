@@ -14,6 +14,7 @@ import { ImageUploader } from '@/components/ImageUploader';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 type NamedOption = {
   id: string;
@@ -23,6 +24,7 @@ type NamedOption = {
 export function AddListing() {
   const navigate = useNavigate();
   const { currentUser, isAuthenticated, accessToken } = useAuth();
+  const { t } = useLanguage();
   const isAdmin = currentUser?.role === 'admin';
   
   const [formData, setFormData] = useState({

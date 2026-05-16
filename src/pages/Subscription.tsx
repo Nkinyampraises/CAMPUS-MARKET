@@ -9,6 +9,7 @@ import { Input } from '@/app/components/ui/input';
 import { Alert, AlertDescription } from '@/app/components/ui/alert';
 import { Check, Smartphone } from 'lucide-react';
 import { toast } from 'sonner';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const plans = {
   seller: {
@@ -23,6 +24,7 @@ const plans = {
 
 export function Subscription() {
   const { currentUser } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
 
   const userType = currentUser?.userType === 'seller' ? 'seller' : 'buyer';

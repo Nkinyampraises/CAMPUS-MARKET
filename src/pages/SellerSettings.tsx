@@ -9,10 +9,12 @@ import { Switch } from '@/app/components/ui/switch';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export function SellerSettings() {
   const navigate = useNavigate();
   const { currentUser, accessToken, updateProfile, refreshCurrentUser } = useAuth();
+  const { t } = useLanguage();
 
   const [changingPassword, setChangingPassword] = useState(false);
   const [savingPreferences, setSavingPreferences] = useState(false);

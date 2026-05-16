@@ -6,12 +6,14 @@ import { Badge } from '@/app/components/ui/badge';
 import { Eye } from 'lucide-react';
 
 import { API_URL } from '@/lib/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 const RECENTLY_VIEWED_KEY = 'recentlyViewedItemIds';
 
 const formatMoney = (value: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value || 0);
 
 export function RecentlyViewed() {
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<any[]>([]);

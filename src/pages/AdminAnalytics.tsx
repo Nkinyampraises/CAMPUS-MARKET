@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 function BarList({
   items,
@@ -48,6 +49,7 @@ function BarList({
 export function AdminAnalytics() {
   const navigate = useNavigate();
   const { currentUser, accessToken, refreshAuthToken, logout } = useAuth();
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [analytics, setAnalytics] = useState<any>({
     dailyListingsPosted: [],

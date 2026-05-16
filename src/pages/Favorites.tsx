@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
 import { fetchPublicCatalog, type NamedCatalogOption, resolveNamedCatalogLabel } from '@/lib/catalog';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat('fr-FR', {
@@ -21,6 +22,7 @@ const formatCurrency = (amount: number) =>
 
 export function Favorites() {
   const { currentUser, isAuthenticated, accessToken } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [favoriteItems, setFavoriteItems] = useState<any[]>([]);
   const [categories, setCategories] = useState<NamedCatalogOption[]>([]);

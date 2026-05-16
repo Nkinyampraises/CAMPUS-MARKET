@@ -8,6 +8,7 @@ import { Download } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const formatMoney = (value: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value || 0);
@@ -22,6 +23,7 @@ const paymentLabel = (method: string) => {
 export function BuyerPayments() {
   const navigate = useNavigate();
   const { currentUser, accessToken } = useAuth();
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [filterMethod, setFilterMethod] = useState<'all' | 'mtn-momo' | 'orange-money' | 'cash'>('all');

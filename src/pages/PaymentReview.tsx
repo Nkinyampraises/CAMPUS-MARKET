@@ -11,6 +11,7 @@ const isMobileDevice = () =>
   (navigator.maxTouchPoints > 0 && window.innerWidth <= 1024);
 
 import { API_URL } from '@/lib/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 type PaymentContext = 'order' | 'subscription';
 
@@ -32,6 +33,7 @@ export function PaymentReview() {
   const navigate = useNavigate();
   const location = useLocation();
   const { accessToken, refreshCurrentUser, refreshAuthToken, logout } = useAuth();
+  const { t } = useLanguage();
   const state = (location.state || null) as PaymentReviewState | null;
 
   const [submitting, setSubmitting] = useState(false);

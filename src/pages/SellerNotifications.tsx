@@ -8,10 +8,12 @@ import { CheckCheck } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export function SellerNotifications() {
   const navigate = useNavigate();
   const { currentUser, accessToken } = useAuth();
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);

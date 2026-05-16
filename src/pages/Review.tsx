@@ -10,6 +10,7 @@ import { Star, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 type TransactionRecord = {
   id: string;
@@ -31,6 +32,7 @@ type ReviewRecord = {
 
 export function Review() {
   const { currentUser, isAuthenticated, accessToken } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const transactionId = searchParams.get('transactionId') || searchParams.get('order');

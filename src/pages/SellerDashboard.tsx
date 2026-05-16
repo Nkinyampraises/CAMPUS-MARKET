@@ -18,12 +18,14 @@ import { DollarSign, Heart, MessageSquare, Package, Plus, ShoppingBag, Wallet } 
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const formatMoney = (value: number) =>
   `${new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(Number(value) || 0)} FCFA`;
 
 export function SellerDashboard() {
   const { currentUser, accessToken, refreshAuthToken, logout } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'sales' | 'listings' | 'messages'>('sales');
 

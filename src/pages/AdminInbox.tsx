@@ -8,12 +8,14 @@ import { RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 type ReportStatus = 'open' | 'reviewed' | 'resolved' | 'rejected';
 
 export function AdminInbox() {
   const navigate = useNavigate();
   const { currentUser, accessToken } = useAuth();
+  const { t } = useLanguage();
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);

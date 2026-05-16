@@ -28,6 +28,7 @@ import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
 import { fetchPublicCatalog, type NamedCatalogOption, resolveNamedCatalogLabel } from '@/lib/catalog';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const formatLabel = (value: string | undefined, fallback: string) => {
   if (!value) return fallback;
@@ -43,6 +44,7 @@ export function Profile() {
   const { currentUser, isAuthenticated, updateProfile, accessToken } = useAuth();
   const navigate = useNavigate();
   const { userId } = useParams();
+  const { t } = useLanguage();
   const [isEditing, setIsEditing] = useState(false);
   const [uploadingProfilePicture, setUploadingProfilePicture] = useState(false);
   type ProfileUser = NonNullable<typeof currentUser>;

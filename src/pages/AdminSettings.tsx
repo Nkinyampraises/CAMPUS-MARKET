@@ -9,6 +9,7 @@ import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface AdminSettingsData {
   platformName: string;
@@ -34,6 +35,7 @@ const defaultSettings: AdminSettingsData = {
 
 export function AdminSettings() {
   const { accessToken } = useAuth();
+  const { t } = useLanguage();
   const [settings, setSettings] = useState<AdminSettingsData>(defaultSettings);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

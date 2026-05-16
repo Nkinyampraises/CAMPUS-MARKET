@@ -9,10 +9,12 @@ import { Textarea } from '@/app/components/ui/textarea';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export function BuyerReport() {
   const navigate = useNavigate();
   const { currentUser, accessToken } = useAuth();
+  const { t } = useLanguage();
 
   const [category, setCategory] = useState<'seller' | 'listing' | 'transaction' | 'scam_attempt'>('seller');
   const [orderId, setOrderId] = useState('');

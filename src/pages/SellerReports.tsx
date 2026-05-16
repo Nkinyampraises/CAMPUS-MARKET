@@ -9,11 +9,13 @@ import { Textarea } from '@/app/components/ui/textarea';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export function SellerReports() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { currentUser, accessToken } = useAuth();
+  const { t } = useLanguage();
 
   const [category, setCategory] = useState<'buyer' | 'listing_issue' | 'transaction_dispute'>('buyer');
   const [orderId, setOrderId] = useState(searchParams.get('orderId') || '');

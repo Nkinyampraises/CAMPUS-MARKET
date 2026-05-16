@@ -27,6 +27,7 @@ import { AdminNotifications } from './AdminNotifications';
 import { AdminPayouts } from './AdminPayouts';
 
 import { API_URL } from '@/lib/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const formatCurrency = (amount: number) => {
   const value = Number(amount);
@@ -39,6 +40,7 @@ const formatCurrency = (amount: number) => {
 
 export function Admin() {
   const { currentUser, accessToken, refreshAuthToken, logout } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const isAdmin = currentUser?.role === 'admin';
   const [searchQuery, setSearchQuery] = useState('');

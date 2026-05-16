@@ -8,8 +8,10 @@ import { Alert, AlertDescription } from '@/app/components/ui/alert';
 import { Loader2, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 import { API_URL } from '@/lib/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export function ForgotPassword() {
+  const { t } = useLanguage();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');

@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
 import { fetchPublicCatalog, type NamedCatalogOption, resolveNamedCatalogLabel } from '@/lib/catalog';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface PendingUser {
   id: string;
@@ -31,6 +32,7 @@ interface PendingUser {
 
 export function AdminApprovals() {
   const { currentUser, accessToken } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const isAdmin = currentUser?.role === 'admin';
   const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);

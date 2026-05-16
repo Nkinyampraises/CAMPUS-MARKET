@@ -7,6 +7,7 @@ import { Badge } from '@/app/components/ui/badge';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 const RETURNED_KEY = 'buyerReturnedRentals';
 
 const toDateLabel = (value: string | null | undefined) => {
@@ -26,6 +27,7 @@ const getRentalStatus = (order: any, returnedIds: Set<string>) => {
 export function BuyerRentals() {
   const navigate = useNavigate();
   const { currentUser, accessToken } = useAuth();
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [rentals, setRentals] = useState<any[]>([]);
   const [returnedIds, setReturnedIds] = useState<Set<string>>(new Set());

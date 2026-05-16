@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from '@/app/components/ui/alert';
 import { Loader2, Mail, Lock, ShieldCheck, BadgeCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import appLogo from '@/assets/image/logoi.png';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const loginHeroImage =
   'https://images.pexels.com/photos/9158720/pexels-photo-9158720.jpeg?cs=srgb&dl=pexels-mikhail-nilov-9158720.jpg&fm=jpg';
@@ -17,6 +18,7 @@ const loginHeroImage =
 export function Login() {
   const navigate = useNavigate();
   const { login, resendConfirmationEmail } = useAuth();
+  const { t } = useLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberDevice, setRememberDevice] = useState(false);

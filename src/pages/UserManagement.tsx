@@ -6,6 +6,7 @@ import { Search, ChevronDown, Filter } from 'lucide-react';
 
 import { API_URL } from '@/lib/api';
 import { fetchPublicCatalog, type NamedCatalogOption, resolveNamedCatalogLabel } from '@/lib/catalog';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface User {
   id: string;
@@ -22,6 +23,7 @@ interface User {
 
 export function UserManagement() {
   const { currentUser, accessToken } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [users, setUsers] = useState<User[]>([]);
   const [universities, setUniversities] = useState<NamedCatalogOption[]>([]);

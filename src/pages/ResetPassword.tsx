@@ -9,8 +9,10 @@ import { Alert, AlertDescription } from '@/app/components/ui/alert';
 import { Loader2, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
 import { API_URL } from '@/lib/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export function ResetPassword() {
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');

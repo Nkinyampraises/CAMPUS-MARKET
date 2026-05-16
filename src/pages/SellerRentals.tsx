@@ -7,6 +7,7 @@ import { Badge } from '@/app/components/ui/badge';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const dateLabel = (value: string | null | undefined) => {
   if (!value) return '-';
@@ -26,6 +27,7 @@ const rentalStatus = (order: any) => {
 export function SellerRentals() {
   const navigate = useNavigate();
   const { currentUser, accessToken, refreshAuthToken, logout } = useAuth();
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState('');
   const [rentals, setRentals] = useState<any[]>([]);

@@ -17,6 +17,7 @@ import { Bell, Loader2, Send } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface Broadcast {
   id: string;
@@ -40,6 +41,7 @@ interface SupportReport {
 
 export function AdminNotifications() {
   const { accessToken } = useAuth();
+  const { t } = useLanguage();
   const [broadcasts, setBroadcasts] = useState<Broadcast[]>([]);
   const [supportReports, setSupportReports] = useState<SupportReport[]>([]);
   const [loading, setLoading] = useState(true);

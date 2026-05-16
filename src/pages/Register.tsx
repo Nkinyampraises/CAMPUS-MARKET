@@ -15,6 +15,7 @@ import { universities } from '@/data/mockData';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const registerHeroImage =
   'https://images.pexels.com/photos/1454360/pexels-photo-1454360.jpeg?cs=srgb&dl=pexels-olly-1454360.jpg&fm=jpg';
@@ -22,6 +23,7 @@ const registerHeroImage =
 export function Register() {
   const navigate = useNavigate();
   const { register } = useAuth();
+  const { t } = useLanguage();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
