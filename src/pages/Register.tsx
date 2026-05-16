@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/app/components/ui/button';
@@ -24,6 +24,17 @@ export function Register() {
   const navigate = useNavigate();
   const { register } = useAuth();
   const { t } = useLanguage();
+
+  const [platformStats, setPlatformStats] = useState({ students: 0, listings: 0, deals: 0, rating: '4.8' });
+
+  useEffect(() => {
+    fetch(`${API_URL}/public-stats`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data && !data.error) setPlatformStats(data);
+      })
+      .catch(() => {});
+  }, []);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -140,11 +151,12 @@ export function Register() {
     }
   };
 
+  const fmt = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(1)}k+` : n > 0 ? `${n}+` : '—';
   const stats = [
-    { icon: <Users className="h-5 w-5 text-[#05B43D]" />, value: '15k+', label: t('ui.students', 'Students') },
-    { icon: <ListChecks className="h-5 w-5 text-[#05B43D]" />, value: '1,200+', label: t('ui.live_listings', 'Live Listings') },
-    { icon: <TrendingUp className="h-5 w-5 text-[#05B43D]" />, value: '3,500+', label: t('ui.deals_closed', 'Deals Closed') },
-    { icon: <Star className="h-5 w-5 text-[#05B43D]" />, value: '4.8★', label: t('ui.avg_rating', 'Avg Rating') },
+    { icon: <Users className="h-5 w-5 text-[#05B43D]" />, value: fmt(platformStats.students), label: t('ui.students', 'Students') },
+    { icon: <ListChecks className="h-5 w-5 text-[#05B43D]" />, value: fmt(platformStats.listings), label: t('ui.live_listings', 'Live Listings') },
+    { icon: <TrendingUp className="h-5 w-5 text-[#05B43D]" />, value: fmt(platformStats.deals), label: t('ui.deals_closed', 'Deals Closed') },
+    { icon: <Star className="h-5 w-5 text-[#05B43D]" />, value: `${platformStats.rating}★`, label: t('ui.avg_rating', 'Avg Rating') },
   ];
 
   return (
@@ -293,7 +305,7 @@ export function Register() {
             {t('ui.buy_sell_connect', 'Buy. Sell.')}<br />{t('ui.connect', 'Connect.')}
           </h2>
           <p className="mt-3 text-sm text-[#8A8A8A]">
-            {t('ui.your_campus_marketplace_built_for_students_by_stude', 'Your campus marketplace — built for students, by students.')}
+            {t('ui.student_to_student_marketplace', 'The student to student marketplace — buy, sell and rent safely on campus.')}
           </p>
 
           {/* Stats grid */}
@@ -310,8 +322,8 @@ export function Register() {
           {/* Bottom note */}
           <div className="mt-auto pt-8 rounded-2xl border border-[#DDE3E2] bg-white p-5 text-center">
             <ShoppingBag className="mx-auto mb-2 h-8 w-8 text-[#05B43D]" />
-            <p className="text-sm font-semibold text-[#111111]">{t('ui.exclusively_for_cameroon_university_students', 'Exclusively for Cameroon university students.')}</p>
-            <p className="mt-1 text-xs text-[#8A8A8A]">{t('ui.verified_safe_and_trusted', 'Verified, safe and trusted.')}</p>
+            <p className="text-sm font-semibold text-[#111111]">{t('ui.student_to_student_trading', 'Student to student trading.')}</p>
+            <p className="mt-1 text-xs text-[#8A8A8A]">{t('ui.verified_safe_and_trusted', 'Verified, safe and trusted across Cameroon.')}</p>
           </div>
         </div>
 
