@@ -269,18 +269,14 @@ export function Login() {
           </div>
 
           {/* CTA */}
-          <Button
-            type="button"
-            asChild
-            className="mt-auto pt-8"
-          >
+          <div className="mt-8">
             <Link
               to="/register"
               className="flex h-12 w-full items-center justify-center rounded-xl bg-[#05B43D] text-base font-bold text-white shadow-lg shadow-[#05B43D]/30 hover:bg-[#018F2D] transition-all"
             >
               {t('ui.create_account', 'Create Account')}
             </Link>
-          </Button>
+          </div>
 
           <div className="mt-4 flex items-center justify-center gap-6 text-xs text-[#aaaaaa]">
             <span className="flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5 text-[#05B43D]" /> SSL Secured</span>
