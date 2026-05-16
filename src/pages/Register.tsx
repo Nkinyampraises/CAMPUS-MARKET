@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RadioGroup, RadioGroupItem } from '@/app/components/ui/radio-group';
 import { Alert, AlertDescription } from '@/app/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/app/components/ui/avatar';
-import { ShoppingBag, Loader2, ShoppingCart, Store, Upload } from 'lucide-react';
+import { ShoppingBag, Loader2, ShoppingCart, Store, Upload, Users, ListChecks, Star, TrendingUp, ArrowRight } from 'lucide-react';
 import { universities } from '@/data/mockData';
 import { toast } from 'sonner';
 
@@ -140,243 +140,181 @@ export function Register() {
     }
   };
 
+  const stats = [
+    { icon: <Users className="h-5 w-5 text-[#05B43D]" />, value: '15k+', label: t('ui.students', 'Students') },
+    { icon: <ListChecks className="h-5 w-5 text-[#05B43D]" />, value: '1,200+', label: t('ui.live_listings', 'Live Listings') },
+    { icon: <TrendingUp className="h-5 w-5 text-[#05B43D]" />, value: '3,500+', label: t('ui.deals_closed', 'Deals Closed') },
+    { icon: <Star className="h-5 w-5 text-[#05B43D]" />, value: '4.8★', label: t('ui.avg_rating', 'Avg Rating') },
+  ];
+
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-[#f5f5f5] py-8">
-      <div className="mx-auto grid w-full max-w-[1400px] gap-6 px-4 lg:grid-cols-[0.95fr_1.05fr]">
-        <aside className="relative hidden overflow-hidden rounded-3xl lg:flex lg:min-h-[860px] lg:flex-col lg:justify-between">
-          <img src={registerHeroImage} alt="Student preparing to join campus marketplace" className="absolute inset-0 h-full w-full object-cover" />
-          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(31,175,154,0.55)_0%,rgba(26,150,135,0.6)_40%,rgba(21,120,110,0.7)_100%)]" />
+    <div className="min-h-screen bg-[#f4f5f0] flex items-center justify-center p-4 lg:p-8">
+      <div className="w-full max-w-[1100px] grid lg:grid-cols-2 gap-0 overflow-hidden rounded-2xl shadow-2xl shadow-black/10">
 
-          <div className="relative z-10 p-10 text-white xl:p-12">
-            <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20">
-              <ShoppingBag className="h-6 w-6" />
-            </div>
-            <h2 className="mt-6 max-w-md text-5xl font-bold leading-[1.06]">
-              {t('ui.start_selling_and_buying_with_confidence', 'Start Selling and Buying with Confidence.')}
-            </h2>
-            <p className="mt-5 max-w-lg text-lg leading-relaxed text-emerald-50/90">
-              Join UNITRADE and connect with verified students across universities. Create your account once and trade safely.
-            </p>
+        {/* ── Left: Register Form ─────────────────────────── */}
+        <div className="bg-white px-8 py-10 sm:px-10 overflow-y-auto max-h-screen">
+          {/* Logo */}
+          <div className="mb-6 flex items-center gap-2.5">
+            <ShoppingBag className="h-8 w-8 rounded-xl bg-[#05B43D] p-1.5 text-white" />
+            <span className="text-xl font-extrabold text-[#05B43D]">UNITRADE</span>
           </div>
 
-          <div className="relative z-10 grid grid-cols-2 gap-4 border-t border-white/20 p-10 text-white xl:p-12">
-            <div>
-              <p className="text-3xl font-bold">15k+</p>
-              <p className="mt-1 text-xs uppercase tracking-[0.18em] text-emerald-100/80">{t('ui.student_members', 'Student members')}</p>
+          <h1 className="text-2xl font-extrabold text-[#111111]">{t('ui.create_your_account', 'Create your account')}</h1>
+          <p className="mt-1.5 text-sm text-[#05B43D] font-medium">
+            {t('ui.join_students_buying_and_selling_on_campus', 'Join 15k+ students buying and selling on campus.')}
+          </p>
+
+          <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+            {error && <Alert variant="destructive" className="rounded-xl"><AlertDescription>{error}</AlertDescription></Alert>}
+            {confirmationLink && (
+              <Alert className="rounded-xl border-green-200 bg-green-50 text-green-800">
+                <AlertDescription>
+                  {t('ui.use_this_confirmation_link', 'Use this confirmation link:')}{' '}
+                  <a href={confirmationLink} className="font-bold underline break-all">{confirmationLink}</a>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Name + Email */}
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="name" className="text-xs font-bold uppercase tracking-widest text-[#4A4A4A]">{t('ui.full_name', 'Full Name')}</Label>
+                <Input id="name" type="text" placeholder="Amina Ngoma" value={formData.name}
+                  onChange={(e) => handleChange('name', e.target.value)}
+                  className="h-11 rounded-xl border-[#DDE3E2] bg-[#F3F5F4] focus-visible:border-[#05B43D] focus-visible:ring-[#05B43D]/20" required />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="email" className="text-xs font-bold uppercase tracking-widest text-[#4A4A4A]">{t('ui.university_email', 'University Email')}</Label>
+                <Input id="email" type="email" placeholder="your.email@student.ub.cm" value={formData.email}
+                  onChange={(e) => handleChange('email', e.target.value)}
+                  className="h-11 rounded-xl border-[#DDE3E2] bg-[#F3F5F4] focus-visible:border-[#05B43D] focus-visible:ring-[#05B43D]/20" required />
+              </div>
             </div>
-            <div>
-              <p className="text-3xl font-bold">24+</p>
-              <p className="mt-1 text-xs uppercase tracking-[0.18em] text-emerald-100/80">{t('ui.partner_campuses', 'Partner campuses')}</p>
+
+            {/* Phone + University */}
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="phone" className="text-xs font-bold uppercase tracking-widest text-[#4A4A4A]">{t('ui.phone_number', 'Phone Number')}</Label>
+                <Input id="phone" type="tel" placeholder="+237 670 123 456" value={formData.phone}
+                  onChange={(e) => handleChange('phone', e.target.value)}
+                  className="h-11 rounded-xl border-[#DDE3E2] bg-[#F3F5F4] focus-visible:border-[#05B43D] focus-visible:ring-[#05B43D]/20" required />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="university" className="text-xs font-bold uppercase tracking-widest text-[#4A4A4A]">{t('ui.university', 'University')}</Label>
+                <Select value={formData.university} onValueChange={(v) => handleChange('university', v)} required>
+                  <SelectTrigger className="h-11 rounded-xl border-[#DDE3E2] bg-[#F3F5F4] focus:border-[#05B43D]">
+                    <SelectValue placeholder={t('ui.select_your_university', 'Select your university')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {universities.map((uni) => <SelectItem key={uni.id} value={uni.id}>{uni.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-          </div>
-        </aside>
 
-        <Card className="rounded-3xl border border-[#DDE3E2] bg-white shadow-sm">
-          <CardHeader className="pb-2">
-            <div className="inline-flex w-fit items-center gap-2 rounded-full bg-[#e8f5ef] px-3 py-1 text-xs font-semibold uppercase tracking-[0.15em] text-[#0f6f58]">
-              {t('ui.create_account', 'Create Account')}
+            {/* Student ID */}
+            <div className="space-y-1.5">
+              <Label htmlFor="studentId" className="text-xs font-bold uppercase tracking-widest text-[#4A4A4A]">{t('ui.student_id_optional', 'Student ID (Optional)')}</Label>
+              <Input id="studentId" type="text" placeholder="UB2024001" value={formData.studentId}
+                onChange={(e) => handleChange('studentId', e.target.value)}
+                className="h-11 rounded-xl border-[#DDE3E2] bg-[#F3F5F4] focus-visible:border-[#05B43D] focus-visible:ring-[#05B43D]/20" />
             </div>
-            <CardTitle className="mt-3 text-3xl font-semibold text-[#0b1f1a] sm:text-4xl">{t('ui.join_unitrade', 'Join UNITRADE')}</CardTitle>
-            <CardDescription className="text-sm text-[#4A4A4A]">
-              {t('ui.fill_in_your_details_to_create_a_verified_student_', 'Fill in your details to create a verified student marketplace account.')}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-5">
-              {error && (
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
 
-              {confirmationLink && (
-                <Alert className="border-[#c9e1d6] bg-[#f1faf6] text-[#0f5f4c]">
-                  <AlertDescription>
-                    Email delivery is unavailable right now. Use this confirmation link:{' '}
-                    <a href={confirmationLink} className="font-semibold text-[#0f6f58] underline break-all">
-                      {confirmationLink}
-                    </a>
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="name">{t('ui.full_name', 'Full Name')}</Label>
-                  <Input
-                    id="name"
-                    type="text"
-                    placeholder="Amina Ngoma"
-                    value={formData.name}
-                    onChange={(e) => handleChange('name', e.target.value)}
-                    className="border-[#cfe0d8] bg-white"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="email">{t('ui.university_email', 'University Email')}</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="your.email@student.ub.cm"
-                    value={formData.email}
-                    onChange={(e) => handleChange('email', e.target.value)}
-                    className="border-[#cfe0d8] bg-white"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="phone">{t('ui.phone_number', 'Phone Number')}</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    placeholder="+237 670 123 456"
-                    value={formData.phone}
-                    onChange={(e) => handleChange('phone', e.target.value)}
-                    className="border-[#cfe0d8] bg-white"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="university">{t('ui.university', 'University')}</Label>
-                  <Select value={formData.university} onValueChange={(value) => handleChange('university', value)} required>
-                    <SelectTrigger className="border-[#cfe0d8] bg-white">
-                      <SelectValue placeholder="Select your university" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {universities.map((uni) => (
-                        <SelectItem key={uni.id} value={uni.id}>
-                          {uni.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="studentId">{t('ui.student_id_optional', 'Student ID (Optional)')}</Label>
-                  <Input
-                    id="studentId"
-                    type="text"
-                    placeholder="UB2024001"
-                    value={formData.studentId}
-                    onChange={(e) => handleChange('studentId', e.target.value)}
-                    className="border-[#cfe0d8] bg-white"
-                  />
+            {/* Profile Picture */}
+            <div className="rounded-xl border border-[#DDE3E2] bg-[#F3F5F4] p-3">
+              <Label className="text-xs font-bold uppercase tracking-widest text-[#4A4A4A]">{t('ui.profile_picture_optional', 'Profile Picture (Optional)')}</Label>
+              <div className="mt-2 flex items-center gap-3">
+                <Avatar className="h-12 w-12 border-2 border-[#05B43D]/30">
+                  {formData.profilePicture ? <AvatarImage src={formData.profilePicture} alt={formData.name || 'Profile'} /> : null}
+                  <AvatarFallback className="bg-[#e8f9ee] text-[#05B43D] font-bold">{(formData.name || 'U').charAt(0).toUpperCase()}</AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  <Input type="file" accept="image/*" disabled={uploadingProfilePicture}
+                    onChange={(e) => handleProfilePictureUpload(e.target.files?.[0] || null)}
+                    className="h-9 rounded-lg border-[#DDE3E2] bg-white text-sm" />
+                  {uploadingProfilePicture && <p className="mt-1 flex items-center gap-1 text-xs text-[#05B43D]"><Upload className="h-3 w-3" />{t('ui.uploading', 'Uploading...')}</p>}
                 </div>
               </div>
+            </div>
 
-              <div className="space-y-3 rounded-2xl border border-[#DDE3E2] bg-[#f9fcfb] p-4">
-                <Label>{t('ui.profile_picture_optional', 'Profile Picture (Optional)')}</Label>
-                <div className="flex items-center gap-4">
-                  <Avatar className="h-16 w-16 border border-[#cfe0d8]">
-                    {formData.profilePicture ? (
-                      <AvatarImage src={formData.profilePicture} alt={formData.name || 'Profile'} />
-                    ) : null}
-                    <AvatarFallback className="bg-[#dff2ea] text-[#0f6f58]">
-                      {(formData.name || 'U').charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <Input
-                      id="profilePicture"
-                      type="file"
-                      accept="image/*"
-                      disabled={uploadingProfilePicture}
-                      onChange={(e) => handleProfilePictureUpload(e.target.files?.[0] || null)}
-                      className="border-[#cfe0d8] bg-white"
-                    />
-                    <p className="mt-1 text-xs text-[#5f7a71]">{t('ui.jpg_png_or_webp_up_to_5mb', 'JPG, PNG, or WEBP up to 5MB')}</p>
+            {/* Account type */}
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase tracking-widest text-[#4A4A4A]">{t('ui.i_want_to', 'I want to:')}</Label>
+              <RadioGroup value={formData.userType} onValueChange={(v) => handleChange('userType', v)} className="grid gap-2 sm:grid-cols-2">
+                <Label htmlFor="buyer" className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 p-3 transition-all ${formData.userType === 'buyer' ? 'border-[#05B43D] bg-[#e8f9ee]' : 'border-[#DDE3E2] bg-white hover:border-[#05B43D]/40'}`}>
+                  <RadioGroupItem value="buyer" id="buyer" />
+                  <div>
+                    <p className="flex items-center gap-1.5 text-sm font-bold text-[#111111]"><ShoppingCart className="h-4 w-4 text-[#05B43D]" />{t('ui.buy_items', 'Buy Items')}</p>
+                    <p className="text-xs text-[#8A8A8A]">{t('ui.browse_and_purchase', 'Browse and purchase')}</p>
                   </div>
-                </div>
-                {uploadingProfilePicture && (
-                  <p className="inline-flex items-center gap-1 text-xs text-[#0f6f58]">
-                    <Upload className="h-3 w-3" />
-                    {t('ui.uploading_profile_picture', 'Uploading profile picture...')}
-                  </p>
-                )}
+                </Label>
+                <Label htmlFor="seller" className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 p-3 transition-all ${formData.userType === 'seller' ? 'border-[#05B43D] bg-[#e8f9ee]' : 'border-[#DDE3E2] bg-white hover:border-[#05B43D]/40'}`}>
+                  <RadioGroupItem value="seller" id="seller" />
+                  <div>
+                    <p className="flex items-center gap-1.5 text-sm font-bold text-[#111111]"><Store className="h-4 w-4 text-[#05B43D]" />{t('ui.sell_items', 'Sell Items')}</p>
+                    <p className="text-xs text-[#8A8A8A]">{t('ui.list_and_earn', 'List and earn')}</p>
+                  </div>
+                </Label>
+              </RadioGroup>
+            </div>
+
+            {/* Password */}
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="password" className="text-xs font-bold uppercase tracking-widest text-[#4A4A4A]">{t('ui.password', 'Password')}</Label>
+                <PasswordInput id="password" placeholder="Min. 6 characters" value={formData.password}
+                  onChange={(e) => handleChange('password', e.target.value)}
+                  className="h-11 rounded-xl border-[#DDE3E2] bg-[#F3F5F4] focus-visible:border-[#05B43D]" required />
               </div>
-
-              <div className="space-y-2">
-                <Label>{t('ui.i_want_to', 'I want to:')}</Label>
-                <RadioGroup value={formData.userType} onValueChange={(value) => handleChange('userType', value)} className="grid gap-3 sm:grid-cols-2">
-                  <Label htmlFor="buyer" className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#cfe0d8] bg-[#f7fcfa] p-3">
-                    <RadioGroupItem value="buyer" id="buyer" className="mt-0.5" />
-                    <div>
-                      <p className="flex items-center gap-2 font-medium text-[#0f2c24]">
-                        <ShoppingCart className="h-4 w-4 text-[#0f6f58]" />
-                        {t('ui.buy_items', 'Buy Items')}
-                      </p>
-                      <p className="text-xs text-[#5f7a71]">{t('ui.browse_and_purchase_from_sellers', 'Browse and purchase from sellers')}</p>
-                    </div>
-                  </Label>
-                  <Label htmlFor="seller" className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#cfe0d8] bg-[#f7fcfa] p-3">
-                    <RadioGroupItem value="seller" id="seller" className="mt-0.5" />
-                    <div>
-                      <p className="flex items-center gap-2 font-medium text-[#0f2c24]">
-                        <Store className="h-4 w-4 text-[#0f6f58]" />
-                        {t('ui.sell_items', 'Sell Items')}
-                      </p>
-                      <p className="text-xs text-[#5f7a71]">{t('ui.list_products_and_serve_student_buyers', 'List products and serve student buyers')}</p>
-                    </div>
-                  </Label>
-                </RadioGroup>
+              <div className="space-y-1.5">
+                <Label htmlFor="confirmPassword" className="text-xs font-bold uppercase tracking-widest text-[#4A4A4A]">{t('ui.confirm_password', 'Confirm Password')}</Label>
+                <PasswordInput id="confirmPassword" placeholder="Re-enter password" value={formData.confirmPassword}
+                  onChange={(e) => handleChange('confirmPassword', e.target.value)}
+                  className="h-11 rounded-xl border-[#DDE3E2] bg-[#F3F5F4] focus-visible:border-[#05B43D]" required />
               </div>
+            </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="password">{t('ui.password', 'Password')}</Label>
-                  <PasswordInput
-                    id="password"
-                    placeholder="Min. 6 characters"
-                    value={formData.password}
-                    onChange={(e) => handleChange('password', e.target.value)}
-                    className="border-[#cfe0d8] bg-white"
-                    required
-                  />
-                </div>
+            {/* Submit */}
+            <button type="submit" disabled={loading}
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#05B43D] text-base font-bold text-white shadow-lg shadow-[#05B43D]/30 hover:bg-[#018F2D] transition-all disabled:opacity-60">
+              {loading ? <><Loader2 className="h-4 w-4 animate-spin" />{t('ui.creating_account', 'Creating Account...')}</> : <>{t('ui.create_account', 'Create Account')} <ArrowRight className="h-4 w-4" /></>}
+            </button>
 
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">{t('ui.confirm_password', 'Confirm Password')}</Label>
-                  <PasswordInput
-                    id="confirmPassword"
-                    placeholder="Re-enter password"
-                    value={formData.confirmPassword}
-                    onChange={(e) => handleChange('confirmPassword', e.target.value)}
-                    className="border-[#cfe0d8] bg-white"
-                    required
-                  />
-                </div>
-              </div>
-
-              <Button
-                type="submit"
-                className="h-14 w-full rounded-xl bg-[#05B43D] text-[1.05rem] font-semibold text-white shadow-[0_20px_28px_-20px_rgba(31,175,154,0.6)] hover:bg-[#018F2D]"
-                disabled={loading}
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {t('ui.creating_account', 'Creating Account...')}
-                  </>
-                ) : (
-                  'Sign Up'
-                )}
-              </Button>
-            </form>
-          </CardContent>
-          <CardFooter className="flex justify-center border-t border-[#ebf2ef] pt-5">
-            <p className="text-sm text-[#5f7a71]">
-              Already have an account?{' '}
-              <Link to="/login" className="font-semibold text-[#0f6f58] hover:underline">
-                {t('ui.login', 'Login')}
-              </Link>
+            <p className="text-center text-sm text-[#8A8A8A]">
+              {t('ui.already_have_an_account', 'Already have an account?')}{' '}
+              <Link to="/login" className="font-bold text-[#05B43D] hover:text-[#018F2D] hover:underline">{t('ui.sign_in', 'Sign In')}</Link>
             </p>
-          </CardFooter>
-        </Card>
+          </form>
+        </div>
+
+        {/* ── Right: Stats Panel ──────────────────────────── */}
+        <div className="hidden lg:flex lg:flex-col bg-[#F3F5F4] px-10 py-12">
+          <h2 className="text-4xl font-extrabold leading-tight text-[#111111]">
+            {t('ui.buy_sell_connect', 'Buy. Sell.')}<br />{t('ui.connect', 'Connect.')}
+          </h2>
+          <p className="mt-3 text-sm text-[#8A8A8A]">
+            {t('ui.your_campus_marketplace_built_for_students_by_stude', 'Your campus marketplace — built for students, by students.')}
+          </p>
+
+          {/* Stats grid */}
+          <div className="mt-8 grid grid-cols-2 gap-4">
+            {stats.map((s, i) => (
+              <div key={i} className="rounded-2xl border border-[#DDE3E2] bg-white p-5 shadow-sm">
+                <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-[#e8f9ee]">{s.icon}</div>
+                <p className="text-2xl font-extrabold text-[#111111]">{s.value}</p>
+                <p className="mt-0.5 text-xs font-semibold uppercase tracking-widest text-[#8A8A8A]">{s.label}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Bottom note */}
+          <div className="mt-auto pt-8 rounded-2xl border border-[#DDE3E2] bg-white p-5 text-center">
+            <ShoppingBag className="mx-auto mb-2 h-8 w-8 text-[#05B43D]" />
+            <p className="text-sm font-semibold text-[#111111]">{t('ui.exclusively_for_cameroon_university_students', 'Exclusively for Cameroon university students.')}</p>
+            <p className="mt-1 text-xs text-[#8A8A8A]">{t('ui.verified_safe_and_trusted', 'Verified, safe and trusted.')}</p>
+          </div>
+        </div>
+
       </div>
     </div>
   );
