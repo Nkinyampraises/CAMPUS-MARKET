@@ -305,7 +305,7 @@ export function Register() {
             {t('ui.buy_sell_connect', 'Buy. Sell.')}<br />{t('ui.connect', 'Connect.')}
           </h2>
           <p className="mt-3 text-sm text-[#8A8A8A]">
-            {t('ui.student_to_student_marketplace', 'The student to student marketplace — buy, sell and rent safely on campus.')}
+            {t('ui.student_to_student_marketplace', 'The student to student marketplace — buy, sell and rent safely.')}
           </p>
 
           {/* Stats grid */}
