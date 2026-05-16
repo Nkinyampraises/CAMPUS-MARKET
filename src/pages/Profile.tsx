@@ -477,7 +477,7 @@ export function Profile() {
               {t('ui.account_view', 'Account View')}
             </p>
             <h2 className="mt-2 text-2xl font-semibold text-[#0b1f1a] sm:text-3xl">
-              {t('ui.profile_details', 'Profile details')}
+              {t('ui.profile_details', 'Détails du profil')}
             </h2>
             <p className="mt-2 max-w-2xl text-sm text-[#4A4A4A]">
               Keep your profile sharp, trustworthy, and easy for other students to understand at a glance.
@@ -489,7 +489,7 @@ export function Profile() {
                 <CardHeader className="space-y-3">
                   <div className="inline-flex w-fit items-center gap-2 rounded-full bg-[#e8f5ef] px-3 py-1 text-xs font-semibold uppercase tracking-[0.15em] text-[#0f6f58]">
                     <User className="h-3.5 w-3.5" />
-                    {t('ui.personal_profile', 'Personal Profile')}
+                    {t('ui.personal_profile', 'Personal profile')}
                   </div>
                   <CardTitle className="text-2xl font-semibold text-[#0b1f1a]">
                     {isEditing ? 'Polish your public profile' : 'The details students will see first'}
@@ -512,7 +512,7 @@ export function Profile() {
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex-1 space-y-2">
-                            <Label htmlFor="profile-picture-upload">{t('ui.profile_photo', 'Profile photo')}</Label>
+                            <Label htmlFor="profile-picture-upload">{t('ui.profile_photo', 'Recadrer la photo du profil')}</Label>
                             <Input
                               id="profile-picture-upload"
                               type="file"

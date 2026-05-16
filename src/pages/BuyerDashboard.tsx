@@ -166,7 +166,7 @@ export function BuyerDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.pending}</div>
-              <p className="text-xs text-muted-foreground">{t('ui.en_attente_de_confirmation_vendeur', 'En attente de confirmation vendeur')}</p>
+              <p className="text-xs text-muted-foreground">{t('ui.en_attente_de_confirmation_vendeur', 'Pending Vendor Confirmation')}</p>
             </CardContent>
           </Card>
 
@@ -177,7 +177,7 @@ export function BuyerDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-blue-600">{formatMoney(stats.totalSpent)}</div>
-              <p className="text-xs text-muted-foreground">{t('ui.sur_toutes_les_commandes', 'Sur toutes les commandes')}</p>
+              <p className="text-xs text-muted-foreground">{t('ui.sur_toutes_les_commandes', 'All Order Lists')}</p>
             </CardContent>
           </Card>
 
@@ -188,14 +188,14 @@ export function BuyerDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-red-600">{favoriteItems.length}</div>
-              <p className="text-xs text-muted-foreground">{t('ui.articles_en_liste_de_souhaits', 'Articles en liste de souhaits')}</p>
+              <p className="text-xs text-muted-foreground">{t('ui.articles_en_liste_de_souhaits', 'Wishlist Items')}</p>
             </CardContent>
           </Card>
         </div>
 
         <Tabs defaultValue="orders" className="space-y-4">
             <TabsList>
-              <TabsTrigger value="orders">{t('ui.mes_commandes', 'Mes commandes')}</TabsTrigger>
+              <TabsTrigger value="orders">{t('ui.mes_commandes', 'My orders')}</TabsTrigger>
               <TabsTrigger value="favorites">Saved Items ({safeFavoriteItems.length})</TabsTrigger>
               <TabsTrigger value="messages">{t('ui.messages', 'Messages')}</TabsTrigger>
             </TabsList>
@@ -205,7 +205,7 @@ export function BuyerDashboard() {
               <Card>
                 <CardHeader>
                   <CardTitle>Commandes en dépôt fiduciaire</CardTitle>
-                  <CardDescription>{t('ui.statut_de_paiement_et_flux_de_confirmation_de_livr', 'Statut de paiement et flux de confirmation de livraison.')}</CardDescription>
+                  <CardDescription>{t('ui.statut_de_paiement_et_flux_de_confirmation_de_livr', 'Payment status and delivery confirmation flow.')}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">

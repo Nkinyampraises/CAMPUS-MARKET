@@ -948,6 +948,12 @@ const FR_TRANSLATIONS: Record<string, string> = {
   'common.no': 'Non',
   'common.or': 'ou',
   'common.and': 'et',
+  'ui.en_attente_de_confirmation_vendeur': 'En attente de confirmation vendeur',
+  'ui.articles_en_liste_de_souhaits': 'Articles en liste de souhaits',
+  'ui.mes_commandes': 'Mes commandes',
+  'ui.statut_de_paiement_et_flux_de_confirmation_de_livr': 'Statut de paiement et flux de confirmation de livraison.',
+  'ui.en_attente_de_confirmation_acheteur': 'En attente de confirmation acheteur',
+  'ui.retirer_les_fonds': 'Retirer les fonds',
 };
 
 const LanguageContext = createContext<LanguageContextValue | null>(null);

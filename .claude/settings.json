@@ -19,7 +19,8 @@
       "Bash(python tmp/fix_apostrophes.py)",
       "Bash(npx vite *)",
       "Bash(npm run *)",
-      "Bash(python tmp/fix_use_language.py)"
+      "Bash(python tmp/fix_use_language.py)",
+      "Bash(python tmp/fix_french_fallbacks.py)"
     ]
   }
 }

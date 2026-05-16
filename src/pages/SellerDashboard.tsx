@@ -302,7 +302,7 @@ export function SellerDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.pendingEscrowOrders}</div>
-              <p className="text-xs text-muted-foreground">{t('ui.en_attente_de_confirmation_acheteur', 'En attente de confirmation acheteur')}</p>
+              <p className="text-xs text-muted-foreground">{t('ui.en_attente_de_confirmation_acheteur', 'Pending Buyer Confirmation')}</p>
             </CardContent>
           </Card>
 
@@ -452,7 +452,7 @@ export function SellerDashboard() {
       <Dialog open={showWithdrawDialog} onOpenChange={setShowWithdrawDialog}>
         <DialogContent className="max-w-xl">
           <DialogHeader>
-            <DialogTitle>{t('ui.retirer_les_fonds', 'Retirer les fonds')}</DialogTitle>
+            <DialogTitle>{t('ui.retirer_les_fonds', 'withdraw them;')}</DialogTitle>
             <DialogDescription>{t('ui.only_available_balance_can_be_withdrawn_to_mobile_', 'Only available balance can be withdrawn to mobile money.')}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
