@@ -514,7 +514,7 @@
 /* Utilities used by the Footer component */
 @layer utilities {
   .footer-dark {
-    background: linear-gradient(135deg, #013d18 0%, #018F2D 40%, #014d1e 100%);
+    background: linear-gradient(160deg, #05B43D 0%, #04a034 55%, #038a2c 100%);
   }
   .font-sora {
     font-family: 'Sora', 'Trebuchet MS', sans-serif;
