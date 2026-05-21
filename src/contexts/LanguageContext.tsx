@@ -437,6 +437,14 @@ const FR_TRANSLATIONS: Record<string, string> = {
   'review.submit': 'Soumettre l\'avis',
   'review.thankYou': 'Merci pour votre avis!',
 
+  // ── Dashboard escrow strings ──────────────────────────────────────────────
+  'ui.escrow_protected_purchases_for': 'Achats protégés par dépôt fiduciaire pour',
+  'ui.escrow_transactions': 'Transactions en dépôt',
+  'ui.escrow_orders': 'Commandes en dépôt fiduciaire',
+  'ui.manage_listings_delivery_proofs_and_escrow_releas': 'Gérer les annonces, preuves de livraison et libérations de dépôt fiduciaire.',
+  'ui.escrow_released': 'Dépôt fiduciaire libéré',
+  'ui.locked_in_escrow': 'Bloqué en dépôt fiduciaire',
+
   // ── Common ────────────────────────────────────────────────────────────────
   'common.loading': 'Chargement...',
   'common.error': 'Une erreur s\'est produite',

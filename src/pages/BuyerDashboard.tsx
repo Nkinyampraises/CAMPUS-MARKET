@@ -143,7 +143,7 @@ export function BuyerDashboard() {
         <div className="mb-8 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-4xl font-extrabold text-[#111111]"><span className="text-[#05B43D]">{t('ui.buyer', 'Buyer')}</span> {t('ui.dashboard', 'Dashboard')}</h1>
-            <p className="text-muted-foreground">Achats protégés par dépôt fiduciaire pour {currentUser.name}</p>
+            <p className="text-muted-foreground">{t('ui.escrow_protected_purchases_for', 'Escrow-protected purchases for')} {currentUser.name}</p>
           </div>
         </div>
 
@@ -155,7 +155,7 @@ export function BuyerDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{orders.length}</div>
-              <p className="text-xs text-muted-foreground">Transactions en dépôt</p>
+              <p className="text-xs text-muted-foreground">{t('ui.escrow_transactions', 'Escrow transactions')}</p>
             </CardContent>
           </Card>
 
@@ -204,7 +204,7 @@ export function BuyerDashboard() {
             {orders.length > 0 ? (
               <Card>
                 <CardHeader>
-                  <CardTitle>Commandes en dépôt fiduciaire</CardTitle>
+                  <CardTitle>{t('ui.escrow_orders', 'Escrow Orders')}</CardTitle>
                   <CardDescription>{t('ui.statut_de_paiement_et_flux_de_confirmation_de_livr', 'Payment status and delivery confirmation flow.')}</CardDescription>
                 </CardHeader>
                 <CardContent>

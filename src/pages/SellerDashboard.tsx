@@ -269,7 +269,7 @@ export function SellerDashboard() {
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-4xl font-extrabold text-[#111111]"><span className="text-[#05B43D]">{t('ui.seller', 'Seller')}</span> {t('ui.dashboard', 'Dashboard')}</h1>
-            <p className="text-muted-foreground">Gérer les annonces, preuves de livraison et libérations de dépôt fiduciaire.</p>
+            <p className="text-muted-foreground">{t('ui.manage_listings_delivery_proofs_and_escrow_releas', 'Manage listings, delivery proofs, and escrow releases.')}</p>
           </div>
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
             <Button variant="outline" className="w-full sm:w-auto" onClick={() => setShowWithdrawDialog(true)}>
@@ -313,7 +313,7 @@ export function SellerDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.releasedOrders}</div>
-              <p className="text-xs text-muted-foreground">Dépôt fiduciaire libéré</p>
+              <p className="text-xs text-muted-foreground">{t('ui.escrow_released', 'Escrow released')}</p>
             </CardContent>
           </Card>
 
@@ -324,7 +324,7 @@ export function SellerDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-orange-600">{formatMoney(wallet.pendingBalance || 0)}</div>
-              <p className="text-xs text-muted-foreground">Bloqué en dépôt fiduciaire</p>
+              <p className="text-xs text-muted-foreground">{t('ui.locked_in_escrow', 'Locked in escrow')}</p>
             </CardContent>
           </Card>
 
