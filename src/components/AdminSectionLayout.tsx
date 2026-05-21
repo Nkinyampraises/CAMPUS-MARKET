@@ -35,6 +35,7 @@ export function AdminSectionLayout({ children }: AdminSectionLayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { logout } = useAuth();
+  const { t } = useLanguage();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const currentPath = location.pathname;
