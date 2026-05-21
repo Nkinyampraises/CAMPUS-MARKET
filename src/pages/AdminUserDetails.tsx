@@ -9,7 +9,7 @@ import { API_URL } from '@/lib/api';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 const formatMoney = (value: number) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value || 0);
+  new Intl.NumberFormat('fr-CM', { style: 'currency', currency: 'XAF', maximumFractionDigits: 0 }).format(value || 0);
 
 export function AdminUserDetails() {
   const { id } = useParams<{ id: string }>();

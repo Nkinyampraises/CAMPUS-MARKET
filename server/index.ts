@@ -7434,6 +7434,58 @@ app.get("/make-server-50b25a4f/admin/transactions", async (c) => {
 });
 
 // Get all messages (admin only)
+// Admin: view ALL conversations between buyers and sellers
+app.get("/make-server-50b25a4f/admin/all-conversations", async (c) => {
+  const user = await verifyAuth(c.req.header("Authorization"));
+  if (!user) return c.json({ error: "Unauthorized" }, 401);
+  const profile = await getUserProfile(user.id);
+  if (!profile || profile.role !== "admin") return c.json({ error: "Forbidden" }, 403);
+
+  try {
+    const allMessages = await kv.getByPrefix("message:");
+    if (!Array.isArray(allMessages)) return c.json({ conversations: [] });
+
+    // Group messages by conversation pair (sorted user IDs to avoid duplicates)
+    const convMap = new Map<string, any[]>();
+    for (const msg of allMessages) {
+      if (!msg || typeof msg !== "object") continue;
+      const { senderId, receiverId } = msg as any;
+      if (!senderId || !receiverId) continue;
+      const key = [senderId, receiverId].sort().join(":");
+      const existing = convMap.get(key) || [];
+      existing.push(msg);
+      convMap.set(key, existing);
+    }
+
+    const conversations = [];
+    for (const [key, msgs] of convMap.entries()) {
+      const sorted = msgs.sort((a: any, b: any) =>
+        new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+      );
+      const latest = sorted[0];
+      const [uid1, uid2] = key.split(":");
+      const [u1, u2] = await Promise.all([getUserProfile(uid1), getUserProfile(uid2)]);
+      conversations.push({
+        key,
+        user1: { id: uid1, name: (u1 as any)?.name || "Unknown", userType: (u1 as any)?.userType },
+        user2: { id: uid2, name: (u2 as any)?.name || "Unknown", userType: (u2 as any)?.userType },
+        messageCount: msgs.length,
+        latestMessage: normalizeAiText((latest as any)?.content, 100),
+        latestAt: (latest as any)?.createdAt || "",
+      });
+    }
+
+    conversations.sort((a, b) =>
+      new Date(b.latestAt || 0).getTime() - new Date(a.latestAt || 0).getTime()
+    );
+
+    return c.json({ conversations: conversations.slice(0, 100) });
+  } catch (err) {
+    console.error("Admin all-conversations error:", err);
+    return c.json({ conversations: [] });
+  }
+});
+
 app.get("/make-server-50b25a4f/admin/messages", async (c) => {
   const user = await verifyAuth(c.req.header('Authorization'));
   

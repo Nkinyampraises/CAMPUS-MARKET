@@ -21,6 +21,8 @@ export function AdminInbox() {
   const [refreshing, setRefreshing] = useState(false);
   const [actioningReportId, setActioningReportId] = useState('');
   const [reports, setReports] = useState<any[]>([]);
+  const [conversations, setConversations] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<'reports' | 'conversations'>('reports');
   const [query, setQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<'all' | 'support' | 'report'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | ReportStatus>('all');
@@ -47,12 +49,24 @@ export function AdminInbox() {
     }
   };
 
+  const fetchConversations = async () => {
+    if (!accessToken) return;
+    try {
+      const response = await fetch(`${API_URL}/admin/all-conversations`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const data = await response.json().catch(() => ({}));
+      if (response.ok) setConversations(Array.isArray(data.conversations) ? data.conversations : []);
+    } catch (_error) { /* ignore */ }
+  };
+
   useEffect(() => {
     if (!currentUser || currentUser.role !== 'admin') {
       navigate('/');
       return;
     }
     fetchReports();
+    fetchConversations();
   }, [currentUser, accessToken]);
 
   const filteredReports = useMemo(() => {
@@ -118,14 +132,58 @@ export function AdminInbox() {
 
   return (
     <div className="container mx-auto max-w-7xl space-y-6 px-3 py-8 sm:px-4">
-      <div className="flex flex-wrap items-center justify-end gap-2">
-        <Button variant="outline" onClick={() => fetchReports(true)} disabled={refreshing}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex gap-2">
+          <Button variant={activeTab === 'reports' ? 'default' : 'outline'} onClick={() => setActiveTab('reports')}>
+            Reports & Support
+          </Button>
+          <Button variant={activeTab === 'conversations' ? 'default' : 'outline'} onClick={() => { setActiveTab('conversations'); fetchConversations(); }}>
+            All Conversations ({conversations.length})
+          </Button>
+        </div>
+        <Button variant="outline" onClick={() => { fetchReports(true); fetchConversations(); }} disabled={refreshing}>
           <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
           {t('ui.refresh', 'Refresh')}
         </Button>
       </div>
 
-      <Card>
+      {/* All buyer-seller conversations tab */}
+      {activeTab === 'conversations' && (
+        <Card>
+          <CardHeader>
+            <CardTitle>All Buyer-Seller Conversations</CardTitle>
+            <CardDescription>All private messages between buyers and sellers on the platform.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {conversations.length === 0 ? (
+              <p className="py-8 text-center text-muted-foreground">No conversations found.</p>
+            ) : (
+              <div className="space-y-3">
+                {conversations.map((conv) => (
+                  <div key={conv.key} className="flex items-start justify-between rounded-xl border border-border p-4">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 text-sm font-semibold">
+                        <span className="rounded-full bg-[#05B43D]/10 px-2 py-0.5 text-xs text-[#05B43D]">{conv.user1?.userType || 'user'}</span>
+                        {conv.user1?.name}
+                        <span className="text-muted-foreground">↔</span>
+                        <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs text-blue-600">{conv.user2?.userType || 'user'}</span>
+                        {conv.user2?.name}
+                      </div>
+                      <p className="text-sm text-muted-foreground line-clamp-1">{conv.latestMessage}</p>
+                      <p className="text-xs text-muted-foreground">{conv.messageCount} messages · {conv.latestAt ? new Date(conv.latestAt).toLocaleString() : ''}</p>
+                    </div>
+                    <Button size="sm" variant="outline" onClick={() => navigate('/messages')}>
+                      View
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === 'reports' && <Card>
         <CardHeader>
           <CardTitle>{t('ui.admin_inbox', 'Admin Inbox')}</CardTitle>
           <CardDescription>{t('ui.all_contact_support_and_report_problem_submissions', 'All contact support and report problem submissions.')}</CardDescription>
@@ -139,6 +197,7 @@ export function AdminInbox() {
               onChange={(e) => setQuery(e.target.value)}
             />
             <select
+              title="Filter by category"
               className="border rounded-md h-10 px-3 text-sm"
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value as 'all' | 'support' | 'report')}
@@ -148,6 +207,7 @@ export function AdminInbox() {
               <option value="report">{t('ui.reports', 'Reports')}</option>
             </select>
             <select
+              title="Filter by status"
               className="border rounded-md h-10 px-3 text-sm"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as 'all' | ReportStatus)}
@@ -225,7 +285,7 @@ export function AdminInbox() {
             </div>
           )}
         </CardContent>
-      </Card>
+      </Card>}
     </div>
   );
 }

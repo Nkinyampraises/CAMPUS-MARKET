@@ -9,7 +9,7 @@ import { Input } from '@/app/components/ui/input';
 import { 
   Users, 
   Package, 
-  DollarSign, 
+  Banknote, 
   TrendingUp,
   CheckCircle,
   XCircle,
@@ -341,7 +341,7 @@ export function Admin() {
           <Card className="lg:col-span-1">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">{t('ui.platform_revenue', 'Platform Revenue')}</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
+              <Banknote className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">
