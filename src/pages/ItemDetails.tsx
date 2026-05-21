@@ -38,6 +38,31 @@ export function ItemDetails() {
   const [loading, setLoading] = useState(true);
   const [isSaved, setIsSaved] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [dbCategories, setDbCategories] = useState<Record<string, string>>({});
+  const [dbUniversities, setDbUniversities] = useState<Record<string, string>>({});
+
+  // Load real categories and universities from the database once
+  useEffect(() => {
+    Promise.all([
+      fetch(`${API_URL}/categories`).then(r => r.json()).catch(() => ({})),
+      fetch(`${API_URL}/universities`).then(r => r.json()).catch(() => ({})),
+    ]).then(([catData, uniData]) => {
+      if (Array.isArray(catData?.categories)) {
+        const map: Record<string, string> = {};
+        for (const c of catData.categories) {
+          if (c?.id && c?.name) { map[c.id] = c.name; map[c.name] = c.name; }
+        }
+        setDbCategories(map);
+      }
+      if (Array.isArray(uniData?.universities)) {
+        const map: Record<string, string> = {};
+        for (const u of uniData.universities) {
+          if (u?.id && u?.name) { map[u.id] = u.name; map[u.name] = u.name; }
+        }
+        setDbUniversities(map);
+      }
+    });
+  }, []);
 
   useEffect(() => {
     const fetchItem = async () => {
@@ -223,7 +248,17 @@ export function ItemDetails() {
     );
   }
 
-  const categoryLabel = getCategoryById(item.category)?.name || item.category || 'General';
+  // Resolve category name: check DB categories first, then static mockData, then raw value
+  const categoryLabel = dbCategories[item.category]
+    || getCategoryById(item.category)?.name
+    || item.category?.replace(/^CAT-[\d]+-[a-z0-9]+$/i, '') // strip raw CAT- IDs
+    || 'General';
+
+  // Resolve university name
+  const resolveUniversity = (val?: string) => {
+    if (!val) return '';
+    return dbUniversities[val] || getUniversityById(val)?.name || getUniversityName(val) || val.replace(/^UNI-[\d]+-[a-z0-9]+$/i, '');
+  };
   const toMetricCount = (value: unknown) => {
     const numeric = Number(value);
     if (!Number.isFinite(numeric) || numeric < 0) return 0;
@@ -453,7 +488,7 @@ export function ItemDetails() {
                 <div className="flex flex-wrap items-center gap-4 text-sm text-[#55766c]">
                   <div className="flex items-center gap-1.5">
                     <MapPin className="h-4 w-4" />
-                    <span>{item.location || 'Campus zone'}</span>
+                    <span>{resolveUniversity(item.location || item.seller?.university) || 'Campus zone'}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <Calendar className="h-4 w-4" />
@@ -520,11 +555,11 @@ export function ItemDetails() {
                   </div>
                   <div className="mb-3 flex items-center gap-1.5 text-xs text-[#617f76]">
                     <MapPin className="h-3.5 w-3.5" />
-                    {getUniversityName(
+                    {resolveUniversity(
                       typeof item.seller?.university === 'string'
                         ? item.seller.university
                         : item.seller?.university?.name,
-                    )}
+                    ) || 'University not specified'}
                   </div>
                   {currentUser?.id !== item.sellerId && (
                     <Button
