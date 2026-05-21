@@ -482,7 +482,7 @@ export function Admin() {
                             <div>
                               <p className="font-medium line-clamp-1">{item.title}</p>
                               <p className="text-sm text-muted-foreground">
-                                {item.category} • {item.location}
+                                {/^(UNI|CAT|LOC)-[\d]+-[a-z0-9]+$/i.test(String(item.category || '')) ? 'General' : (item.category || 'General')} • {/^(UNI|CAT|LOC)-[\d]+-[a-z0-9]+$/i.test(String(item.location || '')) ? 'Campus' : (item.location || 'Campus')}
                               </p>
                             </div>
                             <div className="flex items-center gap-2">

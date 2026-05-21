@@ -298,19 +298,18 @@ export function Marketplace() {
     return raw;
   };
 
+  // Resolves a university ID or name to a human-readable label.
+  // Handles both simple numeric IDs ('1') and dynamic IDs ('UNI-xxxx').
   const resolveUniversityLabel = (value?: string) => {
     const raw = String(value || '').trim();
-    if (!raw) {
-      return t('marketplace.universityNotSpecified', 'University not specified');
-    }
+    if (!raw) return t('marketplace.universityNotSpecified', 'University not specified');
 
+    // Check the DB-loaded map first (handles UNI-xxx IDs properly)
     const fromBackend = universitiesById[raw.toLowerCase()];
-    if (fromBackend) {
-      return fromBackend;
-    }
+    if (fromBackend) return fromBackend;
 
-    // Avoid showing numeric IDs directly on cards.
-    if (/^\d+$/.test(raw)) {
+    // Hide any raw generated ID (numeric, UNI-xxx, CAT-xxx, LOC-xxx, etc.)
+    if (/^\d+$/.test(raw) || /^(UNI|CAT|LOC|UB|UY)-[\d]+-[a-z0-9]+$/i.test(raw)) {
       return t('marketplace.universityNotSpecified', 'University not specified');
     }
 
@@ -324,11 +323,10 @@ export function Marketplace() {
     }
 
     const rawLocation = String(item.location || '').trim();
-    if (!rawLocation) {
-      return t('marketplace.locationNotSpecified', 'Location not specified');
-    }
+    if (!rawLocation) return t('marketplace.locationNotSpecified', 'Location not specified');
 
-    if (/^\d+$/.test(rawLocation)) {
+    // Hide raw generated IDs in the location field too
+    if (/^\d+$/.test(rawLocation) || /^(UNI|CAT|LOC|UB|UY)-[\d]+-[a-z0-9]+$/i.test(rawLocation)) {
       return t('marketplace.locationNotSpecified', 'Location not specified');
     }
 

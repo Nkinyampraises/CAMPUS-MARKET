@@ -27,6 +27,9 @@ export const normalizeNamedCatalogOptions = (entries: unknown): NamedCatalogOpti
   return Array.from(deduped.values());
 };
 
+// Pattern that matches dynamically generated IDs — never show these raw to users
+const RAW_ID_PATTERN = /^(UNI|CAT|LOC|ORD|USR|UB|UY|PRD|AITHR|AIMSG)-[\d]+-[a-z0-9]+$/i;
+
 export const resolveNamedCatalogLabel = (
   options: NamedCatalogOption[],
   value: unknown,
@@ -41,6 +44,9 @@ export const resolveNamedCatalogLabel = (
 
   const byName = options.find((option) => toLookupKey(option.name) === key);
   if (byName) return byName.name;
+
+  // Never show raw generated IDs — return fallback instead
+  if (/^\d+$/.test(raw) || RAW_ID_PATTERN.test(raw)) return fallback;
 
   return raw;
 };
