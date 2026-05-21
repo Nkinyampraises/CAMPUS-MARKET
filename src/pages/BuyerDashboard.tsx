@@ -5,14 +5,14 @@ import { Button } from '@/app/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs';
-import { Bell, DollarSign, Flag, Heart, MessageSquare, PackageCheck, ShieldAlert, ShoppingBag } from 'lucide-react';
+import { Bell, Banknote, Flag, Heart, MessageSquare, PackageCheck, ShieldAlert, ShoppingBag } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 const formatMoney = (value: number) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value || 0);
+  new Intl.NumberFormat('fr-CM', { style: 'currency', currency: 'XAF', maximumFractionDigits: 0 }).format(value || 0);
 
 export function BuyerDashboard() {
   const { currentUser, accessToken, refreshAuthToken, logout } = useAuth();
@@ -173,7 +173,7 @@ export function BuyerDashboard() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">{t("buyer.totalSpent", "Total Spent")}</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
+              <Banknote className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-blue-600">{formatMoney(stats.totalSpent)}</div>

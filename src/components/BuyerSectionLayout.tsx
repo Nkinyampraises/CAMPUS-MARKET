@@ -221,14 +221,14 @@ export function BuyerSectionLayout({ children }: BuyerSectionLayoutProps) {
           </nav>
         </div>
 
-        <aside className="hidden lg:block lg:w-[260px] lg:shrink-0">
-          <nav className="sticky top-[57px] h-[calc(100vh-57px)] overflow-y-auto border-r border-[#DDE3E2] bg-[#FFFFFF]">
+        <aside className="hidden lg:block lg:w-[248px] lg:shrink-0">
+          <nav className="h-full border-r border-[#DDE3E2] bg-[#FFFFFF]">
             <div className="border-b border-[#DDE3E2] bg-[#05B43D] px-4 py-3">
               <p className="text-xs font-bold uppercase tracking-widest text-white/80">Buyer Dashboard</p>
             </div>
-            <div className="space-y-1 p-3">{buyerItems.map(renderItem)}</div>
-            <div className="border-t border-[#DDE3E2] mx-3" />
-            <div className="space-y-1 p-3">{accountItems.map(renderItem)}</div>
+            <div className="space-y-1.5 p-3">{buyerItems.map(renderItem)}</div>
+            <div className="border-t border-[#DDE3E2]" />
+            <div className="space-y-1.5 p-3">{accountItems.map(renderItem)}</div>
           </nav>
         </aside>
 

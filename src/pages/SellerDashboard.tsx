@@ -14,7 +14,7 @@ import {
 } from '@/app/components/ui/dialog';
 import { Input } from '@/app/components/ui/input';
 import { Label } from '@/app/components/ui/label';
-import { DollarSign, Heart, MessageSquare, Package, Plus, ShoppingBag, Wallet } from 'lucide-react';
+import { Banknote, Heart, MessageSquare, Package, Plus, ShoppingBag, Wallet } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
@@ -309,7 +309,7 @@ export function SellerDashboard() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">{t("order.confirmed", "Released Orders")}</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
+              <Banknote className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.releasedOrders}</div>
