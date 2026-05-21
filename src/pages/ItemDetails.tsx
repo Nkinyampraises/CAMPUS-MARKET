@@ -17,6 +17,7 @@ import {
 import {
   formatCurrency,
   getCategoryById,
+  getUniversityById,
   getUniversityName,
 } from '@/data/mockData';
 import { useAuth } from '@/contexts/AuthContext';
