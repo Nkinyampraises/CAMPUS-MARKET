@@ -7435,6 +7435,55 @@ app.get("/make-server-50b25a4f/admin/transactions", async (c) => {
 
 // Get all messages (admin only)
 // Admin: view ALL conversations between buyers and sellers
+// Admin: get all messages between two specific users
+app.get("/make-server-50b25a4f/admin/conversation", async (c) => {
+  const user = await verifyAuth(c.req.header("Authorization"));
+  if (!user) return c.json({ error: "Unauthorized" }, 401);
+  const profile = await getUserProfile(user.id);
+  if (!profile || profile.role !== "admin") return c.json({ error: "Forbidden" }, 403);
+
+  const uid1 = String(c.req.query("user1") || "").trim();
+  const uid2 = String(c.req.query("user2") || "").trim();
+  if (!uid1 || !uid2) return c.json({ error: "user1 and user2 required" }, 400);
+
+  try {
+    const allMessages = await kv.getByPrefix("message:");
+    if (!Array.isArray(allMessages)) return c.json({ messages: [] });
+
+    const msgs = allMessages
+      .filter((m: any) => {
+        if (!m || typeof m !== "object") return false;
+        const { senderId, receiverId } = m as any;
+        return (
+          (senderId === uid1 && receiverId === uid2) ||
+          (senderId === uid2 && receiverId === uid1)
+        );
+      })
+      .sort((a: any, b: any) =>
+        new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
+      )
+      .map((m: any) => ({
+        id:         m.id,
+        senderId:   m.senderId,
+        receiverId: m.receiverId,
+        content:    normalizeAiText(m.content, 2000),
+        createdAt:  m.createdAt,
+        messageType: m.messageType || "text",
+      }));
+
+    const [u1, u2] = await Promise.all([getUserProfile(uid1), getUserProfile(uid2)]);
+
+    return c.json({
+      messages: msgs,
+      user1: { id: uid1, name: (u1 as any)?.name || "Unknown", userType: (u1 as any)?.userType },
+      user2: { id: uid2, name: (u2 as any)?.name || "Unknown", userType: (u2 as any)?.userType },
+    });
+  } catch (err) {
+    console.error("Admin conversation error:", err);
+    return c.json({ messages: [] });
+  }
+});
+
 app.get("/make-server-50b25a4f/admin/all-conversations", async (c) => {
   const user = await verifyAuth(c.req.header("Authorization"));
   if (!user) return c.json({ error: "Unauthorized" }, 401);
