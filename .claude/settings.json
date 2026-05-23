@@ -21,7 +21,8 @@
       "Bash(npm run *)",
       "Bash(python tmp/fix_use_language.py)",
       "Bash(python tmp/fix_french_fallbacks.py)",
-      "Bash(grep -n \"dollar\\\\|\\\\$\\\\|formatCurrency\\\\|USD\\\\|XAF\\\\|FCFA\" src/pages/BuyerDashboard.tsx)"
+      "Bash(grep -n \"dollar\\\\|\\\\$\\\\|formatCurrency\\\\|USD\\\\|XAF\\\\|FCFA\" src/pages/BuyerDashboard.tsx)",
+      "Bash(python -c \"import json,sys; [print\\(d['deploy']['status'].ljust\\(12\\), d['deploy']['commit']['message'][:60]\\) for d in json.load\\(sys.stdin\\)]\")"
     ]
   }
 }

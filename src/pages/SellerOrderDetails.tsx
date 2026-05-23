@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/ca
 import { Badge } from '@/app/components/ui/badge';
 import { ArrowLeft, Flag, MessageSquare } from 'lucide-react';
 import { MeetupMap } from '@/components/MeetupMap';
+import { DeliveryProofModal } from '@/components/DeliveryProofModal';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
@@ -37,6 +38,7 @@ export function SellerOrderDetails() {
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [orderData, setOrderData] = useState<any>(null);
+  const [proofModalOpen, setProofModalOpen] = useState(false);
 
   const requestWithAuthRetry = async (path: string, init?: RequestInit) => {
     if (!accessToken) {
@@ -143,10 +145,8 @@ export function SellerOrderDetails() {
     }
   };
 
-  const markDelivered = async () => {
+  const markDelivered = async (proofImageUrl: string) => {
     if (!id) return;
-    const proofInput = (prompt('Paste delivery proof image URL (optional):') || '').trim();
-    const proofImageUrl = proofInput || 'https://placehold.co/800x500?text=Delivered';
     setUpdating(true);
     try {
       const { response, data } = await requestWithAuthRetry(`/orders/${id}/seller-proof`, {
@@ -163,6 +163,7 @@ export function SellerOrderDetails() {
         return;
       }
       toast.success('Order marked delivered');
+      setProofModalOpen(false);
       await fetchDetails();
     } catch (_error) {
       toast.error('Failed to mark delivered');
@@ -199,6 +200,13 @@ export function SellerOrderDetails() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-5xl space-y-6">
+      <DeliveryProofModal
+        open={proofModalOpen}
+        onClose={() => setProofModalOpen(false)}
+        onConfirm={markDelivered}
+        submitting={updating}
+      />
+
       <Button variant="ghost" onClick={() => navigate('/seller/orders')}>
         <ArrowLeft className="h-4 w-4 mr-2" />
         {t('ui.back_to_orders', 'Back to Orders')}
@@ -285,7 +293,7 @@ export function SellerOrderDetails() {
               <Button variant="outline" disabled={!canMutate || updating} onClick={() => applyDecision('rejected')}>
                 {t('ui.reject_order', 'Reject Order')}
               </Button>
-              <Button variant="outline" disabled={!canMutate || updating} onClick={markDelivered}>
+              <Button variant="outline" disabled={!canMutate || updating} onClick={() => setProofModalOpen(true)}>
                 {t('ui.mark_delivered', 'Mark Delivered')}
               </Button>
             </CardContent>

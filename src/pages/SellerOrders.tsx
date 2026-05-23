@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/app/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
+import { DeliveryProofModal } from '@/components/DeliveryProofModal';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
@@ -26,6 +27,7 @@ export function SellerOrders() {
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState('');
   const [orders, setOrders] = useState<any[]>([]);
+  const [proofModalOrderId, setProofModalOrderId] = useState<string | null>(null);
 
   const requestWithAuthRetry = async (path: string, init?: RequestInit) => {
     if (!accessToken) {
@@ -129,12 +131,11 @@ export function SellerOrders() {
     }
   };
 
-  const markDelivered = async (orderId: string) => {
-    const proofInput = (prompt('Paste delivery proof image URL (optional):') || '').trim();
-    const proofImageUrl = proofInput || 'https://placehold.co/800x500?text=Delivered';
-    setUpdatingId(orderId);
+  const markDelivered = async (proofImageUrl: string) => {
+    if (!proofModalOrderId) return;
+    setUpdatingId(proofModalOrderId);
     try {
-      const { response, data } = await requestWithAuthRetry(`/orders/${orderId}/seller-proof`, {
+      const { response, data } = await requestWithAuthRetry(`/orders/${proofModalOrderId}/seller-proof`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ proofImageUrl }),
@@ -148,6 +149,7 @@ export function SellerOrders() {
         return;
       }
       toast.success('Order marked delivered');
+      setProofModalOrderId(null);
       await fetchOrders();
     } catch (_error) {
       toast.error('Failed to mark delivered');
@@ -166,6 +168,13 @@ export function SellerOrders() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
+      <DeliveryProofModal
+        open={proofModalOrderId !== null}
+        onClose={() => setProofModalOrderId(null)}
+        onConfirm={markDelivered}
+        submitting={updatingId !== ''}
+      />
+
       <Card>
         <CardHeader>
           <CardTitle>{t('ui.seller_orders', 'Seller Orders')}</CardTitle>
@@ -232,7 +241,7 @@ export function SellerOrders() {
                               size="sm"
                               variant="outline"
                               disabled={locked || updatingId === order.id}
-                              onClick={() => markDelivered(order.id)}
+                              onClick={() => setProofModalOrderId(order.id)}
                             >
                               {t('ui.mark_delivered', 'Mark Delivered')}
                             </Button>
