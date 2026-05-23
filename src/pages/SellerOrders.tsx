@@ -65,10 +65,16 @@ export function SellerOrders() {
   };
 
   const fetchOrders = async () => {
-    if (!accessToken || !currentUser) {
+    if (!currentUser) {
       setLoading(false);
       return;
     }
+    // If the token is not yet available (e.g. mid-refresh), stay in loading
+    // state; the useEffect will re-run once accessToken arrives.
+    if (!accessToken) {
+      return;
+    }
+    setLoading(true);
     try {
       const { response, data } = await requestWithAuthRetry('/orders');
       if (!response) {
