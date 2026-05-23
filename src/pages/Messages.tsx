@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/app/components/ui/button';
@@ -343,6 +343,155 @@ const serializeIceCandidate = (
   sdpMLineIndex: candidate.sdpMLineIndex ?? null,
 });
 
+
+// ── Admin-only full conversation viewer ──────────────────────────────────────
+function AdminMessagesView({ accessToken }: { accessToken: string | null }) {
+  const [conversations, setConversations] = React.useState<any[]>([]);
+  const [loading, setLoading]             = React.useState(true);
+  const [selected, setSelected]           = React.useState<any | null>(null);
+  const [msgs, setMsgs]                   = React.useState<any[]>([]);
+  const [loadingMsgs, setLoadingMsgs]     = React.useState(false);
+  const [search, setSearch]               = React.useState('');
+  const { API_URL: apiUrl }               = { API_URL: (window as any).__API_URL__ || '' };
+
+  const headers = React.useMemo(
+    () => ({ Authorization: `Bearer ${accessToken}` }),
+    [accessToken],
+  );
+
+  React.useEffect(() => {
+    if (!accessToken) return;
+    fetch(`${import.meta.env.VITE_API_URL || ''}/make-server-50b25a4f/admin/all-conversations`, { headers })
+      .then((r) => r.json())
+      .then((d) => setConversations(Array.isArray(d.conversations) ? d.conversations : []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [accessToken]);
+
+  const openConv = async (conv: any) => {
+    setSelected(conv);
+    setMsgs([]);
+    setLoadingMsgs(true);
+    try {
+      const r = await fetch(
+        `${import.meta.env.VITE_API_URL || ''}/make-server-50b25a4f/admin/conversation?user1=${conv.user1.id}&user2=${conv.user2.id}`,
+        { headers },
+      );
+      const d = await r.json();
+      setMsgs(Array.isArray(d.messages) ? d.messages : []);
+    } catch { /* ignore */ }
+    finally { setLoadingMsgs(false); }
+  };
+
+  const filtered = conversations.filter((c) => {
+    const q = search.toLowerCase();
+    return !q || c.user1?.name?.toLowerCase().includes(q) || c.user2?.name?.toLowerCase().includes(q) || c.latestMessage?.toLowerCase().includes(q);
+  });
+
+  return (
+    <div className="flex h-[calc(100vh-64px)] bg-[#f1f3f5]">
+      {/* Left: conversation list */}
+      <div className={`flex flex-col border-r border-[#e6eaee] bg-white ${selected ? 'hidden md:flex md:w-80' : 'w-full md:w-80'}`}>
+        <div className="border-b border-[#e6eaee] p-4">
+          <h2 className="mb-3 text-base font-bold text-[#111111]">Platform Messages</h2>
+          <input
+            className="w-full rounded-lg border border-[#DDE3E2] bg-[#F3F5F4] px-3 py-2 text-sm outline-none focus:border-[#05B43D]"
+            placeholder="Search conversations…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
+          {loading ? (
+            <p className="p-6 text-center text-sm text-muted-foreground">Loading…</p>
+          ) : filtered.length === 0 ? (
+            <p className="p-6 text-center text-sm text-muted-foreground">No conversations found.</p>
+          ) : (
+            filtered.map((conv) => (
+              <button
+                type="button"
+                key={conv.key}
+                onClick={() => openConv(conv)}
+                className={`flex w-full items-start gap-3 border-b border-[#F3F5F4] p-4 text-left transition-colors hover:bg-[#F3F5F4] ${selected?.key === conv.key ? 'bg-[#e8f9ee]' : ''}`}
+              >
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#05B43D] text-sm font-bold text-white">
+                  {(conv.user1?.name || 'U').charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-[#111111]">
+                    {conv.user1?.name} ↔ {conv.user2?.name}
+                  </p>
+                  <p className="truncate text-xs text-[#8A8A8A]">{conv.latestMessage || 'No preview'}</p>
+                  <p className="mt-0.5 text-[10px] text-[#8A8A8A]">
+                    {conv.messageCount} msg{conv.messageCount !== 1 ? 's' : ''} · {conv.latestAt ? new Date(conv.latestAt).toLocaleDateString() : ''}
+                  </p>
+                </div>
+              </button>
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* Right: message viewer */}
+      <div className={`flex flex-1 flex-col bg-white ${!selected ? 'hidden md:flex' : 'flex'}`}>
+        {!selected ? (
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 text-muted-foreground">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#e8f9ee]">
+              <svg className="h-8 w-8 text-[#05B43D]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+            </div>
+            <p className="text-sm font-medium">Select a conversation to read messages</p>
+          </div>
+        ) : (
+          <>
+            {/* Chat header */}
+            <div className="flex items-center gap-3 border-b border-[#e6eaee] px-4 py-3">
+              <button type="button" className="md:hidden mr-1 text-[#05B43D]" onClick={() => setSelected(null)}>
+                ←
+              </button>
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#05B43D] text-sm font-bold text-white">
+                {(selected.user1?.name || 'U').charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <p className="text-sm font-bold text-[#111111]">{selected.user1?.name} ↔ {selected.user2?.name}</p>
+                <p className="text-xs text-[#8A8A8A]">{selected.messageCount} messages</p>
+              </div>
+            </div>
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {loadingMsgs ? (
+                <p className="py-8 text-center text-sm text-muted-foreground">Loading messages…</p>
+              ) : msgs.length === 0 ? (
+                <p className="py-8 text-center text-sm text-muted-foreground">No messages found.</p>
+              ) : (
+                msgs.map((msg) => {
+                  const isLeft = msg.senderId === selected.user1?.id;
+                  const name   = isLeft ? selected.user1?.name : selected.user2?.name;
+                  return (
+                    <div key={msg.id} className={`flex gap-2 ${isLeft ? 'justify-start' : 'justify-end'}`}>
+                      <div className={`max-w-[70%] rounded-2xl px-4 py-2.5 text-sm ${isLeft ? 'bg-[#F3F5F4] text-[#111111] rounded-tl-sm' : 'bg-[#05B43D] text-white rounded-tr-sm'}`}>
+                        <p className={`mb-1 text-[10px] font-bold ${isLeft ? 'text-[#8A8A8A]' : 'text-white/70'}`}>{name}</p>
+                        <p className="leading-relaxed">{msg.content}</p>
+                        <p className={`mt-1 text-[10px] ${isLeft ? 'text-[#8A8A8A]' : 'text-white/60'}`}>
+                          {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            <div className="border-t border-[#e6eaee] bg-[#F3F5F4] px-4 py-3 text-xs text-center text-[#8A8A8A]">
+              Admin view only — you cannot send messages in this mode
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export function Messages() {
   const { currentUser, isAuthenticated, accessToken, refreshAuthToken, logout } = useAuth();
@@ -3000,6 +3149,11 @@ export function Messages() {
 
     setActiveCall((prev) => (prev ? { ...prev, speakerOn: nextSpeakerOn } : prev));
   };
+
+  // ── Admin: show all platform conversations instead of admin's own ──────────
+  if (currentUser?.role === 'admin') {
+    return <AdminMessagesView accessToken={accessToken} />;
+  }
 
   return (
     <div className="min-h-screen bg-[#f1f3f5] text-foreground dark:bg-slate-950">
