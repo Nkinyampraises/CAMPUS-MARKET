@@ -14,6 +14,7 @@ import { ResilientImage } from '@/components/ResilientImage';
 import { useAutoTranslate } from '@/hooks/useAutoTranslate';
 
 import { API_URL } from '@/lib/api';
+import { universities as mockUniversities, getUniversityById } from '@/data/mockData';
 
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat('fr-CM', {
@@ -220,20 +221,33 @@ export function Marketplace() {
         if (universitiesResult.status === 'fulfilled') {
           const response = universitiesResult.value;
           const data = await response.json().catch(() => ({}));
-          if (response.ok && Array.isArray(data.universities)) {
+          {
             const resolved: Record<string, string> = {};
             const list: NamedOption[] = [];
-            data.universities.forEach((entry: any) => {
-              const id = String(entry?.id || '').trim().toLowerCase();
-              const name = String(entry?.name || '').trim();
-              if (id && name) {
-                resolved[id] = name;
-                list.push({ id, name });
-              }
-              if (name) {
-                resolved[name.toLowerCase()] = name;
-              }
+
+            // Always seed with mockData universities (IDs '1','2',... used during registration)
+            mockUniversities.forEach((uni: any) => {
+              const id   = String(uni?.id || '').trim().toLowerCase();
+              const name = String(uni?.name || '').trim();
+              if (id && name) { resolved[id] = name; list.push({ id, name }); }
+              if (name)       { resolved[name.toLowerCase()] = name; }
+              // also seed the location field (city/area) if available
+              if (uni?.location) { resolved[String(uni.location).toLowerCase()] = name; }
             });
+
+            // Then overlay with API universities (UNI-xxx IDs created by admin)
+            if (response.ok && Array.isArray(data.universities)) {
+              data.universities.forEach((entry: any) => {
+                const id   = String(entry?.id || '').trim().toLowerCase();
+                const name = String(entry?.name || '').trim();
+                if (id && name) {
+                  resolved[id] = name;
+                  if (!list.find((l) => l.id === id)) list.push({ id, name });
+                }
+                if (name) { resolved[name.toLowerCase()] = name; }
+              });
+            }
+
             setUniversitiesById(resolved);
             setUniversitiesList(list);
           }
@@ -304,11 +318,15 @@ export function Marketplace() {
     const raw = String(value || '').trim();
     if (!raw) return t('marketplace.universityNotSpecified', 'University not specified');
 
-    // Check the DB-loaded map first (handles UNI-xxx IDs properly)
-    const fromBackend = universitiesById[raw.toLowerCase()];
-    if (fromBackend) return fromBackend;
+    // 1. Check the combined map (mockData + API universities)
+    const fromMap = universitiesById[raw.toLowerCase()];
+    if (fromMap) return fromMap;
 
-    // Hide any raw generated ID (numeric, UNI-xxx, CAT-xxx, LOC-xxx, etc.)
+    // 2. Fallback: check mockData directly (covers numeric IDs '1','2',...)
+    const fromMock = getUniversityById(raw);
+    if (fromMock) return fromMock.name;
+
+    // 3. Hide raw generated IDs that couldn't be resolved
     if (/^\d+$/.test(raw) || /^(UNI|CAT|LOC|UB|UY)-[\d]+-[a-z0-9]+$/i.test(raw)) {
       return t('marketplace.universityNotSpecified', 'University not specified');
     }
@@ -317,15 +335,24 @@ export function Marketplace() {
   };
 
   const resolveLocationLabel = (item: Listing) => {
+    // Try seller's university first
     const sellerUniversity = resolveUniversityLabel(item.seller?.university);
     if (sellerUniversity !== t('marketplace.universityNotSpecified', 'University not specified')) {
       return sellerUniversity;
     }
 
+    // Try item's location field
     const rawLocation = String(item.location || '').trim();
     if (!rawLocation) return t('marketplace.locationNotSpecified', 'Location not specified');
 
-    // Hide raw generated IDs in the location field too
+    // Try to resolve the location field as a university/city ID
+    const fromMap = universitiesById[rawLocation.toLowerCase()];
+    if (fromMap) return fromMap;
+
+    const fromMock = getUniversityById(rawLocation);
+    if (fromMock) return fromMock.name;
+
+    // Hide unresolved raw generated IDs
     if (/^\d+$/.test(rawLocation) || /^(UNI|CAT|LOC|UB|UY)-[\d]+-[a-z0-9]+$/i.test(rawLocation)) {
       return t('marketplace.locationNotSpecified', 'Location not specified');
     }
@@ -635,7 +662,7 @@ export function Marketplace() {
                 <button
                   className="ml-2 rounded-full p-0.5 hover:bg-white/60"
                   onClick={() => setSelectedCategory('all')}
-                  aria-label="Clear category"
+                  type="button" title="Clear category" aria-label="Clear category"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -647,7 +674,7 @@ export function Marketplace() {
                 <button
                   className="ml-2 rounded-full p-0.5 hover:bg-white/60"
                   onClick={() => setSelectedUniversity('all')}
-                  aria-label="Clear university"
+                  type="button" title="Clear university" aria-label="Clear university"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -659,7 +686,7 @@ export function Marketplace() {
                 <button
                   className="ml-2 rounded-full p-0.5 hover:bg-white/60"
                   onClick={() => setSelectedPriceRange('all')}
-                  aria-label="Clear price range"
+                  type="button" title="Clear price range" aria-label="Clear price range"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -671,7 +698,7 @@ export function Marketplace() {
                 <button
                   className="ml-2 rounded-full p-0.5 hover:bg-white/60"
                   onClick={() => setSearchQuery('')}
-                  aria-label="Clear search"
+                  type="button" title="Clear search" aria-label="Clear search"
                 >
                   <X className="h-3 w-3" />
                 </button>
