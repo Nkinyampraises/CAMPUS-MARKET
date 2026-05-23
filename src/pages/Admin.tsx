@@ -102,7 +102,7 @@ export function Admin() {
         requestWithAuthRetry('/admin/users'),
         requestWithAuthRetry('/listings'),
         requestWithAuthRetry('/admin/transactions'),
-        requestWithAuthRetry('/admin/messages'),
+        requestWithAuthRetry('/admin/all-conversations'),
       ]);
 
       const unauthorized =
@@ -128,7 +128,8 @@ export function Admin() {
         );
       }
       if (messagesResult.response?.ok) {
-        setAllMessages(Array.isArray(messagesResult.data?.messages) ? messagesResult.data.messages : []);
+        // all-conversations returns { conversations: [...] }
+        setAllMessages(Array.isArray(messagesResult.data?.conversations) ? messagesResult.data.conversations : []);
       }
     } catch (error) {
       console.error('Dashboard fetch error:', error);
@@ -156,25 +157,14 @@ export function Admin() {
   const totalListings = listings.length;
   const activeListings = listings.filter(i => i.status === 'available').length;
   const totalTransactions = transactions.length;
-  const totalMessages = allMessages.length;
+  // allMessages now holds conversations; sum up all message counts
+  const totalMessages = allMessages.reduce((sum: number, c: any) => sum + (Number(c.messageCount) || 0), 0);
   const totalRevenue = transactions
     .reduce((sum, t) => sum + Number(t.platformRevenue ?? t.platformFee ?? 0), 0);
 
-  // Memoize conversations for the admin messages tab
-    const conversations = useMemo(() => {
-        const conversationMap = new Map();
-        allMessages.forEach(msg => {
-            const participants = [msg.senderId, msg.receiverId].sort().join('::');
-            if (!conversationMap.has(participants)) {
-                conversationMap.set(participants, []);
-            }
-            conversationMap.get(participants).push(msg);
-        });
-        return Array.from(conversationMap.entries()).map(([key, messages]) => ({
-            id: key, // Unique ID for the conversation
-            messages: messages
-        }));
-    }, [allMessages]);
+  // allMessages now contains the conversations array from /admin/all-conversations
+  // Each item: { key, user1, user2, messageCount, latestMessage, latestAt }
+  const conversations = allMessages;
   // Filter users based on search
   const filteredUsers = users
     .filter(u => u && u.name && u.email) // Filter out invalid users
@@ -593,45 +583,38 @@ export function Admin() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {conversations.map((conversation: any) => {
-                    const [user1Id, user2Id] = conversation.id.split('::');
-                    const user1 = users.find((u: any) => u.id === user1Id);
-                    const user2 = users.find((u: any) => u.id === user2Id);
-                    const user1Name = user1?.name || 'Unknown User';
-                    const user2Name = user2?.name || 'Unknown User';
-                    const lastMsg = conversation.messages[conversation.messages.length - 1];
-
-                    return (
-                      <div 
-                        key={conversation.id} 
+                  {conversations.length === 0 ? (
+                    <p className="text-center text-muted-foreground py-8">{t('ui.no_conversations_found', 'No conversations found')}</p>
+                  ) : (
+                    conversations.map((conv: any) => (
+                      <div
+                        key={conv.key}
                         className="p-4 border rounded-lg hover:bg-accent cursor-pointer transition-colors"
-                        onClick={() => navigate('/messages')}
+                        onClick={() => navigate('/admin/inbox')}
                       >
                         <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                           <div className="flex flex-wrap items-center gap-2 text-sm">
-                            <span className="font-bold text-blue-600">{user1Name}</span>
-                            <span className="text-muted-foreground text-xs">and</span>
-                            <span className="font-bold text-blue-600">{user2Name}</span>
+                            <Badge variant="outline" className="border-[#05B43D] text-[#05B43D] text-[10px]">
+                              {conv.user1?.userType || 'user'}
+                            </Badge>
+                            <span className="font-bold">{conv.user1?.name || 'Unknown'}</span>
+                            <span className="text-muted-foreground text-xs">↔</span>
+                            <Badge variant="outline" className="border-blue-400 text-blue-600 text-[10px]">
+                              {conv.user2?.userType || 'user'}
+                            </Badge>
+                            <span className="font-bold">{conv.user2?.name || 'Unknown'}</span>
                           </div>
                           <span className="text-xs text-muted-foreground">
-                            {new Date(lastMsg.timestamp).toLocaleString()}
+                            {conv.latestAt ? new Date(conv.latestAt).toLocaleString() : ''}
                           </span>
                         </div>
-                        <p className="text-sm text-muted-foreground truncate">
-                          {lastMsg.messageType === 'image' ? '📷 [Image]' :
-                           lastMsg.messageType === 'voice' ? '🎤 [Voice Message]' : 
-                           lastMsg.content}
-                        </p>
+                        <p className="text-sm text-muted-foreground truncate">{conv.latestMessage || 'No preview'}</p>
                         <div className="flex items-center gap-2 mt-2">
-                          <Badge variant="secondary" className="text-xs">
-                            {conversation.messages.length} messages
-                          </Badge>
+                          <Badge variant="secondary" className="text-xs">{conv.messageCount} messages</Badge>
+                          <span className="text-xs text-[#05B43D] font-medium">Click to read full conversation →</span>
                         </div>
                       </div>
-                    );
-                  })}
-                  {conversations.length === 0 && (
-                    <p className="text-center text-muted-foreground py-8">{t('ui.no_conversations_found', 'No conversations found')}</p>
+                    ))
                   )}
                 </div>
               </CardContent>
