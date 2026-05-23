@@ -805,7 +805,7 @@ const DEFAULT_ADMIN_SETTINGS = {
   platformCommissionPercent: 5,
   payoutFeePercent: 5,
   minimumPayoutAmount: 1000,
-  autoPayoutToMobileMoney: false,
+  autoPayoutToMobileMoney: true,
   updatedAt: "",
 };
 
@@ -5034,11 +5034,8 @@ async function releaseEscrowOrder(order: any, actorId: string) {
     updatedAt: now,
   };
 
-  // Optional auto payout to seller mobile money when escrow is released.
-  if (
-    settings.autoPayoutToMobileMoney &&
-    updatedOrder.paymentMethod === "mtn-momo"
-  ) {
+  // Auto payout to seller MoMo when escrow is released (both MTN and Orange).
+  if (settings.autoPayoutToMobileMoney) {
     const sellerProfile = await getUserProfile(updatedOrder.sellerId);
     const sellerPhone = sellerProfile?.phone || "";
     if (isValidCameroonPhone(sellerPhone)) {
@@ -5051,9 +5048,9 @@ async function releaseEscrowOrder(order: any, actorId: string) {
           const payoutResult = await processOutboundMobileMoneyPayout({
             amount: payoutAmount,
             phoneNumber: sellerPhone,
-            provider: "mtn-momo",
+            provider: updatedOrder.paymentMethod === "orange-money" ? "orange-money" : "mtn-momo",
             reference: payoutReference,
-            description: `Automatic escrow release payout for order ${updatedOrder.id}`,
+            description: `Escrow release — seller payout for order ${updatedOrder.id}`,
           });
           await adjustWallet(updatedOrder.sellerId, { availableDelta: -payoutAmount });
           const autoWithdrawal = {
@@ -5171,8 +5168,10 @@ async function refundEscrowOrder(order: any, actorId: string, reason: string) {
   }
 
   const amount = roundXafAmount(order.amount);
-  const sellerCompensation = roundXafAmount(amount * 0.1);
-  const buyerRefundAmount = roundXafAmount(amount - sellerCompensation);
+  // Full item amount refunded to buyer — platform fee already kept (non-refundable)
+  // Seller gets NOTHING on refund since they did not complete delivery
+  const sellerCompensation = 0;
+  const buyerRefundAmount = amount;
   const now = new Date().toISOString();
 
   const escrowProviderSync = await syncEscrowProvider("refund", {
@@ -5188,8 +5187,29 @@ async function refundEscrowOrder(order: any, actorId: string, reason: string) {
     reason: reason || "Buyer requested refund",
   });
 
-  await adjustWallet(order.sellerId, { pendingDelta: -amount, availableDelta: sellerCompensation });
+  // Remove the item amount from seller's pending balance (they don't get paid)
+  await adjustWallet(order.sellerId, { pendingDelta: -amount });
+  // Credit buyer's wallet — they can request MoMo refund from their buyer dashboard
   await adjustWallet(order.buyerId, { availableDelta: buyerRefundAmount });
+
+  // Auto-disburse refund to buyer's MoMo if payment provider is available
+  const buyerProfile = await getUserProfile(order.buyerId);
+  const buyerPhone = buyerProfile?.phone || order.phoneNumber || order.buyerPhoneNumber || "";
+  if (isValidCameroonPhone(buyerPhone) && buyerRefundAmount > 0) {
+    try {
+      const refundRef = `REFUND-${order.id}-${Date.now()}`;
+      await processOutboundMobileMoneyPayout({
+        amount: buyerRefundAmount,
+        phoneNumber: buyerPhone,
+        provider: (order.paymentMethod === "orange-money" ? "orange-money" : "mtn-momo"),
+        reference: refundRef,
+        description: `Escrow refund for order ${order.id} — ${order.itemId}`,
+      });
+    } catch (refundPayoutError) {
+      // Log but don't fail — buyer can manually withdraw from wallet
+      console.error("Auto-refund payout failed:", refundPayoutError);
+    }
+  }
 
   const previousProviderSync =
     escrow?.provider_sync && typeof escrow.provider_sync === "object" && !Array.isArray(escrow.provider_sync)
