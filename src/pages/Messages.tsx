@@ -466,13 +466,68 @@ function AdminMessagesView({ accessToken }: { accessToken: string | null }) {
                 <p className="py-8 text-center text-sm text-muted-foreground">No messages found.</p>
               ) : (
                 msgs.map((msg) => {
-                  const isLeft = msg.senderId === selected.user1?.id;
-                  const name   = isLeft ? selected.user1?.name : selected.user2?.name;
+                  const isLeft   = msg.senderId === selected.user1?.id;
+                  const name     = isLeft ? selected.user1?.name : selected.user2?.name;
+                  const content  = String(msg.content || '');
+
+                  // Detect call signals and legacy call invites — show as call card
+                  const isCallSignal   = content.startsWith('__CALL_SIGNAL__::');
+                  const isLegacyCall   = content.startsWith('CALL_INVITE::') || content === '__CALL_INVITE__';
+                  const isCallLog      = content.startsWith('__CALL_LOG__::');
+
+                  // Render call indicator
+                  if (isCallSignal || isLegacyCall) {
+                    let callType = 'Voice Call';
+                    try {
+                      const payload = isCallSignal
+                        ? JSON.parse(content.slice('__CALL_SIGNAL__::'.length))
+                        : {};
+                      if (payload.mode === 'video') callType = 'Video Call';
+                      // Only show the initial invite/offer, hide answer/ice signals
+                      if (payload.signalType && payload.signalType !== 'offer') return null;
+                    } catch { /* ignore */ }
+                    return (
+                      <div key={msg.id} className={`flex gap-2 ${isLeft ? 'justify-start' : 'justify-end'}`}>
+                        <div className={`flex items-center gap-2 rounded-2xl border px-4 py-2.5 text-sm ${isLeft ? 'border-[#DDE3E2] bg-[#F3F5F4] text-[#111111]' : 'border-[#04a034] bg-[#e8f9ee] text-[#018F2D]'}`}>
+                          <span className="text-lg">📞</span>
+                          <div>
+                            <p className="text-[10px] font-bold text-[#8A8A8A]">{name}</p>
+                            <p className="font-medium">{callType}</p>
+                            <p className="text-[10px] text-[#8A8A8A]">
+                              {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // Render call log
+                  if (isCallLog) {
+                    let duration = '';
+                    try {
+                      const payload = JSON.parse(content.slice('__CALL_LOG__::'.length));
+                      if (payload.duration) {
+                        const s = Number(payload.duration);
+                        duration = s >= 60 ? `${Math.floor(s/60)}m ${s%60}s` : `${s}s`;
+                      }
+                    } catch { /* ignore */ }
+                    return (
+                      <div key={msg.id} className="flex justify-center">
+                        <span className="rounded-full bg-[#F3F5F4] px-3 py-1 text-[11px] text-[#8A8A8A]">
+                          📞 Call ended {duration ? `· ${duration}` : ''}
+                          {msg.createdAt ? ` · ${new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}
+                        </span>
+                      </div>
+                    );
+                  }
+
+                  // Regular text message
                   return (
                     <div key={msg.id} className={`flex gap-2 ${isLeft ? 'justify-start' : 'justify-end'}`}>
                       <div className={`max-w-[70%] rounded-2xl px-4 py-2.5 text-sm ${isLeft ? 'bg-[#F3F5F4] text-[#111111] rounded-tl-sm' : 'bg-[#05B43D] text-white rounded-tr-sm'}`}>
                         <p className={`mb-1 text-[10px] font-bold ${isLeft ? 'text-[#8A8A8A]' : 'text-white/70'}`}>{name}</p>
-                        <p className="leading-relaxed">{msg.content}</p>
+                        <p className="leading-relaxed whitespace-pre-wrap">{content}</p>
                         <p className={`mt-1 text-[10px] ${isLeft ? 'text-[#8A8A8A]' : 'text-white/60'}`}>
                           {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                         </p>
@@ -3717,6 +3772,8 @@ export function Messages() {
                                 onClick={() => window.open(attachment, '_blank')}
                               />
                               <button
+                                type="button"
+                                title="Remove attachment"
                                 onClick={cancelAttachment}
                                 className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600"
                               >
@@ -3787,6 +3844,7 @@ export function Messages() {
                           <div className="flex items-center gap-1.5 sm:gap-2">
                             <input
                               type="file"
+                              title="Attach file"
                               ref={fileInputRef}
                               className="hidden"
                               accept="image/*"
