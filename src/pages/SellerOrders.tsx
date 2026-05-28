@@ -69,8 +69,6 @@ export function SellerOrders() {
       setLoading(false);
       return;
     }
-    // If the token is not yet available (e.g. mid-refresh), stay in loading
-    // state; the useEffect will re-run once accessToken arrives.
     if (!accessToken) {
       return;
     }

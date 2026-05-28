@@ -3418,6 +3418,38 @@ async function requestOpenAiTranscription(file: File) {
   };
 }
 
+async function requestHuggingFaceTranscription(file: File) {
+  if (!HUGGING_FACE_API_KEY) {
+    return { ok: false, error: "Missing HUGGING_FACE_API_KEY" };
+  }
+
+  const arrayBuffer = await file.arrayBuffer();
+  const response = await fetch(
+    "https://api-inference.huggingface.co/models/openai/whisper-large-v3",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${HUGGING_FACE_API_KEY}`,
+        "Content-Type": "application/octet-stream",
+      },
+      body: arrayBuffer,
+    },
+  );
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    return {
+      ok: false,
+      error: typeof payload?.error === "string" ? payload.error : "HuggingFace transcription failed",
+    };
+  }
+
+  return {
+    ok: true,
+    text: normalizeAiText(payload?.text, 4000),
+  };
+}
+
 // Health check endpoint
 app.get("/make-server-50b25a4f/health", (c) => {
   return c.json({
@@ -4214,9 +4246,14 @@ app.get("/make-server-50b25a4f/listings", async (c) => {
         continue;
       }
 
+      // Skip sold or rented listings — they should not appear in the marketplace.
+      if (listing.status && listing.status !== 'available') {
+        continue;
+      }
+
       try {
         const value = await enrichListing(listing, sellerCache);
-        if (value) {
+        if (value && value.status === 'available') {
           enriched.push(value);
         }
       } catch (error) {
@@ -8239,7 +8276,12 @@ app.post("/make-server-50b25a4f/ai-chat/transcribe", async (c) => {
       return c.json({ error: "Audio file is required" }, 400);
     }
 
-    const transcription = await requestOpenAiTranscription(audio);
+    // Try OpenAI first; fall back to HuggingFace Whisper if key is missing.
+    let transcription = await requestOpenAiTranscription(audio);
+    if (!transcription.ok && HUGGING_FACE_API_KEY) {
+      transcription = await requestHuggingFaceTranscription(audio);
+    }
+
     if (!transcription.ok) {
       return c.json({ error: transcription.error || "Failed to transcribe audio" }, 502);
     }
