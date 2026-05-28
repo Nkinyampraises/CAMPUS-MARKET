@@ -68,34 +68,34 @@
 
 .dark {
   /* ── Luxury Emerald Dark — premium fintech aesthetic ── */
-  --background: #07120D;
-  --app-background-image: linear-gradient(135deg, #06110D 0%, #0B1F17 55%, #0F3B2C 100%);
+  --background: #040C08;
+  --app-background-image: linear-gradient(135deg, #040C08 0%, #071A10 50%, #0A2818 100%);
   --foreground: #F5F5F5;
 
-  --card: #10261C;
+  --card: #0D2318;
   --card-foreground: #F5F5F5;
-  --popover: #0D1F18;
+  --popover: #0A1C13;
   --popover-foreground: #F5F5F5;
 
   --primary: #0DBB3F;
   --primary-strong: #1ED760;
-  --primary-soft: rgba(13, 187, 63, 0.14);
+  --primary-soft: rgba(13, 187, 63, 0.15);
   --primary-foreground: #FFFFFF;
 
-  --secondary: #0D1F18;
+  --secondary: #0A1C13;
   --secondary-foreground: #A1A1AA;
-  --muted: #10261C;
+  --muted: #0D2318;
   --muted-foreground: #A1A1AA;
-  --accent: #122D20;
+  --accent: #112B1C;
   --accent-foreground: #F5F5F5;
 
   --destructive: #e05b6b;
   --destructive-foreground: #ffffff;
 
-  --border: rgba(255, 255, 255, 0.07);
-  --input: #10261C;
-  --input-background: #0D1F18;
-  --switch-background: #1A3D2A;
+  --border: rgba(13, 187, 63, 0.15);
+  --input: #0D2318;
+  --input-background: #0A1C13;
+  --switch-background: #163A24;
   --ring: #0DBB3F;
 
   --chart-1: #0DBB3F;
@@ -104,13 +104,13 @@
   --chart-4: #A1A1AA;
   --chart-5: #ef4444;
 
-  --sidebar: #060F0A;
+  --sidebar: #030A06;
   --sidebar-foreground: #A1A1AA;
   --sidebar-primary: #0DBB3F;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #10261C;
+  --sidebar-accent: #0D2318;
   --sidebar-accent-foreground: #F5F5F5;
-  --sidebar-border: rgba(255, 255, 255, 0.05);
+  --sidebar-border: rgba(13, 187, 63, 0.10);
   --sidebar-ring: #0DBB3F;
 }
 
@@ -215,7 +215,7 @@
     @apply text-foreground antialiased;
     font-family: var(--font-body);
     background-color: var(--background);
-    background-image: none;
+    background-image: var(--app-background-image);
     background-attachment: fixed;
     min-height: 100vh;
     position: relative;
@@ -331,32 +331,23 @@
     backdrop-filter: blur(18px);
   }
 
-  /* ── Dark mode: gradient background ── */
-  .dark body {
-    background-color: #07120D;
-    background-image: linear-gradient(135deg, #06110D 0%, #0B1F17 55%, #0F3B2C 100%);
-    background-attachment: fixed;
-  }
-
   /* ── Dark mode: glassmorphism cards with emerald glow ── */
   .dark [data-slot='card'] {
-    background: rgba(16, 38, 28, 0.85);
-    border-color: rgba(13, 187, 63, 0.12);
+    background: #0D2318;
+    border-color: rgba(13, 187, 63, 0.28);
     box-shadow:
-      0 0 0 1px rgba(13, 187, 63, 0.08),
-      0 8px 32px -8px rgba(0, 0, 0, 0.60),
-      0 0 60px -30px rgba(13, 187, 63, 0.12);
-    -webkit-backdrop-filter: blur(12px);
-    backdrop-filter: blur(12px);
+      0 0 0 1px rgba(13, 187, 63, 0.15),
+      0 4px 24px rgba(0, 0, 0, 0.50),
+      0 0 40px -20px rgba(13, 187, 63, 0.22);
     transition: box-shadow 0.25s ease, border-color 0.25s ease;
   }
 
   .dark [data-slot='card']:hover {
-    border-color: rgba(13, 187, 63, 0.22);
+    border-color: rgba(13, 187, 63, 0.45);
     box-shadow:
-      0 0 0 1px rgba(13, 187, 63, 0.14),
-      0 12px 40px -10px rgba(0, 0, 0, 0.65),
-      0 0 80px -30px rgba(13, 187, 63, 0.20);
+      0 0 0 1px rgba(13, 187, 63, 0.28),
+      0 8px 32px rgba(0, 0, 0, 0.60),
+      0 0 60px -15px rgba(13, 187, 63, 0.32);
   }
 
   /* ── Dark mode: glass dropdowns / popovers ── */
@@ -364,11 +355,11 @@
   .dark [data-slot='dropdown-menu-sub-content'],
   .dark [data-slot='select-content'],
   .dark [data-slot='popover-content'] {
-    background: rgba(13, 31, 24, 0.96);
-    border-color: rgba(13, 187, 63, 0.14);
+    background: #0A1C13;
+    border-color: rgba(13, 187, 63, 0.22);
     box-shadow:
-      0 0 0 1px rgba(13, 187, 63, 0.08),
-      0 16px 48px -12px rgba(0, 0, 0, 0.70);
+      0 0 0 1px rgba(13, 187, 63, 0.12),
+      0 16px 48px rgba(0, 0, 0, 0.70);
     -webkit-backdrop-filter: blur(24px);
     backdrop-filter: blur(24px);
   }
@@ -569,7 +560,8 @@
   .bg-background.min-h-screen,
   .bg-background.min-h-\[calc\(100vh-4rem\)\] {
     background-color: transparent;
-    background-image: none;
+    background-image: var(--app-background-image);
+    background-attachment: fixed;
   }
 }
 
