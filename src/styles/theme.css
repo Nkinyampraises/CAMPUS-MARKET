@@ -67,51 +67,51 @@
 }
 
 .dark {
-  /* ── Warm Dark Espresso — rich, warm, beautiful ── */
-  --background: #1A1612;
-  --app-background-image: none;
-  --foreground: #F0E8D8;
+  /* ── Luxury Emerald Dark — premium fintech aesthetic ── */
+  --background: #07120D;
+  --app-background-image: linear-gradient(135deg, #06110D 0%, #0B1F17 55%, #0F3B2C 100%);
+  --foreground: #F5F5F5;
 
-  --card: #272018;
-  --card-foreground: #F0E8D8;
-  --popover: #211A12;
-  --popover-foreground: #F0E8D8;
+  --card: #10261C;
+  --card-foreground: #F5F5F5;
+  --popover: #0D1F18;
+  --popover-foreground: #F5F5F5;
 
-  --primary: #05B43D;
-  --primary-strong: #06D048;
-  --primary-soft: rgba(5, 180, 61, 0.18);
+  --primary: #0DBB3F;
+  --primary-strong: #1ED760;
+  --primary-soft: rgba(13, 187, 63, 0.14);
   --primary-foreground: #FFFFFF;
 
-  --secondary: #302820;
-  --secondary-foreground: #D8CDBC;
-  --muted: #272018;
-  --muted-foreground: #9A8E7E;
-  --accent: #362E24;
-  --accent-foreground: #F0E8D8;
+  --secondary: #0D1F18;
+  --secondary-foreground: #A1A1AA;
+  --muted: #10261C;
+  --muted-foreground: #A1A1AA;
+  --accent: #122D20;
+  --accent-foreground: #F5F5F5;
 
   --destructive: #e05b6b;
   --destructive-foreground: #ffffff;
 
-  --border: rgba(210, 185, 140, 0.18);
-  --input: #272018;
-  --input-background: #211A12;
-  --switch-background: #3E342A;
-  --ring: #05B43D;
+  --border: rgba(255, 255, 255, 0.07);
+  --input: #10261C;
+  --input-background: #0D1F18;
+  --switch-background: #1A3D2A;
+  --ring: #0DBB3F;
 
-  --chart-1: #05B43D;
-  --chart-2: #06D048;
-  --chart-3: #f59e0b;
-  --chart-4: #9A8E7E;
+  --chart-1: #0DBB3F;
+  --chart-2: #1ED760;
+  --chart-3: #D4AF37;
+  --chart-4: #A1A1AA;
   --chart-5: #ef4444;
 
-  --sidebar: #120E0A;
-  --sidebar-foreground: #D8CDBC;
-  --sidebar-primary: #05B43D;
+  --sidebar: #060F0A;
+  --sidebar-foreground: #A1A1AA;
+  --sidebar-primary: #0DBB3F;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #272018;
-  --sidebar-accent-foreground: #F0E8D8;
-  --sidebar-border: rgba(210, 185, 140, 0.14);
-  --sidebar-ring: #05B43D;
+  --sidebar-accent: #10261C;
+  --sidebar-accent-foreground: #F5F5F5;
+  --sidebar-border: rgba(255, 255, 255, 0.05);
+  --sidebar-ring: #0DBB3F;
 }
 
 @keyframes login-rise {
@@ -331,22 +331,49 @@
     backdrop-filter: blur(18px);
   }
 
-  .dark [data-slot='card'] {
-    border-color: rgba(210, 185, 140, 0.20);
-    box-shadow:
-      0 0 0 1px rgba(210, 185, 140, 0.08),
-      0 24px 48px -28px rgba(10, 6, 2, 0.80);
+  /* ── Dark mode: gradient background ── */
+  .dark body {
+    background-color: #07120D;
+    background-image: linear-gradient(135deg, #06110D 0%, #0B1F17 55%, #0F3B2C 100%);
+    background-attachment: fixed;
   }
 
+  /* ── Dark mode: glassmorphism cards with emerald glow ── */
+  .dark [data-slot='card'] {
+    background: rgba(16, 38, 28, 0.85);
+    border-color: rgba(13, 187, 63, 0.12);
+    box-shadow:
+      0 0 0 1px rgba(13, 187, 63, 0.08),
+      0 8px 32px -8px rgba(0, 0, 0, 0.60),
+      0 0 60px -30px rgba(13, 187, 63, 0.12);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    transition: box-shadow 0.25s ease, border-color 0.25s ease;
+  }
+
+  .dark [data-slot='card']:hover {
+    border-color: rgba(13, 187, 63, 0.22);
+    box-shadow:
+      0 0 0 1px rgba(13, 187, 63, 0.14),
+      0 12px 40px -10px rgba(0, 0, 0, 0.65),
+      0 0 80px -30px rgba(13, 187, 63, 0.20);
+  }
+
+  /* ── Dark mode: glass dropdowns / popovers ── */
   .dark [data-slot='dropdown-menu-content'],
   .dark [data-slot='dropdown-menu-sub-content'],
   .dark [data-slot='select-content'],
   .dark [data-slot='popover-content'] {
-    background: #211A12;
-    border-color: rgba(210, 185, 140, 0.18);
-    backdrop-filter: blur(20px);
+    background: rgba(13, 31, 24, 0.96);
+    border-color: rgba(13, 187, 63, 0.14);
+    box-shadow:
+      0 0 0 1px rgba(13, 187, 63, 0.08),
+      0 16px 48px -12px rgba(0, 0, 0, 0.70);
+    -webkit-backdrop-filter: blur(24px);
+    backdrop-filter: blur(24px);
   }
 
+  /* ── Dark mode: bg overrides ── */
   .dark .bg-white,
   .dark .bg-gray-50,
   .dark .bg-slate-50,
@@ -363,6 +390,7 @@
     background-color: var(--secondary);
   }
 
+  /* ── Dark mode: text overrides ── */
   .dark .text-gray-900,
   .dark .text-gray-700,
   .dark .text-slate-900,
@@ -381,6 +409,7 @@
     color: var(--muted-foreground);
   }
 
+  /* ── Dark mode: border overrides ── */
   .dark .border-gray-100,
   .dark .border-gray-200,
   .dark .border-gray-300,
@@ -393,9 +422,10 @@
   .dark .border-slate-800,
   .dark .border-emerald-200,
   .dark .border-green-200 {
-    border-color: rgba(210, 185, 140, 0.18);
+    border-color: rgba(13, 187, 63, 0.14);
   }
 
+  /* ── Dark mode: hover overrides ── */
   .dark .hover\:bg-gray-50:hover,
   .dark .hover\:bg-gray-100:hover,
   .dark .hover\:bg-red-50:hover,
@@ -404,14 +434,18 @@
     background-color: var(--accent);
   }
 
-  /* Scrollbar in dark mode — warm golden track */
+  /* ── Dark mode: luxury emerald scrollbar ── */
   .dark ::-webkit-scrollbar-track {
-    background: rgba(26, 22, 18, 0.8);
+    background: rgba(6, 17, 13, 0.80);
   }
 
   .dark ::-webkit-scrollbar-thumb {
-    background: color-mix(in oklab, var(--primary) 60%, #3E342A);
-    border-color: #1A1612;
+    background: linear-gradient(180deg, #0DBB3F, #1ED760);
+    border-color: #07120D;
+  }
+
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #1ED760, #0DBB3F);
   }
 
   ::-webkit-scrollbar {
