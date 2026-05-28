@@ -67,50 +67,50 @@
 }
 
 .dark {
-  /* ── Deep Midnight Navy — premium dark theme ── */
-  --background: #0D1117;
+  /* ── Warm Dark Espresso — rich, warm, beautiful ── */
+  --background: #1A1612;
   --app-background-image: none;
-  --foreground: #E6EDF3;
+  --foreground: #F0E8D8;
 
-  --card: #161C2A;
-  --card-foreground: #E6EDF3;
-  --popover: #111827;
-  --popover-foreground: #E6EDF3;
+  --card: #272018;
+  --card-foreground: #F0E8D8;
+  --popover: #211A12;
+  --popover-foreground: #F0E8D8;
 
   --primary: #05B43D;
-  --primary-strong: #04CC44;
-  --primary-soft: rgba(5, 180, 61, 0.16);
+  --primary-strong: #06D048;
+  --primary-soft: rgba(5, 180, 61, 0.18);
   --primary-foreground: #FFFFFF;
 
-  --secondary: #1C2333;
-  --secondary-foreground: #C8D6E8;
-  --muted: #161C2A;
-  --muted-foreground: #7A8FA8;
-  --accent: #1F2D44;
-  --accent-foreground: #E6EDF3;
+  --secondary: #302820;
+  --secondary-foreground: #D8CDBC;
+  --muted: #272018;
+  --muted-foreground: #9A8E7E;
+  --accent: #362E24;
+  --accent-foreground: #F0E8D8;
 
   --destructive: #e05b6b;
   --destructive-foreground: #ffffff;
 
-  --border: rgba(110, 150, 200, 0.14);
-  --input: #161C2A;
-  --input-background: #111827;
-  --switch-background: #2C3A55;
+  --border: rgba(210, 185, 140, 0.18);
+  --input: #272018;
+  --input-background: #211A12;
+  --switch-background: #3E342A;
   --ring: #05B43D;
 
   --chart-1: #05B43D;
-  --chart-2: #04CC44;
+  --chart-2: #06D048;
   --chart-3: #f59e0b;
-  --chart-4: #7A8FA8;
+  --chart-4: #9A8E7E;
   --chart-5: #ef4444;
 
-  --sidebar: #090E1A;
-  --sidebar-foreground: #C8D6E8;
+  --sidebar: #120E0A;
+  --sidebar-foreground: #D8CDBC;
   --sidebar-primary: #05B43D;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #161C2A;
-  --sidebar-accent-foreground: #E6EDF3;
-  --sidebar-border: rgba(110, 150, 200, 0.10);
+  --sidebar-accent: #272018;
+  --sidebar-accent-foreground: #F0E8D8;
+  --sidebar-border: rgba(210, 185, 140, 0.14);
   --sidebar-ring: #05B43D;
 }
 
@@ -332,18 +332,18 @@
   }
 
   .dark [data-slot='card'] {
-    border-color: rgba(110, 150, 200, 0.16);
+    border-color: rgba(210, 185, 140, 0.20);
     box-shadow:
-      0 0 0 1px rgba(110, 150, 200, 0.08),
-      0 24px 48px -32px rgba(5, 10, 28, 0.85);
+      0 0 0 1px rgba(210, 185, 140, 0.08),
+      0 24px 48px -28px rgba(10, 6, 2, 0.80);
   }
 
   .dark [data-slot='dropdown-menu-content'],
   .dark [data-slot='dropdown-menu-sub-content'],
   .dark [data-slot='select-content'],
   .dark [data-slot='popover-content'] {
-    background: #111827;
-    border-color: rgba(110, 150, 200, 0.14);
+    background: #211A12;
+    border-color: rgba(210, 185, 140, 0.18);
     backdrop-filter: blur(20px);
   }
 
@@ -393,7 +393,7 @@
   .dark .border-slate-800,
   .dark .border-emerald-200,
   .dark .border-green-200 {
-    border-color: rgba(110, 150, 200, 0.14);
+    border-color: rgba(210, 185, 140, 0.18);
   }
 
   .dark .hover\:bg-gray-50:hover,
@@ -404,14 +404,14 @@
     background-color: var(--accent);
   }
 
-  /* Scrollbar in dark mode — green on navy */
+  /* Scrollbar in dark mode — warm golden track */
   .dark ::-webkit-scrollbar-track {
-    background: rgba(13, 17, 23, 0.6);
+    background: rgba(26, 22, 18, 0.8);
   }
 
   .dark ::-webkit-scrollbar-thumb {
-    background: color-mix(in oklab, var(--primary) 55%, #1C2333);
-    border-color: #0D1117;
+    background: color-mix(in oklab, var(--primary) 60%, #3E342A);
+    border-color: #1A1612;
   }
 
   ::-webkit-scrollbar {
