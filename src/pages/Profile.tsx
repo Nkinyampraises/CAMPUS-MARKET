@@ -135,10 +135,10 @@ export function Profile() {
 
   if (isLoadingProfile && !isOwnProfile) {
     return (
-      <div className="min-h-screen bg-[#FFFFFF] py-8">
+      <div className="min-h-screen bg-background py-8">
         <div className="w-full px-4 lg:px-8 xl:px-12">
-          <Card className="rounded-2xl border border-[#DDE3E2] bg-white p-8 text-center shadow-sm">
-            <div className="inline-flex items-center gap-2 text-[#0f6f58]">
+          <Card className="rounded-2xl border border-border bg-card p-8 text-center shadow-card">
+            <div className="inline-flex items-center gap-2 text-primary">
               <Loader2 className="h-4 w-4 animate-spin" />
               {t('ui.loading_profile', 'Loading profile...')}
             </div>
@@ -150,10 +150,10 @@ export function Profile() {
 
   if (!viewedUser) {
     return (
-      <div className="min-h-screen bg-[#FFFFFF] py-8">
+      <div className="min-h-screen bg-background py-8">
         <div className="w-full px-4 lg:px-8 xl:px-12">
-          <Card className="rounded-2xl border border-[#DDE3E2] bg-white p-8 text-center shadow-sm">
-            <p className="text-sm text-[#4A4A4A]">{t('ui.profile_not_available', 'Profile not available.')}</p>
+          <Card className="rounded-2xl border border-border bg-card p-8 text-center shadow-card">
+            <p className="text-sm text-muted-foreground">{t('ui.profile_not_available', 'Profile not available.')}</p>
           </Card>
         </div>
       </div>
@@ -258,14 +258,14 @@ export function Profile() {
       value: reviewAverage,
       caption: `${viewedUser.reviewCount} student review${viewedUser.reviewCount === 1 ? '' : 's'}`,
       icon: Star,
-      accent: 'from-amber-400 to-orange-500',
+      accent: 'from-amber-400 to-amber-500',
     },
     {
       label: 'Account Type',
       value: formatLabel(viewedUser.userType, 'Buyer'),
       caption: viewedUser.role === 'admin' ? 'Admin access enabled' : 'Campus marketplace member',
       icon: ShieldCheck,
-      accent: 'from-emerald-500 to-teal-500',
+      accent: 'from-primary to-primary-strong',
     },
     {
       label: 'Subscription',
@@ -274,7 +274,7 @@ export function Profile() {
         ? `Ends ${new Date(viewedUser.subscriptionEndDate).toLocaleDateString()}`
         : 'Trial or default access',
       icon: Award,
-      accent: 'from-sky-500 to-cyan-500',
+      accent: 'from-[var(--teal)] to-forest',
     },
   ];
   const heroMeta = [
@@ -323,57 +323,57 @@ export function Profile() {
   const nextSteps = completionItems.filter((item) => !item.complete);
 
   return (
-    <div className="min-h-screen bg-[#FFFFFF] py-8">
+    <div className="min-h-screen bg-background py-8">
       <div className="mx-auto flex w-full max-w-[1220px] flex-col gap-6 px-4 lg:px-6">
         <section className="space-y-4">
-          <div className="overflow-hidden rounded-2xl border border-[#DDE3E2] bg-white p-6 shadow-sm sm:p-8">
+          <div className="overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-card sm:p-8">
               <div className="flex flex-col gap-8">
                 <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
                   <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
                     <div className="relative">
-                      <Avatar className="h-28 w-28 rounded-3xl border border-[#c4ded3] ring-4 ring-[#e6f4ef] shadow-sm">
+                      <Avatar className="h-28 w-28 rounded-3xl border border-border ring-4 ring-primary-soft shadow-card">
                         {displayProfilePicture ? <AvatarImage src={displayProfilePicture} alt={displayName} /> : null}
-                        <AvatarFallback className="bg-[#dff2ea] text-4xl font-semibold text-[#0f5f4c]">
+                        <AvatarFallback className="bg-primary-soft text-4xl font-semibold text-primary">
                           {getInitial(displayName)}
                         </AvatarFallback>
                       </Avatar>
-                      <div className="absolute -bottom-2 -right-2 inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-[#c4ded3] bg-white text-[#0f5f4c] shadow-sm">
+                      <div className="absolute -bottom-2 -right-2 inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-border bg-card text-primary shadow-card">
                         <Camera className="h-4 w-4" />
                       </div>
                     </div>
 
                     <div className="space-y-3">
-                      <div className="inline-flex items-center gap-2 rounded-full bg-[#e8f5ef] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#0f6f58]">
+                      <div className="inline-flex items-center gap-2 rounded-full bg-primary-soft px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
                         <Sparkles className="h-3.5 w-3.5" />
                         {t('ui.profile_studio', 'Profile Studio')}
                       </div>
                       <div>
-                        <h1 className="text-3xl font-semibold leading-tight text-[#0b1f1a] sm:text-4xl">
+                        <h1 className="text-3xl font-semibold leading-tight text-foreground sm:text-4xl">
                           {displayName}
                         </h1>
-                        <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-[#4A4A4A]">
+                        <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
                           <span className="inline-flex items-center gap-2">
-                            <MapPin className="h-4 w-4 text-[#0f6f58]" />
+                            <MapPin className="h-4 w-4 text-primary" />
                             {universityName}
                           </span>
                           <span className="inline-flex items-center gap-2">
-                            <ShieldCheck className="h-4 w-4 text-[#0f6f58]" />
-                          {formatLabel(viewedUser.userType, 'Buyer')} account
+                            <ShieldCheck className="h-4 w-4 text-primary" />
+                          {formatLabel(viewedUser.userType, 'Buyer')} {t('ui.account', 'account')}
                         </span>
                       </p>
                     </div>
                       <div className="flex flex-wrap gap-2">
-                        <Badge className="rounded-full border-0 bg-[#e8f5ef] px-3 py-1 text-[#0f6f58]">
-                          {viewedUser.isVerified ? 'Verified Student' : 'Verification Pending'}
+                        <Badge className="rounded-full border-0 bg-primary-soft px-3 py-1 text-primary">
+                          {viewedUser.isVerified ? t('ui.verified_student', 'Verified Student') : t('ui.verification_pending', 'Verification Pending')}
                         </Badge>
-                        <Badge className="rounded-full border-0 bg-[#ecf4f1] px-3 py-1 text-[#365f53]">
+                        <Badge className="rounded-full border-0 bg-secondary px-3 py-1 text-secondary-foreground">
                           {viewedUser.isBanned
-                            ? 'Restricted Account'
+                            ? t('ui.restricted_account', 'Restricted Account')
                             : viewedUser.isApproved
-                              ? 'Approved to Trade'
-                              : 'Approval Pending'}
+                              ? t('ui.approved_to_trade', 'Approved to Trade')
+                              : t('ui.approval_pending', 'Approval Pending')}
                         </Badge>
-                        <Badge className="rounded-full border-0 bg-[#fff4df] px-3 py-1 text-[#8a6822]">
+                        <Badge className="rounded-full border-0 bg-[#FEF3C7] px-3 py-1 text-[#D97706]">
                           {visibilityLabel}
                         </Badge>
                       </div>
@@ -384,11 +384,7 @@ export function Profile() {
                     <div className="flex flex-wrap gap-3">
                       <Button
                         variant={isEditing ? 'outline' : 'default'}
-                        className={
-                          isEditing
-                          ? 'rounded-full border-[#bdd8cd] bg-white px-5 text-[#124a3b] hover:bg-[#f3faf7]'
-                          : 'rounded-full bg-[#05B43D] px-5 text-white hover:bg-[#018F2D]'
-                        }
+                        className="rounded-full px-5"
                         onClick={() => {
                           if (isEditing) {
                             setIsEditing(false);
@@ -400,7 +396,7 @@ export function Profile() {
                         }}
                       >
                         <Edit className="mr-2 h-4 w-4" />
-                        {isEditing ? 'Cancel editing' : 'Edit profile'}
+                        {isEditing ? t('ui.cancel_editing', 'Cancel editing') : t('ui.edit_profile', 'Edit profile')}
                       </Button>
                     </div>
                   )}
@@ -410,15 +406,15 @@ export function Profile() {
                   {heroMeta.map((item) => (
                     <div
                       key={item.label}
-                      className="rounded-2xl border border-[#DDE3E2] bg-[#f9fcfb] p-4 shadow-sm"
+                      className="rounded-2xl border border-border bg-secondary p-4 shadow-card"
                     >
-                      <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-[#05B43D] text-white">
+                      <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
                         <item.icon className="h-4 w-4" />
                       </div>
-                      <p className="mt-3 text-xs font-semibold uppercase tracking-[0.15em] text-[#5f7a71]">
+                      <p className="mt-3 text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
                         {item.label}
                       </p>
-                      <p className="mt-1 text-sm font-medium text-[#0f2c24]">
+                      <p className="mt-1 text-sm font-medium text-foreground">
                         {item.value}
                       </p>
                     </div>
@@ -431,38 +427,38 @@ export function Profile() {
             {summaryCards.map((card) => (
               <div
                 key={card.label}
-                className="rounded-2xl border border-[#DDE3E2] bg-white p-5 shadow-sm"
+                className="rounded-2xl border border-border bg-card p-5 shadow-card"
               >
-                <div className={`inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br ${card.accent} text-white shadow-lg`}>
+                <div className={`inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br ${card.accent} text-white shadow-card`}>
                   <card.icon className="h-5 w-5" />
                 </div>
-                <p className="mt-3 text-xs font-semibold uppercase tracking-[0.15em] text-[#5f7a71]">
+                <p className="mt-3 text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
                   {card.label}
                 </p>
-                <p className="mt-1 text-2xl font-semibold text-[#0f2c24]">{card.value}</p>
-                <p className="mt-1 text-sm text-[#4A4A4A]">{card.caption}</p>
+                <p className="mt-1 text-2xl font-semibold text-foreground">{card.value}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{card.caption}</p>
               </div>
             ))}
 
-            <div className="rounded-2xl border border-[#05B43D] bg-[#05B43D] p-5 text-white shadow-sm">
+            <div className="rounded-2xl border border-primary bg-primary p-5 text-primary-foreground shadow-card">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[#bde9db]">
+                  <p className="text-xs font-semibold uppercase tracking-[0.15em] text-primary-foreground/80">
                     {t('ui.profile_strength', 'Profile Strength')}
                   </p>
                   <p className="mt-1 text-3xl font-semibold">{completionPercent}%</p>
                 </div>
-                <Sparkles className="h-6 w-6 text-[#bde9db]" />
+                <Sparkles className="h-6 w-6 text-primary-foreground/80" />
               </div>
               <div className="mt-4 h-2.5 rounded-full bg-white/20">
-                <div className="h-2.5 rounded-full bg-[#7ce6c8]" style={{ width: `${completionPercent}%` }} />
+                <div className="h-2.5 rounded-full bg-[var(--teal-light)]" style={{ width: `${completionPercent}%` }} />
               </div>
-              <div className="mt-4 space-y-2 text-sm text-[#daf1e9]">
+              <div className="mt-4 space-y-2 text-sm text-primary-foreground/90">
                 {completionItems.map((item) => (
                   <div key={item.label} className="flex items-center justify-between gap-3">
                     <span>{item.label}</span>
-                    <span className={item.complete ? 'text-[#9af2d7]' : 'text-[#8fd1bf]'}>
-                      {item.complete ? 'Done' : 'Missing'}
+                    <span className={item.complete ? 'text-[var(--teal-light)]' : 'text-primary-foreground/70'}>
+                      {item.complete ? t('ui.done', 'Done') : t('ui.missing', 'Missing')}
                     </span>
                   </div>
                 ))}
@@ -473,41 +469,41 @@ export function Profile() {
 
         <section className="space-y-5">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[#0f6f58]">
+            <p className="text-xs font-semibold uppercase tracking-[0.15em] text-primary">
               {t('ui.account_view', 'Account View')}
             </p>
-            <h2 className="mt-2 text-2xl font-semibold text-[#0b1f1a] sm:text-3xl">
+            <h2 className="mt-2 text-2xl font-semibold text-foreground sm:text-3xl">
               {t('ui.profile_details', 'Détails du profil')}
             </h2>
-            <p className="mt-2 max-w-2xl text-sm text-[#4A4A4A]">
-              Keep your profile sharp, trustworthy, and easy for other students to understand at a glance.
+            <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+              {t('ui.profile_details_subtitle', 'Keep your profile sharp, trustworthy, and easy for other students to understand at a glance.')}
             </p>
           </div>
 
           <div className="grid gap-6 xl:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)]">
-              <Card className="rounded-2xl border border-[#DDE3E2] bg-white shadow-sm">
+              <Card className="rounded-2xl border border-border bg-card shadow-card">
                 <CardHeader className="space-y-3">
-                  <div className="inline-flex w-fit items-center gap-2 rounded-full bg-[#e8f5ef] px-3 py-1 text-xs font-semibold uppercase tracking-[0.15em] text-[#0f6f58]">
+                  <div className="inline-flex w-fit items-center gap-2 rounded-full bg-primary-soft px-3 py-1 text-xs font-semibold uppercase tracking-[0.15em] text-primary">
                     <User className="h-3.5 w-3.5" />
                     {t('ui.personal_profile', 'Personal profile')}
                   </div>
-                  <CardTitle className="text-2xl font-semibold text-[#0b1f1a]">
-                    {isEditing ? 'Polish your public profile' : 'The details students will see first'}
+                  <CardTitle className="text-2xl font-semibold text-foreground">
+                    {isEditing ? t('ui.polish_public_profile', 'Polish your public profile') : t('ui.details_students_see_first', 'The details students will see first')}
                   </CardTitle>
-                  <CardDescription className="max-w-2xl text-sm text-[#4A4A4A]">
+                  <CardDescription className="max-w-2xl text-sm text-muted-foreground">
                     {isEditing
-                      ? 'Update the essentials that make you look credible, clear, and easy to trust.'
-                      : 'These details shape how buyers and sellers experience your account across the marketplace.'}
+                      ? t('ui.update_essentials_credible', 'Update the essentials that make you look credible, clear, and easy to trust.')
+                      : t('ui.details_shape_experience', 'These details shape how buyers and sellers experience your account across the marketplace.')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   {isEditing ? (
                     <div className="space-y-5">
-                      <div className="rounded-2xl border border-[#cfe4db] bg-[#f2faf6] p-5">
+                      <div className="rounded-2xl border border-border bg-primary-soft p-5">
                         <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-                          <Avatar className="h-24 w-24 rounded-2xl border border-[#c4ded3] ring-4 ring-[#e6f4ef]">
+                          <Avatar className="h-24 w-24 rounded-2xl border border-border ring-4 ring-primary-soft">
                             {displayProfilePicture ? <AvatarImage src={displayProfilePicture} alt={displayName} /> : null}
-                            <AvatarFallback className="bg-[#dff2ea] text-3xl font-semibold text-[#0f5f4c]">
+                            <AvatarFallback className="bg-primary-soft text-3xl font-semibold text-primary">
                               {getInitial(displayName)}
                             </AvatarFallback>
                           </Avatar>
@@ -519,13 +515,13 @@ export function Profile() {
                               accept="image/*"
                               disabled={uploadingProfilePicture}
                               onChange={(e) => handleProfilePictureUpload(e.target.files?.[0] || null)}
-                              className="border-[#cfe0d8] bg-white"
+                              className="border-border bg-input"
                             />
-                            <p className="text-xs text-[#5f7a71]">
-                              JPG, PNG, or WEBP up to 5MB. A clear photo helps your account feel more trustworthy.
+                            <p className="text-xs text-muted-foreground">
+                              {t('ui.profile_photo_hint', 'JPG, PNG, or WEBP up to 5MB. A clear photo helps your account feel more trustworthy.')}
                             </p>
                             {uploadingProfilePicture && (
-                              <p className="inline-flex items-center gap-2 text-xs font-medium text-[#0f6f58]">
+                              <p className="inline-flex items-center gap-2 text-xs font-medium text-primary">
                                 <Loader2 className="h-3 w-3 animate-spin" />
                                 {t('ui.uploading_profile_picture', 'Uploading profile picture...')}
                               </p>
@@ -541,7 +537,7 @@ export function Profile() {
                             id="name"
                             value={formData.name}
                             onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-                            className="border-[#cfe0d8] bg-white"
+                            className="border-border bg-input"
                           />
                         </div>
 
@@ -551,7 +547,7 @@ export function Profile() {
                             id="phone"
                             value={formData.phone}
                             onChange={(e) => setFormData((prev) => ({ ...prev, phone: e.target.value }))}
-                            className="border-[#cfe0d8] bg-white"
+                            className="border-border bg-input"
                           />
                         </div>
 
@@ -561,20 +557,20 @@ export function Profile() {
                             id="studentId"
                             value={formData.studentId}
                             onChange={(e) => setFormData((prev) => ({ ...prev, studentId: e.target.value }))}
-                            className="border-[#cfe0d8] bg-white"
+                            className="border-border bg-input"
                           />
                         </div>
 
                         <div className="space-y-2">
                           <Label>{t('ui.email_address', 'Email address')}</Label>
-                          <Input value={currentUser.email} disabled className="bg-[#eef3f1]" />
-                          <p className="text-xs text-[#5f7a71]">{t('ui.email_cannot_be_changed_here', 'Email cannot be changed here.')}</p>
+                          <Input value={currentUser.email} disabled className="bg-muted" />
+                          <p className="text-xs text-muted-foreground">{t('ui.email_cannot_be_changed_here', 'Email cannot be changed here.')}</p>
                         </div>
 
                         <div className="space-y-2 md:col-span-2">
                           <Label>{t('ui.university', 'University')}</Label>
-                          <Input value={universityName} disabled className="bg-[#eef3f1]" />
-                          <p className="text-xs text-[#5f7a71]">
+                          <Input value={universityName} disabled className="bg-muted" />
+                          <p className="text-xs text-muted-foreground">
                             {t('ui.your_university_stays_fixed_so_your_campus_identit', 'Your university stays fixed so your campus identity remains consistent.')}
                           </p>
                         </div>
@@ -584,7 +580,7 @@ export function Profile() {
                         <Button
                           onClick={handleSaveProfile}
                           disabled={uploadingProfilePicture}
-                          className="flex-1 rounded-full bg-[#05B43D] text-white hover:bg-[#018F2D]"
+                          className="flex-1 rounded-full"
                         >
                           {t('ui.save_changes', 'Save changes')}
                         </Button>
@@ -594,7 +590,7 @@ export function Profile() {
                             setIsEditing(false);
                             resetForm();
                           }}
-                          className="flex-1 rounded-full border-[#c2d9cf] text-[#124a3b] hover:bg-[#f3faf7]"
+                          className="flex-1 rounded-full"
                         >
                           {t('ui.cancel', 'Cancel')}
                         </Button>
@@ -605,15 +601,15 @@ export function Profile() {
                       {detailCards.map((item) => (
                         <div
                           key={item.label}
-                          className="rounded-2xl border border-[#DDE3E2] bg-[#f9fcfb] p-4"
+                          className="rounded-2xl border border-border bg-secondary p-4"
                         >
-                          <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-[#0f6f58] shadow-sm">
+                          <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-card text-primary shadow-card">
                             <item.icon className="h-4 w-4" />
                           </div>
-                          <p className="mt-3 text-xs font-semibold uppercase tracking-[0.15em] text-[#5f7a71]">
+                          <p className="mt-3 text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
                             {item.label}
                           </p>
-                          <p className="mt-1 text-sm font-medium text-[#0f2c24]">
+                          <p className="mt-1 text-sm font-medium text-foreground">
                             {item.value}
                           </p>
                         </div>
@@ -624,13 +620,13 @@ export function Profile() {
               </Card>
 
               <div className="space-y-6">
-                <Card className="rounded-[2rem] border border-white/70 bg-white/88 shadow-[0_30px_90px_-55px_rgba(14,165,233,0.45)] backdrop-blur-sm dark:border-white/10 dark:bg-slate-950/70">
+                <Card className="rounded-2xl border border-border bg-card shadow-card">
                   <CardHeader className="space-y-3">
-                    <div className="inline-flex w-fit items-center gap-2 rounded-full bg-sky-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-sky-700 dark:bg-sky-400/15 dark:text-sky-200">
+                    <div className="inline-flex w-fit items-center gap-2 rounded-full bg-accent px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-accent-foreground">
                       <ShieldCheck className="h-3.5 w-3.5" />
                       {t('ui.trust_markers', 'Trust Markers')}
                     </div>
-                    <CardTitle className="text-xl font-serif text-slate-950 dark:text-white">
+                    <CardTitle className="text-xl font-semibold text-foreground">
                       {t('ui.signals_that_build_confidence', 'Signals that build confidence')}
                     </CardTitle>
                   </CardHeader>
@@ -638,58 +634,58 @@ export function Profile() {
                     {trustItems.map((item) => (
                       <div
                         key={item.title}
-                        className="flex gap-4 rounded-[1.4rem] border border-slate-200/80 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-900/60"
+                        className="flex gap-4 rounded-xl border border-border bg-secondary p-4"
                       >
-                        <div className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${item.active ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-500 dark:bg-slate-800 dark:text-slate-300'}`}>
+                        <div className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${item.active ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
                           <item.icon className="h-5 w-5" />
                         </div>
                         <div>
-                          <p className="font-semibold text-slate-900 dark:text-slate-100">{item.title}</p>
-                          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{item.description}</p>
+                          <p className="font-semibold text-foreground">{item.title}</p>
+                          <p className="mt-1 text-sm text-muted-foreground">{item.description}</p>
                         </div>
                       </div>
                     ))}
                   </CardContent>
                 </Card>
 
-                <Card className="rounded-[2rem] border border-white/70 bg-white/88 shadow-[0_30px_90px_-55px_rgba(245,158,11,0.4)] backdrop-blur-sm dark:border-white/10 dark:bg-slate-950/70">
+                <Card className="rounded-2xl border border-border bg-card shadow-card">
                   <CardHeader className="space-y-3">
-                    <div className="inline-flex w-fit items-center gap-2 rounded-full bg-amber-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-amber-700 dark:bg-amber-400/15 dark:text-amber-200">
+                    <div className="inline-flex w-fit items-center gap-2 rounded-full bg-[#FEF3C7] px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-[#D97706]">
                       <Award className="h-3.5 w-3.5" />
                       {t('ui.visibility', 'Visibility')}
                     </div>
-                    <CardTitle className="text-xl font-serif text-slate-950 dark:text-white">
+                    <CardTitle className="text-xl font-semibold text-foreground">
                       {t('ui.marketplace_snapshot', 'Marketplace snapshot')}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="rounded-[1.4rem] border border-slate-200/80 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-900/60">
-                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                    <div className="rounded-xl border border-border bg-secondary p-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                         {t('ui.profile_visibility', 'Profile visibility')}
                       </p>
-                      <p className="mt-2 text-sm font-medium text-slate-900 dark:text-slate-100">{visibilityLabel}</p>
+                      <p className="mt-2 text-sm font-medium text-foreground">{visibilityLabel}</p>
                     </div>
-                    <div className="rounded-[1.4rem] border border-slate-200/80 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-900/60">
-                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                    <div className="rounded-xl border border-border bg-secondary p-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                         {t('ui.current_plan', 'Current plan')}
                       </p>
-                      <p className="mt-2 text-sm font-medium text-slate-900 dark:text-slate-100">{subscriptionLabel}</p>
+                      <p className="mt-2 text-sm font-medium text-foreground">{subscriptionLabel}</p>
                     </div>
-                    <div className="rounded-[1.4rem] border border-dashed border-emerald-200/80 bg-emerald-50/70 p-4 dark:border-emerald-500/20 dark:bg-emerald-500/10">
-                      <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                        {nextSteps.length > 0 ? 'Next best improvements' : 'Your profile is in strong shape'}
+                    <div className="rounded-xl border border-dashed border-primary/40 bg-primary-soft p-4">
+                      <p className="text-sm font-semibold text-foreground">
+                        {nextSteps.length > 0 ? t('ui.next_best_improvements', 'Next best improvements') : t('ui.profile_strong_shape', 'Your profile is in strong shape')}
                       </p>
                       {nextSteps.length > 0 ? (
                         <div className="mt-3 space-y-2">
                           {nextSteps.map((item) => (
-                            <div key={item.label} className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-                              <Sparkles className="h-4 w-4 text-emerald-600 dark:text-emerald-300" />
+                            <div key={item.label} className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Sparkles className="h-4 w-4 text-primary" />
                               {item.label}
                             </div>
                           ))}
                         </div>
                       ) : (
-                        <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                        <p className="mt-2 text-sm text-muted-foreground">
                           {t('ui.you_already_have_the_key_ingredients_for_a_trustwo', 'You already have the key ingredients for a trustworthy campus profile.')}
                         </p>
                       )}

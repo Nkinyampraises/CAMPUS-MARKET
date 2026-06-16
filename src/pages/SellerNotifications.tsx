@@ -113,13 +113,13 @@ export function SellerNotifications() {
                 <button
                   type="button"
                   key={notification.id}
-                  className="w-full text-left border rounded-lg p-4 hover:bg-muted/40 transition-colors"
+                  className="w-full text-left border border-border bg-card rounded-lg p-4 hover:bg-accent transition-colors"
                   onClick={() => markSingleAsRead(notification.id)}
                 >
                   <div className="flex items-center justify-between gap-2 mb-1">
                     <p className="font-semibold">{notification.title || 'Notification'}</p>
-                    <Badge variant={notification.read ? 'secondary' : 'default'}>
-                      {notification.read ? 'Read' : 'New'}
+                    <Badge className={notification.read ? 'bg-muted text-muted-foreground' : 'bg-[#CCFBF1] text-[#0D9488]'}>
+                      {notification.read ? t('ui.read', 'Read') : t('ui.new', 'New')}
                     </Badge>
                   </div>
                   <p className="text-sm text-muted-foreground mb-1">{notification.message}</p>

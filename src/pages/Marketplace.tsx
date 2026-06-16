@@ -1,20 +1,43 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Input } from '@/app/components/ui/input';
 import { Button } from '@/app/components/ui/button';
-import { Card, CardContent, CardFooter } from '@/app/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
-import { Badge } from '@/app/components/ui/badge';
-import { Search, Filter, MapPin, Heart, X } from 'lucide-react';
+import { Checkbox } from '@/app/components/ui/checkbox';
+import { Switch } from '@/app/components/ui/switch';
+import { Slider } from '@/app/components/ui/slider';
+import {
+  MapPin, X, SlidersHorizontal, LayoutGrid, List, GraduationCap,
+  Laptop, BookOpen, Sofa, Shirt, Wrench, Package, ChevronLeft, ChevronRight,
+} from 'lucide-react';
+import { useHeaderHeight } from '@/hooks/useHeaderHeight';
+
+const ITEMS_PER_PAGE = 12;
+
+const CONDITION_OPTIONS = [
+  { id: 'new', label: 'New' },
+  { id: 'like new', label: 'Like New' },
+  { id: 'good', label: 'Good' },
+];
+
+const PRICE_SLIDER_MAX = 100000;
+
+const categoryIcon = (name: string) => {
+  const n = (name || '').toLowerCase();
+  if (/electronic|tech|phone|laptop|computer/.test(n)) return Laptop;
+  if (/book|textbook|stationery|study/.test(n)) return BookOpen;
+  if (/furniture|sofa|chair|table|bed/.test(n)) return Sofa;
+  if (/fashion|cloth|wear|apparel/.test(n)) return Shirt;
+  if (/service/.test(n)) return Wrench;
+  return Package;
+};
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { normalizeImageUrl } from '@/lib/images';
-import { ResilientImage } from '@/components/ResilientImage';
-import { useAutoTranslate } from '@/hooks/useAutoTranslate';
+import { cn } from '@/app/components/ui/utils';
+import { ProductCard } from '@/components/ProductCard';
 
 import { API_URL } from '@/lib/api';
-import { universities as mockUniversities, getUniversityById } from '@/data/mockData';
+import { universities as mockUniversities, getUniversityById, getCategoryById } from '@/data/mockData';
 
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat('fr-CM', {
@@ -65,101 +88,19 @@ const MARKETPLACE_SORTS = new Set(['recent', 'price-low', 'price-high']);
 const PRICE_RANGE_OPTIONS = [
   { id: 'all', label: 'Any Price', min: 0, max: Infinity },
   { id: 'under-100', label: 'Under 100,000 FCFA', min: 0, max: 100000 },
-  { id: '100-500', label: '100,000 - 500,000 FCFA', min: 100000, max: 500000 },
-  { id: '500-1000', label: '500,000 - 1,000,000 FCFA', min: 500000, max: 1000000 },
+  { id: '100-500', label: '100,000 – 500,000 FCFA', min: 100000, max: 500000 },
+  { id: '500-1000', label: '500,000 – 1,000,000 FCFA', min: 500000, max: 1000000 },
   { id: '1000', label: '1,000,000+ FCFA', min: 1000000, max: Infinity },
 ];
 
-// ── ProductCard ─────────────────────────────────────────────────────────────
-// Renders a single marketplace card. Auto-translates title and description
-// into French when the app language is set to FR (via Google MyMemory API).
-function ProductCard({
-  item, isSaved, onSave, onNavigate, t, formatCurrency, resolveLocationLabel,
-}: {
-  item: any;
-  isSaved: boolean;
-  onSave: (id: string) => void;
-  onNavigate: () => void;
-  t: (key: string, fallback?: string) => string;
-  formatCurrency: (n: number) => string;
-  resolveLocationLabel: (item: any) => string;
-}) {
-  const { translated, isTranslating } = useAutoTranslate([
-    item.title || '',
-    item.description || '',
-  ]);
-  const [translatedTitle, translatedDesc] = translated;
-  const primaryImage = normalizeImageUrl(item.images?.[0]);
-  const seller = item.seller || null;
-
-  return (
-    <Card
-      className="group flex h-full cursor-pointer flex-col overflow-hidden rounded-3xl border border-[#efe7e1] bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
-      onClick={onNavigate}
-    >
-      <div className="relative aspect-[4/3] overflow-hidden bg-[#f0ebe8]">
-        {primaryImage ? (
-          <ResilientImage
-            src={primaryImage}
-            alt={item.title}
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-            fallback={<div className="flex h-full items-center justify-center text-xs text-[#8a8a8a]">{t('ui.no_image_available', 'No image available')}</div>}
-          />
-        ) : (
-          <div className="flex h-full items-center justify-center text-xs text-[#8a8a8a]">{t('ui.no_image_available', 'No image available')}</div>
-        )}
-        <button
-          type="button"
-          onClick={(e) => { e.stopPropagation(); onSave(item.id); }}
-          className="absolute right-3 top-3 rounded-full bg-white/90 p-2 shadow-sm transition-colors hover:bg-[#ffe7ec]"
-          aria-label={isSaved ? 'Remove from favorites' : 'Save item'}
-        >
-          <Heart className={`h-4 w-4 ${isSaved ? 'fill-[#e35166] text-[#e35166]' : 'text-[#8a8a8a]'}`} />
-        </button>
-        {item.seller?.university && (
-          <Badge className="absolute bottom-3 left-3 rounded-full border-0 bg-black px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.15em] text-white">
-            {t('marketplace.verifiedStudent', 'Verified Student')}
-          </Badge>
-        )}
-      </div>
-
-      <CardContent className="flex-1 space-y-3 p-4">
-        <h3 className={`line-clamp-1 text-base font-bold text-[#111111] ${isTranslating ? 'opacity-60' : ''}`}>
-          {translatedTitle || item.title}
-        </h3>
-        <p className={`line-clamp-2 text-sm font-semibold text-[#4A4A4A] ${isTranslating ? 'opacity-60' : ''}`}>
-          {translatedDesc || item.description || t('marketplace.noDescription', 'No description provided.')}
-        </p>
-        <p className="text-xl font-extrabold text-[#111111]">{formatCurrency(item.price)}</p>
-        <div className="flex items-center gap-2 text-sm font-semibold text-[#8A8A8A]">
-          <span className="inline-flex items-center gap-1">
-            <MapPin className="h-3.5 w-3.5" />
-            {resolveLocationLabel(item)}
-          </span>
-        </div>
-      </CardContent>
-
-      <CardFooter className="flex items-center justify-between p-4 pt-0">
-        <span className="truncate text-sm font-semibold text-[#4A4A4A]">
-          {seller?.name || t('marketplace.unknownSeller', 'Unknown Seller')}
-        </span>
-        <button
-          type="button"
-          className="text-sm font-bold text-[#05B43D] hover:text-[#018F2D]"
-          onClick={(e) => { e.stopPropagation(); onNavigate(); }}
-        >
-          {t('marketplace.viewDetails', 'View Details')}
-        </button>
-      </CardFooter>
-    </Card>
-  );
-}
-
+// ── Marketplace ──────────────────────────────────────────────────────────────
 export function Marketplace() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { isAuthenticated, accessToken, refreshAuthToken } = useAuth();
   const { t } = useLanguage();
+
+  // ── State (all unchanged) ─────────────────────────────────────────────────
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedType, setSelectedType] = useState<string>('all');
@@ -173,6 +114,16 @@ export function Marketplace() {
   const [universitiesList, setUniversitiesList] = useState<NamedOption[]>([]);
   const [savedItems, setSavedItems] = useState<Set<string>>(new Set());
 
+  // UI-only: mobile sidebar toggle + view mode + extra filters (match reference)
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [selectedConditions, setSelectedConditions] = useState<Set<string>>(new Set());
+  const [verifiedOnly, setVerifiedOnly] = useState(false);
+  const [maxPrice, setMaxPrice] = useState(PRICE_SLIDER_MAX);
+  const [currentPage, setCurrentPage] = useState(1);
+  const headerHeight = useHeaderHeight();
+
+  // ── Sync URL params → state (unchanged) ──────────────────────────────────
   useEffect(() => {
     const query = String(searchParams.get('q') || '').trim();
     const rawType = String(searchParams.get('type') || '').toLowerCase();
@@ -193,6 +144,7 @@ export function Marketplace() {
     setSortBy(MARKETPLACE_SORTS.has(rawSort) ? rawSort : 'recent');
   }, [searchParams, categoriesList]);
 
+  // ── Fetch data (unchanged) ────────────────────────────────────────────────
   useEffect(() => {
     const fetchMarketplaceData = async () => {
       try {
@@ -225,17 +177,14 @@ export function Marketplace() {
             const resolved: Record<string, string> = {};
             const list: NamedOption[] = [];
 
-            // Always seed with mockData universities (IDs '1','2',... used during registration)
             mockUniversities.forEach((uni: any) => {
               const id   = String(uni?.id || '').trim().toLowerCase();
               const name = String(uni?.name || '').trim();
               if (id && name) { resolved[id] = name; list.push({ id, name }); }
               if (name)       { resolved[name.toLowerCase()] = name; }
-              // also seed the location field (city/area) if available
               if (uni?.location) { resolved[String(uni.location).toLowerCase()] = name; }
             });
 
-            // Then overlay with API universities (UNI-xxx IDs created by admin)
             if (response.ok && Array.isArray(data.universities)) {
               data.universities.forEach((entry: any) => {
                 const id   = String(entry?.id || '').trim().toLowerCase();
@@ -283,11 +232,10 @@ export function Marketplace() {
     fetchMarketplaceData();
   }, [t]);
 
+  // ── Label resolvers (all unchanged) ──────────────────────────────────────
   const sectionLabel = useMemo(() => {
     const raw = String(searchParams.get('section') || '').trim();
-    if (!raw) {
-      return '';
-    }
+    if (!raw) return '';
     return raw
       .split(/[-_ ]+/)
       .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
@@ -296,83 +244,71 @@ export function Marketplace() {
 
   const resolveCategoryLabel = (value?: string) => {
     const raw = String(value || '').trim();
-    if (!raw) {
-      return t('marketplace.categoryNotSpecified', 'Category not specified');
-    }
-
+    if (!raw) return t('marketplace.categoryNotSpecified', 'Category not specified');
     const fromBackend = categoriesById[raw.toLowerCase()];
-    if (fromBackend) {
-      return fromBackend;
-    }
-
-    if (/^\d+$/.test(raw)) {
-      return t('marketplace.categoryNotSpecified', 'Category not specified');
-    }
-
+    if (fromBackend) return fromBackend;
+    const fromMock = getCategoryById(raw);
+    if (fromMock) return fromMock.name;
+    if (/^\d+$/.test(raw)) return t('marketplace.categoryNotSpecified', 'Category not specified');
     return raw;
   };
 
-  // Resolves a university ID or name to a human-readable label.
-  // Handles both simple numeric IDs ('1') and dynamic IDs ('UNI-xxxx').
+  // Category options built from the categories the listings ACTUALLY use,
+  // so every option returns results regardless of legacy vs backend IDs.
+  const categoryOptions = useMemo(() => {
+    const notSpecified = t('marketplace.categoryNotSpecified', 'Category not specified');
+    const byName = new Map<string, { id: string; name: string }>();
+    for (const item of listings) {
+      const raw = String(item.category || '').trim();
+      if (!raw) continue;
+      const name = resolveCategoryLabel(raw);
+      if (!name || name === notSpecified) continue;
+      const key = name.toLowerCase();
+      if (!byName.has(key)) byName.set(key, { id: raw, name });
+    }
+    return Array.from(byName.values()).sort((a, b) => a.name.localeCompare(b.name));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [listings, categoriesById, t]);
+
   const resolveUniversityLabel = (value?: string) => {
     const raw = String(value || '').trim();
     if (!raw) return t('marketplace.universityNotSpecified', 'University not specified');
-
-    // 1. Check the combined map (mockData + API universities)
     const fromMap = universitiesById[raw.toLowerCase()];
     if (fromMap) return fromMap;
-
-    // 2. Fallback: check mockData directly (covers numeric IDs '1','2',...)
     const fromMock = getUniversityById(raw);
     if (fromMock) return fromMock.name;
-
-    // 3. Hide raw generated IDs that couldn't be resolved
     if (/^\d+$/.test(raw) || /^(UNI|CAT|LOC|UB|UY)-[\d]+-[a-z0-9]+$/i.test(raw)) {
       return t('marketplace.universityNotSpecified', 'University not specified');
     }
-
     return raw;
   };
 
   const resolveLocationLabel = (item: Listing) => {
-    // Try seller's university first
     const sellerUniversity = resolveUniversityLabel(item.seller?.university);
     if (sellerUniversity !== t('marketplace.universityNotSpecified', 'University not specified')) {
       return sellerUniversity;
     }
-
-    // Try item's location field
     const rawLocation = String(item.location || '').trim();
     if (!rawLocation) return t('marketplace.locationNotSpecified', 'Location not specified');
-
-    // Try to resolve the location field as a university/city ID
     const fromMap = universitiesById[rawLocation.toLowerCase()];
     if (fromMap) return fromMap;
-
     const fromMock = getUniversityById(rawLocation);
     if (fromMock) return fromMock.name;
-
-    // Hide unresolved raw generated IDs
     if (/^\d+$/.test(rawLocation) || /^(UNI|CAT|LOC|UB|UY)-[\d]+-[a-z0-9]+$/i.test(rawLocation)) {
       return t('marketplace.locationNotSpecified', 'Location not specified');
     }
-
     return rawLocation;
   };
 
+  // ── Auth-retry request helper (unchanged) ─────────────────────────────────
   const requestWithAuthRetry = async (path: string, init?: RequestInit) => {
     const token = accessToken || localStorage.getItem('accessToken');
-    if (!token) {
-      return { response: null as Response | null, data: { error: 'Unauthorized' } };
-    }
+    if (!token) return { response: null as Response | null, data: { error: 'Unauthorized' } };
 
     const makeRequest = (authToken: string) =>
       fetch(`${API_URL}${path}`, {
         ...init,
-        headers: {
-          ...(init?.headers || {}),
-          Authorization: `Bearer ${authToken}`,
-        },
+        headers: { ...(init?.headers || {}), Authorization: `Bearer ${authToken}` },
       });
 
     let response = await makeRequest(token);
@@ -380,10 +316,7 @@ export function Marketplace() {
 
     if (response.status === 401) {
       const refreshed = await refreshAuthToken();
-      if (!refreshed) {
-        return { response, data };
-      }
-
+      if (!refreshed) return { response, data };
       response = await makeRequest(refreshed);
       data = await response.json().catch(() => ({}));
     }
@@ -391,24 +324,17 @@ export function Marketplace() {
     return { response, data };
   };
 
+  // ── Favorites (unchanged) ─────────────────────────────────────────────────
   useEffect(() => {
     const fetchFavorites = async () => {
-      if (!isAuthenticated || !accessToken) {
-        setSavedItems(new Set());
-        return;
-      }
-
+      if (!isAuthenticated || !accessToken) { setSavedItems(new Set()); return; }
       try {
         const { response, data } = await requestWithAuthRetry('/favorites');
         if (!response.ok || !Array.isArray(data.favorites)) {
-          if (response.status !== 401) {
-            toast.error(data.error || t('marketplace.failedLoadLikes', 'Failed to load liked items'));
-          } else {
-            setSavedItems(new Set());
-          }
+          if (response.status !== 401) toast.error(data.error || t('marketplace.failedLoadLikes', 'Failed to load liked items'));
+          else setSavedItems(new Set());
           return;
         }
-
         const next = new Set<string>(
           data.favorites
             .map((entry: any) => String(entry?.id || '').trim())
@@ -419,20 +345,12 @@ export function Marketplace() {
         toast.error(t('marketplace.failedLoadLikes', 'Failed to load liked items'));
       }
     };
-
     fetchFavorites();
   }, [isAuthenticated, accessToken, refreshAuthToken, t]);
 
   const handleSaveItem = async (itemId: string) => {
-    if (!isAuthenticated) {
-      navigate('/login');
-      return;
-    }
-
-    if (!accessToken) {
-      toast.error(t('marketplace.loginToLike', 'Please login to like items'));
-      return;
-    }
+    if (!isAuthenticated) { navigate('/login'); return; }
+    if (!accessToken) { toast.error(t('marketplace.loginToLike', 'Please login to like items')); return; }
 
     const wasSaved = savedItems.has(itemId);
     const endpoint = wasSaved ? `/favorites/${itemId}` : '/favorites';
@@ -441,42 +359,25 @@ export function Marketplace() {
     try {
       const { response, data } = await requestWithAuthRetry(endpoint, {
         method,
-        headers: {
-          ...(wasSaved ? {} : { 'Content-Type': 'application/json' }),
-        },
+        headers: { ...(wasSaved ? {} : { 'Content-Type': 'application/json' }) },
         ...(wasSaved ? {} : { body: JSON.stringify({ itemId }) }),
       });
       if (!response.ok) {
-        if (response.status === 401) {
-          toast.error(t('marketplace.loginToLike', 'Please login to like items'));
-          navigate('/login');
-        } else {
-          toast.error(data.error || t('marketplace.failedUpdateLike', 'Failed to update like'));
-        }
+        if (response.status === 401) { toast.error(t('marketplace.loginToLike', 'Please login to like items')); navigate('/login'); }
+        else toast.error(data.error || t('marketplace.failedUpdateLike', 'Failed to update like'));
         return;
       }
-
       setSavedItems((prev) => {
         const next = new Set(prev);
-        if (wasSaved) {
-          next.delete(itemId);
-        } else {
-          next.add(itemId);
-        }
+        wasSaved ? next.delete(itemId) : next.add(itemId);
         return next;
       });
-
       setListings((prev) =>
         prev.map((listing) => {
           if (listing.id !== itemId) return listing;
           const apiLikes = Number(data?.likesCount);
-          const fallback = wasSaved
-            ? Math.max(0, toCount(listing.likesCount) - 1)
-            : toCount(listing.likesCount) + 1;
-          return {
-            ...listing,
-            likesCount: Number.isFinite(apiLikes) ? Math.max(0, Math.floor(apiLikes)) : fallback,
-          };
+          const fallback = wasSaved ? Math.max(0, toCount(listing.likesCount) - 1) : toCount(listing.likesCount) + 1;
+          return { ...listing, likesCount: Number.isFinite(apiLikes) ? Math.max(0, Math.floor(apiLikes)) : fallback };
         }),
       );
     } catch {
@@ -484,6 +385,7 @@ export function Marketplace() {
     }
   };
 
+  // ── Filtering & sorting (unchanged) ──────────────────────────────────────
   const filteredItems = useMemo(() => {
     let filtered = listings.filter((item) => String(item.status || 'available').toLowerCase() === 'available');
 
@@ -540,239 +442,470 @@ export function Marketplace() {
       });
     }
 
-    if (sortBy === 'price-low') {
-      filtered = filtered.slice().sort((a, b) => (a.price || 0) - (b.price || 0));
-    } else if (sortBy === 'price-high') {
-      filtered = filtered.slice().sort((a, b) => (b.price || 0) - (a.price || 0));
-    } else if (sortBy === 'recent') {
-      filtered = filtered.slice().sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+    if (selectedConditions.size > 0) {
+      filtered = filtered.filter((item) =>
+        selectedConditions.has(String(item.condition || '').trim().toLowerCase()),
+      );
     }
 
+    if (verifiedOnly) {
+      filtered = filtered.filter((item) => Boolean(item.seller?.isVerified || item.seller?.university));
+    }
+
+    if (maxPrice < PRICE_SLIDER_MAX) {
+      filtered = filtered.filter((item) => Number(item.price || 0) <= maxPrice);
+    }
+
+    if (sortBy === 'price-low') filtered = filtered.slice().sort((a, b) => (a.price || 0) - (b.price || 0));
+    else if (sortBy === 'price-high') filtered = filtered.slice().sort((a, b) => (b.price || 0) - (a.price || 0));
+    else if (sortBy === 'recent') filtered = filtered.slice().sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+
     return filtered;
-  }, [searchQuery, selectedCategory, selectedType, selectedPriceRange, selectedUniversity, sortBy, listings, categoriesById, universitiesById, t]);
+  }, [searchQuery, selectedCategory, selectedType, selectedPriceRange, selectedUniversity, selectedConditions, verifiedOnly, maxPrice, sortBy, listings, categoriesById, universitiesById, t]);
 
-  const saleCount = useMemo(
-    () => filteredItems.filter((item) => item.type === 'sell').length,
-    [filteredItems],
+  const saleCount  = useMemo(() => filteredItems.filter((item) => item.type === 'sell').length, [filteredItems]);
+  const rentCount  = useMemo(() => filteredItems.filter((item) => item.type === 'rent').length, [filteredItems]);
+
+  // ── Pagination ────────────────────────────────────────────────────────────
+  const totalPages = Math.max(1, Math.ceil(filteredItems.length / ITEMS_PER_PAGE));
+  const pagedItems = useMemo(
+    () => filteredItems.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE),
+    [filteredItems, currentPage],
   );
-  const rentCount = useMemo(
-    () => filteredItems.filter((item) => item.type === 'rent').length,
-    [filteredItems],
-  );
-  const totalVisibleLikes = useMemo(
-    () => filteredItems.reduce((total, item) => total + toCount(item.likesCount), 0),
-    [filteredItems],
-  );
+  // Reset to first page whenever the result set changes (filters / search / sort)
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedCategory, selectedType, selectedPriceRange, selectedUniversity, selectedConditions, verifiedOnly, maxPrice, sortBy]);
+  // Keep the current page valid if the list shrinks
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
+
+  const pageNumbers = useMemo(() => {
+    const pages: (number | 'ellipsis')[] = [];
+    const window = 1; // pages to show either side of current
+    for (let p = 1; p <= totalPages; p += 1) {
+      if (p === 1 || p === totalPages || (p >= currentPage - window && p <= currentPage + window)) {
+        pages.push(p);
+      } else if (pages[pages.length - 1] !== 'ellipsis') {
+        pages.push('ellipsis');
+      }
+    }
+    return pages;
+  }, [totalPages, currentPage]);
+
   const hasActiveFilters = Boolean(
-    searchQuery || selectedCategory !== 'all' || selectedType !== 'all' || selectedPriceRange !== 'all' || selectedUniversity !== 'all' || sortBy !== 'recent',
+    searchQuery || selectedCategory !== 'all' || selectedType !== 'all' ||
+    selectedPriceRange !== 'all' || selectedUniversity !== 'all' || sortBy !== 'recent' ||
+    selectedConditions.size > 0 || verifiedOnly || maxPrice < PRICE_SLIDER_MAX,
   );
 
-  return (
-    <div className="min-h-screen bg-[#FFFFFF] py-10">
-      <div className="mx-auto w-full max-w-none px-4 lg:px-6">
-        <section className="mb-6 flex flex-wrap items-start justify-between gap-6">
-          <div className="max-w-xl">
-            <h1 className="text-4xl font-extrabold text-[#111111]">
-              {t('marketplace.title', 'Student')} <span className="text-[#05B43D]">{t('ui.marketplace', 'Marketplace')}</span>
-            </h1>
-            <p className="mt-3 text-base font-semibold text-[#4A4A4A]">
-              Find the best deals on campus. Verified student sellers{' '}
-              <span className="text-[#05B43D]">from top universities</span> in Cameroon.
-            </p>
-          </div>
-          <div className="min-w-[200px]">
-            <div className="text-xs font-semibold uppercase tracking-[0.12em] text-[#8a8a8a]">
-              {t('marketplace.sortBy', 'Sort by')}
-            </div>
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="mt-2 h-10 rounded-full border-[#e6e0dc] bg-white text-sm text-[#2a2a2a] shadow-sm">
-                <SelectValue placeholder={t('marketplace.recent', 'Newest Arrivals')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="recent">{t('marketplace.recent', 'Newest Arrivals')}</SelectItem>
-                <SelectItem value="price-low">{t('marketplace.priceLow', 'Price: Low to High')}</SelectItem>
-                <SelectItem value="price-high">{t('marketplace.priceHigh', 'Price: High to Low')}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </section>
+  const clearAllFilters = () => {
+    setSearchQuery('');
+    setSelectedCategory('all');
+    setSelectedPriceRange('all');
+    setSelectedUniversity('all');
+    setSelectedType('all');
+    setSortBy('recent');
+    setSelectedConditions(new Set());
+    setVerifiedOnly(false);
+    setMaxPrice(PRICE_SLIDER_MAX);
+  };
 
-        <section className="rounded-3xl border border-[#eee8e4] bg-white p-4 shadow-sm">
-          <div className="flex flex-col gap-3 lg:flex-row lg:flex-nowrap lg:items-center">
-            <div className="relative flex-1">
-              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8c8c8c]" />
-              <Input
-                type="text"
-                placeholder={t('marketplace.searchPlaceholder', 'Search by item name, category or campus...')}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-12 w-full rounded-full border-[#ece6e2] bg-[#fbfaf9] pl-11 text-sm text-[#2c2c2c] shadow-sm"
-              />
-            </div>
+  const toggleCondition = (id: string) => {
+    setSelectedConditions((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
 
-            <div className="flex w-full flex-col gap-3 sm:flex-row lg:w-auto lg:flex-nowrap">
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger className="h-10 min-w-[180px] rounded-full border-[#ece6e2] bg-[#fbfaf9] text-xs font-semibold text-[#3a3a3a] shadow-sm">
-                  <Filter className="mr-2 h-4 w-4 text-[#6f6f6f]" />
-                  <SelectValue placeholder={t('marketplace.category', 'Category')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t('marketplace.allCategories', 'All Categories')}</SelectItem>
-                  {categoriesList.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+  // ── Sidebar inner content (forest green — consistent with dashboards) ──────
+  const SidebarContent = () => (
+    <div className="flex flex-col text-sidebar-foreground">
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 pt-5">
+        <span className="text-lg font-bold text-sidebar-foreground">
+          {t('marketplace.filters', 'Filters')}
+        </span>
+        {hasActiveFilters && (
+          <button
+            type="button"
+            onClick={clearAllFilters}
+            className="text-xs font-semibold text-sidebar-primary-foreground hover:text-white"
+          >
+            {t('marketplace.resetAll', 'Reset all')}
+          </button>
+        )}
+      </div>
 
-              <Select value={selectedPriceRange} onValueChange={setSelectedPriceRange}>
-                <SelectTrigger className="h-10 min-w-[180px] rounded-full border-[#ece6e2] bg-[#fbfaf9] text-xs font-semibold text-[#3a3a3a] shadow-sm">
-                  <SelectValue placeholder={t('marketplace.priceRange', 'Price Range')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {PRICE_RANGE_OPTIONS.map((range) => (
-                    <SelectItem key={range.id} value={range.id}>
-                      {range.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+      <div className="space-y-5 px-5 pb-5 pt-4">
+        {/* University */}
+        <div>
+          <p className="mb-2 text-sm font-bold text-sidebar-foreground">
+            {t('marketplace.university', 'University')}
+          </p>
+          <Select value={selectedUniversity} onValueChange={setSelectedUniversity}>
+            <SelectTrigger className="h-10 rounded-xl border-white/15 bg-white/10 text-sm text-sidebar-foreground">
+              <span className="flex items-center gap-2 truncate">
+                <GraduationCap className="h-4 w-4 shrink-0 text-sidebar-primary-foreground" />
+                <SelectValue placeholder={t('marketplace.allUniversities', 'All Universities')} />
+              </span>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('marketplace.allUniversities', 'All Universities')}</SelectItem>
+              {universitiesList.map((u) => (
+                <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-              <Select value={selectedUniversity} onValueChange={setSelectedUniversity}>
-                <SelectTrigger className="h-10 min-w-[180px] rounded-full border-[#ece6e2] bg-[#fbfaf9] text-xs font-semibold text-[#3a3a3a] shadow-sm">
-                  <SelectValue placeholder={t('marketplace.university', 'University')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t('marketplace.allUniversities', 'All Universities')}</SelectItem>
-                  {universitiesList.map((university) => (
-                    <SelectItem key={university.id} value={university.id}>
-                      {university.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            {selectedCategory !== 'all' && (
-              <Badge className="rounded-full bg-[#e6f9ee] px-3 py-1 text-xs font-medium text-[#05B43D]">
-                {resolveCategoryLabel(selectedCategory)}
-                <button
-                  className="ml-2 rounded-full p-0.5 hover:bg-white/60"
-                  onClick={() => setSelectedCategory('all')}
-                  type="button" title="Clear category" aria-label="Clear category"
+        {/* Categories */}
+        <div>
+          <p className="mb-2 text-sm font-bold text-sidebar-foreground">
+            {t('marketplace.categories', 'Categories')}
+          </p>
+          <div className="space-y-1">
+            {categoryOptions.map((cat) => {
+              const Icon = categoryIcon(cat.name);
+              const checked = selectedCategory === cat.id;
+              return (
+                <label
+                  key={cat.id}
+                  className="flex cursor-pointer items-center gap-2.5 rounded-lg px-1.5 py-1.5 transition-colors hover:bg-white/10"
                 >
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            )}
-            {selectedUniversity !== 'all' && (
-              <Badge className="rounded-full bg-[#e6f9ee] px-3 py-1 text-xs font-medium text-[#05B43D]">
-                {universitiesById[selectedUniversity.toLowerCase()] || selectedUniversity}
-                <button
-                  className="ml-2 rounded-full p-0.5 hover:bg-white/60"
-                  onClick={() => setSelectedUniversity('all')}
-                  type="button" title="Clear university" aria-label="Clear university"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            )}
-            {selectedPriceRange !== 'all' && (
-              <Badge className="rounded-full bg-[#e6f9ee] px-3 py-1 text-xs font-medium text-[#05B43D]">
-                {PRICE_RANGE_OPTIONS.find((range) => range.id === selectedPriceRange)?.label || selectedPriceRange}
-                <button
-                  className="ml-2 rounded-full p-0.5 hover:bg-white/60"
-                  onClick={() => setSelectedPriceRange('all')}
-                  type="button" title="Clear price range" aria-label="Clear price range"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            )}
-            {searchQuery && (
-              <Badge className="rounded-full bg-[#e6f9ee] px-3 py-1 text-xs font-medium text-[#05B43D]">
-                {t('marketplace.searchLabel', 'Search')}: {searchQuery}
-                <button
-                  className="ml-2 rounded-full p-0.5 hover:bg-white/60"
-                  onClick={() => setSearchQuery('')}
-                  type="button" title="Clear search" aria-label="Clear search"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            )}
-            {hasActiveFilters && (
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => {
-                  setSearchQuery('');
-                  setSelectedCategory('all');
-                  setSelectedPriceRange('all');
-                  setSelectedUniversity('all');
-                  setSelectedType('all');
-                  setSortBy('recent');
-                }}
-                className="h-7 rounded-full px-3 text-xs font-semibold text-[#05B43D] hover:bg-[#e6f9ee]"
-              >
-                {t('marketplace.clearAll', 'Clear all')}
-              </Button>
-            )}
-          </div>
-        </section>
-
-        <div className="mt-6 flex items-center justify-between text-xs font-semibold uppercase tracking-[0.2em] text-[#8a8a8a]">
-          <span>{t('marketplace.itemsFound', '{{count}} item(s) found', { count: filteredItems.length })}</span>
-          <div className="hidden items-center gap-4 text-[11px] text-[#9a9a9a] lg:flex">
-            <span>{t('marketplace.forSale', 'For Sale')}: {saleCount}</span>
-            <span>{t('marketplace.forRent', 'For Rent')}: {rentCount}</span>
-            <span>{t('marketplace.likes', 'Likes')}: {totalVisibleLikes}</span>
+                  <Checkbox
+                    checked={checked}
+                    onCheckedChange={() => setSelectedCategory(checked ? 'all' : cat.id)}
+                    className="border-white/40 data-[state=checked]:border-sidebar-primary-foreground data-[state=checked]:bg-sidebar-primary-foreground data-[state=checked]:text-sidebar"
+                  />
+                  <Icon className="h-4 w-4 shrink-0 text-sidebar-foreground/60" />
+                  <span className="truncate text-sm text-sidebar-foreground/90">{cat.name}</span>
+                </label>
+              );
+            })}
           </div>
         </div>
 
-        {filteredItems.length > 0 ? (
-          <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {filteredItems.map((item) => (
-              <ProductCard
-                key={item.id}
-                item={item}
-                isSaved={savedItems.has(item.id)}
-                onSave={handleSaveItem}
-                onNavigate={() => navigate(`/item/${item.id}`)}
-                t={t}
-                formatCurrency={formatCurrency}
-                resolveLocationLabel={resolveLocationLabel}
-              />
-            ))}
-          </div>
-        ) : (
-          <Card className="mt-6 rounded-3xl border border-[#efe7e1] bg-white shadow-sm">
-            <CardContent className="py-12 text-center">
-              <Filter className="mx-auto mb-4 h-10 w-10 text-[#9a9a9a]" />
-              <h3 className="mb-2 text-lg font-semibold text-[#1f1f1f]">{t('marketplace.noItems', 'No items found')}</h3>
-              <p className="mx-auto mb-6 max-w-md text-sm text-[#7a7a7a]">
-                {t('marketplace.tryFilters', 'Try adjusting your search or filters')}
-              </p>
-              {hasActiveFilters && (
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setSearchQuery('');
-                    setSelectedCategory('all');
-                    setSelectedType('all');
-                    setSortBy('recent');
-                  }}
-                  className="rounded-full border-[#e6e0dc] text-[#05B43D] hover:bg-[#e6f9ee]"
+        {/* Listing Type (segmented All / Buy / Rent) */}
+        <div>
+          <p className="mb-2 text-sm font-bold text-sidebar-foreground">
+            {t('marketplace.listingType', 'Listing Type')}
+          </p>
+          <div className="flex gap-1 rounded-xl bg-white/10 p-1">
+            {[
+              { value: 'all', label: t('marketplace.all', 'All') },
+              { value: 'sell', label: t('marketplace.buy', 'Buy') },
+              { value: 'rent', label: t('marketplace.rent', 'Rent') },
+            ].map(({ value, label }) => {
+              const active = selectedType === value;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setSelectedType(value)}
+                  className={cn(
+                    'flex-1 rounded-lg py-2 text-sm font-bold transition-all duration-150',
+                    active
+                      ? 'bg-sidebar-primary-foreground text-forest shadow-sm'
+                      : 'text-sidebar-foreground/70 hover:text-white',
+                  )}
                 >
-                  {t('marketplace.clearFilters', 'Clear Filters')}
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Condition */}
+        <div>
+          <p className="mb-2 text-sm font-bold text-sidebar-foreground">
+            {t('marketplace.condition', 'Condition')}
+          </p>
+          <div className="space-y-1">
+            {CONDITION_OPTIONS.map((opt) => {
+              const checked = selectedConditions.has(opt.id);
+              return (
+                <label
+                  key={opt.id}
+                  className="flex cursor-pointer items-center gap-2.5 rounded-lg px-1.5 py-1.5 transition-colors hover:bg-white/10"
+                >
+                  <Checkbox
+                    checked={checked}
+                    onCheckedChange={() => toggleCondition(opt.id)}
+                    className="border-white/40 data-[state=checked]:border-sidebar-primary-foreground data-[state=checked]:bg-sidebar-primary-foreground data-[state=checked]:text-sidebar"
+                  />
+                  <span className="text-sm text-sidebar-foreground/90">
+                    {t(`marketplace.condition_${opt.id.replace(/\s/g, '_')}`, opt.label)}
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Price Range slider */}
+        <div>
+          <p className="mb-3 text-sm font-bold text-sidebar-foreground">
+            {t('marketplace.priceRangeFcfa', 'Price Range (FCFA)')}
+          </p>
+          <Slider
+            value={[maxPrice]}
+            min={0}
+            max={PRICE_SLIDER_MAX}
+            step={5000}
+            onValueChange={(value) => setMaxPrice(value[0])}
+          />
+          <div className="mt-2 flex items-center justify-between text-xs text-sidebar-foreground/70">
+            <span>0</span>
+            <span>
+              {maxPrice >= PRICE_SLIDER_MAX
+                ? '100,000+'
+                : new Intl.NumberFormat('en-US').format(maxPrice)}
+            </span>
+          </div>
+        </div>
+
+        {/* Verified Students Only */}
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-bold text-sidebar-foreground">
+            {t('marketplace.verifiedStudentsOnly', 'Verified Students Only')}
+          </span>
+          <Switch checked={verifiedOnly} onCheckedChange={setVerifiedOnly} />
+        </div>
+
+        {/* Apply Filters */}
+        <Button
+          className="w-full bg-sidebar-primary-foreground font-bold text-forest hover:bg-white"
+          onClick={() => setSidebarOpen(false)}
+        >
+          {t('marketplace.applyFilters', 'Apply Filters')}
+        </Button>
+      </div>
+    </div>
+  );
+
+  // ── Render ────────────────────────────────────────────────────────────────
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="mx-auto max-w-[1440px] px-4 py-6 lg:px-6 lg:py-8">
+        <div className="flex gap-6">
+
+          {/* Mobile backdrop */}
+          {sidebarOpen && (
+            <div
+              className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:hidden"
+              onClick={() => setSidebarOpen(false)}
+            />
+          )}
+
+          {/* ── Sidebar (white card) ─────────────────────────────────────── */}
+          <aside
+            className={cn(
+              'z-50 transition-transform duration-300 ease-in-out',
+              'fixed inset-y-0 left-0 w-80',
+              sidebarOpen ? 'translate-x-0' : '-translate-x-full',
+              // Desktop: sits below the sticky header (lower z so it never covers the navbar)
+              'lg:relative lg:inset-auto lg:z-30 lg:w-72 lg:shrink-0 lg:translate-x-0',
+            )}
+          >
+            <div
+              className="h-full overflow-y-auto border-r border-sidebar-border bg-sidebar text-sidebar-foreground lg:sticky lg:h-auto lg:overflow-visible lg:rounded-2xl lg:border lg:shadow-card"
+              style={{ top: headerHeight + 16 }}
+            >
+              {/* Mobile close button */}
+              <div className="flex items-center justify-between border-b border-sidebar-border p-4 lg:hidden">
+                <span className="text-sm font-bold text-sidebar-foreground">
+                  {t('marketplace.filters', 'Filters')}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setSidebarOpen(false)}
+                  className="rounded-full p-1.5 text-sidebar-foreground/70 transition-colors hover:bg-white/10 hover:text-white"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <SidebarContent />
+            </div>
+          </aside>
+
+          {/* ── Results area ─────────────────────────────────────────────── */}
+          <main className="min-w-0 flex-1">
+
+            {/* Results header */}
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                {/* Mobile filter toggle */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSidebarOpen(true)}
+                  className="flex items-center gap-2 rounded-xl border-border bg-card text-xs font-semibold text-primary transition-all hover:border-primary hover:bg-primary hover:text-primary-foreground lg:hidden"
+                >
+                  <SlidersHorizontal className="h-3.5 w-3.5" />
+                  {t('marketplace.filters', 'Filters')}
+                  {hasActiveFilters && (
+                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                      !
+                    </span>
+                  )}
                 </Button>
+
+                {/* Results count */}
+                <p className="text-base font-bold text-foreground">
+                  {filteredItems.length} {t('marketplace.results', 'results')}
+                  {searchQuery && (
+                    <span className="font-normal text-muted-foreground">
+                      {' '}{t('marketplace.for', 'for')}{' '}
+                      <span className="font-semibold text-foreground">"{searchQuery}"</span>
+                    </span>
+                  )}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                {/* Sort by */}
+                <div className="flex items-center gap-2">
+                  <span className="hidden text-xs font-semibold text-muted-foreground sm:inline">
+                    {t('marketplace.sortBy', 'Sort by')}
+                  </span>
+                  <Select value={sortBy} onValueChange={setSortBy}>
+                    <SelectTrigger className="h-9 w-40 rounded-xl border-border bg-card text-xs font-semibold text-foreground">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="recent">{t('marketplace.recent', 'Newest')}</SelectItem>
+                      <SelectItem value="price-low">{t('marketplace.priceLow', 'Price: Low to High')}</SelectItem>
+                      <SelectItem value="price-high">{t('marketplace.priceHigh', 'Price: High to Low')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* View toggle */}
+                <div className="hidden items-center gap-1 rounded-xl border border-border bg-card p-1 sm:flex">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('grid')}
+                    aria-label="Grid view"
+                    className={cn(
+                      'flex h-7 w-7 items-center justify-center rounded-lg transition-colors',
+                      viewMode === 'grid'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:text-foreground',
+                    )}
+                  >
+                    <LayoutGrid className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('list')}
+                    aria-label="List view"
+                    className={cn(
+                      'flex h-7 w-7 items-center justify-center rounded-lg transition-colors',
+                      viewMode === 'list'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:text-foreground',
+                    )}
+                  >
+                    <List className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Product grid ──────────────────────────────────────────── */}
+            {filteredItems.length > 0 ? (
+              <>
+              <div
+                className={cn(
+                  viewMode === 'grid'
+                    ? 'grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-4'
+                    : 'grid grid-cols-1 gap-4 sm:grid-cols-2',
+                )}
+              >
+                {pagedItems.map((item) => (
+                  <ProductCard
+                    key={item.id}
+                    item={item}
+                    isSaved={savedItems.has(item.id)}
+                    onSave={handleSaveItem}
+                    onNavigate={() => navigate(`/item/${item.id}`)}
+                    t={t}
+                    formatCurrency={formatCurrency}
+                    resolveLocationLabel={resolveLocationLabel}
+                    variant="market"
+                  />
+                ))}
+              </div>
+
+              {/* ── Pagination ───────────────────────────────────────────── */}
+              {totalPages > 1 && (
+                <div className="mt-8 flex flex-wrap items-center justify-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    aria-label="Previous page"
+                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground transition-colors hover:border-primary hover:text-primary disabled:pointer-events-none disabled:opacity-40"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  {pageNumbers.map((p, i) =>
+                    p === 'ellipsis' ? (
+                      <span key={`ellipsis-${i}`} className="px-1.5 text-sm text-muted-foreground">…</span>
+                    ) : (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => setCurrentPage(p)}
+                        className={cn(
+                          'flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-sm font-semibold transition-colors',
+                          p === currentPage
+                            ? 'bg-primary text-primary-foreground shadow-sm'
+                            : 'border border-border bg-card text-foreground hover:border-primary hover:text-primary',
+                        )}
+                      >
+                        {p}
+                      </button>
+                    ),
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    aria-label="Next page"
+                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground transition-colors hover:border-primary hover:text-primary disabled:pointer-events-none disabled:opacity-40"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
               )}
-            </CardContent>
-          </Card>
-        )}
+              </>
+            ) : (
+              /* ── Empty state ─────────────────────────────────────────── */
+              <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card py-20 text-center">
+                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary-soft">
+                  <SlidersHorizontal className="h-8 w-8 text-primary/40" />
+                </div>
+                <h3 className="mb-1 text-lg font-bold text-foreground">
+                  {t('marketplace.noItems', 'No items found')}
+                </h3>
+                <p className="mb-6 max-w-xs text-sm text-muted-foreground">
+                  {t('marketplace.tryFilters', 'Try adjusting your search or filters to find what you\'re looking for.')}
+                </p>
+                {hasActiveFilters && (
+                  <Button type="button" onClick={clearAllFilters} className="px-6">
+                    {t('marketplace.clearFilters', 'Clear all filters')}
+                  </Button>
+                )}
+              </div>
+            )}
+          </main>
+        </div>
       </div>
     </div>
   );

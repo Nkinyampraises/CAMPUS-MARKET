@@ -104,8 +104,8 @@ export function ResetPassword() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
-              <KeyRound className="h-6 w-6 text-green-600" />
+            <div className="h-12 w-12 rounded-full bg-primary-soft flex items-center justify-center">
+              <KeyRound className="h-6 w-6 text-primary" />
             </div>
           </div>
           <CardTitle>{t('ui.set_a_new_password', 'Set a new password')}</CardTitle>
@@ -141,7 +141,7 @@ export function ResetPassword() {
               />
             </div>
 
-            <Button type="submit" className="w-full bg-[#05B43D] hover:bg-[#018F2D]" disabled={loading}>
+            <Button type="submit" className="w-full" disabled={loading}>
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -156,7 +156,7 @@ export function ResetPassword() {
         <CardFooter className="flex flex-col gap-2">
           <p className="text-sm text-muted-foreground">
             Back to{' '}
-            <Link to="/login" className="text-green-600 hover:underline">
+            <Link to="/login" className="text-primary hover:underline">
               login
             </Link>
           </p>

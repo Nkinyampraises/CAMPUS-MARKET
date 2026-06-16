@@ -24,6 +24,12 @@ const rentalStatus = (order: any) => {
   return 'active';
 };
 
+const statusBadgeClass = (status: string) => {
+  if (status === 'active') return 'bg-[#DCFCE7] text-[#16A34A]';
+  if (status === 'cancelled') return 'bg-[#FEE2E2] text-[#DC2626]';
+  return 'bg-[#FEF3C7] text-[#D97706]';
+};
+
 export function SellerRentals() {
   const navigate = useNavigate();
   const { currentUser, accessToken, refreshAuthToken, logout } = useAuth();
@@ -184,9 +190,9 @@ export function SellerRentals() {
           ) : sortedRentals.length === 0 ? (
             <p className="text-sm text-muted-foreground">{t('ui.no_rental_transactions_found', 'No rental transactions found.')}</p>
           ) : (
-            <div className="overflow-x-auto border rounded-lg">
+            <div className="overflow-x-auto border border-border rounded-lg">
               <table className="w-full text-sm">
-                <thead className="bg-muted/40">
+                <thead className="bg-muted text-muted-foreground">
                   <tr>
                     <th className="text-left p-3">Item</th>
                     <th className="text-left p-3">{t('ui.rental_start', 'Rental Start')}</th>
@@ -201,7 +207,7 @@ export function SellerRentals() {
                     const status = rentalStatus(order);
                     const locked = order.status === 'refunded' || order.rentalReturnStatus === 'ended';
                     return (
-                      <tr key={order.id} className="border-t">
+                      <tr key={order.id} className="border-t border-border">
                         <td className="p-3 min-w-[220px]">
                           <p className="font-medium">{order.listingTitle || 'Rental item'}</p>
                           <p className="text-xs text-muted-foreground">{order.id}</p>
@@ -210,7 +216,7 @@ export function SellerRentals() {
                         <td className="p-3">{dateLabel(order.rentalEndDate)}</td>
                         <td className="p-3">{order.buyerName || '-'}</td>
                         <td className="p-3">
-                          <Badge variant={status === 'active' ? 'default' : 'secondary'}>{status}</Badge>
+                          <Badge className={statusBadgeClass(status)}>{status}</Badge>
                         </td>
                         <td className="p-3">
                           <div className="flex flex-wrap gap-2">
@@ -219,7 +225,6 @@ export function SellerRentals() {
                             </Button>
                             <Button
                               size="sm"
-                              variant="outline"
                               disabled={locked || updatingId === order.id}
                               onClick={() => applyDecision(order.id, 'accepted')}
                             >
@@ -227,7 +232,7 @@ export function SellerRentals() {
                             </Button>
                             <Button
                               size="sm"
-                              variant="outline"
+                              variant="destructive"
                               disabled={locked || updatingId === order.id}
                               onClick={() => applyDecision(order.id, 'rejected')}
                             >
@@ -235,7 +240,7 @@ export function SellerRentals() {
                             </Button>
                             <Button
                               size="sm"
-                              variant="outline"
+                              variant="accent"
                               disabled={locked || updatingId === order.id}
                               onClick={() => markReturned(order.id)}
                             >

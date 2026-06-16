@@ -61,8 +61,8 @@ export function ForgotPassword() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
-              <Mail className="h-6 w-6 text-green-600" />
+            <div className="h-12 w-12 rounded-full bg-primary-soft flex items-center justify-center">
+              <Mail className="h-6 w-6 text-primary" />
             </div>
           </div>
           <CardTitle>{t('ui.reset_your_password', 'Reset your password')}</CardTitle>
@@ -93,7 +93,7 @@ export function ForgotPassword() {
             {resetLink && (
               <Alert>
                 <AlertDescription>
-                  {t('ui.reset_link', 'Reset link:')}<a href={resetLink} className="text-green-600 hover:underline break-all">{resetLink}</a>
+                  {t('ui.reset_link', 'Reset link:')}<a href={resetLink} className="text-primary hover:underline break-all">{resetLink}</a>
                 </AlertDescription>
               </Alert>
             )}
@@ -110,7 +110,7 @@ export function ForgotPassword() {
               />
             </div>
 
-            <Button type="submit" className="w-full bg-[#05B43D] hover:bg-[#018F2D]" disabled={loading}>
+            <Button type="submit" className="w-full" disabled={loading}>
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -125,7 +125,7 @@ export function ForgotPassword() {
         <CardFooter className="flex flex-col gap-2">
           <p className="text-sm text-muted-foreground">
             Remembered your password?{' '}
-            <Link to="/login" className="text-green-600 hover:underline">
+            <Link to="/login" className="text-primary hover:underline">
               {t('ui.back_to_login', 'Back to login')}
             </Link>
           </p>

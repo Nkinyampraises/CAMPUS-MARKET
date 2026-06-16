@@ -125,7 +125,7 @@ export function SellerDisputes() {
             <Label htmlFor="seller-dispute-order">{t('ui.order_or_rental', 'Order or Rental')}</Label>
             <select
               id="seller-dispute-order"
-              className="w-full border rounded-md h-10 px-3 text-sm"
+              className="w-full bg-input border border-border rounded-md h-10 px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               value={selectedOrderId}
               onChange={(e) => setSelectedOrderId(e.target.value)}
             >
@@ -147,8 +147,8 @@ export function SellerDisputes() {
               placeholder="Describe the dispute..."
             />
           </div>
-          <Button className="bg-[#05B43D] hover:bg-[#018F2D]" disabled={submitting} onClick={openDispute}>
-            {submitting ? 'Opening...' : 'Open Dispute'}
+          <Button disabled={submitting} onClick={openDispute}>
+            {submitting ? t('ui.opening', 'Opening...') : t('ui.open_dispute', 'Open Dispute')}
           </Button>
         </CardContent>
       </Card>
@@ -165,10 +165,10 @@ export function SellerDisputes() {
           ) : (
             <div className="space-y-3">
               {disputes.map((dispute: any) => (
-                <div key={dispute.id} className="border rounded-lg p-4">
+                <div key={dispute.id} className="border border-border bg-card rounded-lg p-4">
                   <div className="flex items-center justify-between gap-2">
                     <p className="font-semibold">Order: {dispute.orderId || '-'}</p>
-                    <Badge variant={dispute.status === 'resolved' ? 'default' : 'secondary'}>
+                    <Badge className={dispute.status === 'resolved' ? 'bg-[#DCFCE7] text-[#16A34A]' : 'bg-[#FEF3C7] text-[#D97706]'}>
                       {dispute.status || 'open'}
                     </Badge>
                   </div>

@@ -61,12 +61,15 @@ import { AiAssistantLauncher } from '@/components/AiAssistantLauncher';
 
 function AppLayout() {
   const location = useLocation();
-  const isLoginPage = location.pathname === '/login';
+  const showFooter =
+    location.pathname === '/' ||
+    location.pathname === '/marketplace' ||
+    location.pathname.startsWith('/item/');
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
       <Header />
-      <main className="flex-1 overflow-x-hidden">
+      <main className="flex-1">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
@@ -379,7 +382,7 @@ function AppLayout() {
         </Routes>
       </main>
       <AiAssistantLauncher />
-      {!isLoginPage && <Footer />}
+      {showFooter && <Footer />}
       <Toaster />
     </div>
   );

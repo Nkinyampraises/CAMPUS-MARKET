@@ -76,10 +76,10 @@ export function Subscription() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-3 sm:p-4">
-      <Card className="w-full max-w-4xl">
+    <div className="min-h-screen bg-background flex items-center justify-center p-3 sm:p-4">
+      <Card className="w-full max-w-4xl border border-border bg-card shadow-card">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl sm:text-3xl">{t('ui.choose_your_subscription_plan', 'Choose Your Subscription Plan')}</CardTitle>
+          <CardTitle className="text-2xl font-semibold sm:text-3xl">{t('ui.choose_your_subscription_plan', 'Choose Your Subscription Plan')}</CardTitle>
           <CardDescription>
             {t('ui.your_trial_has_ended_continue_with_secure_mobile_m', 'Your trial has ended. Continue with secure mobile money payment.')}
           </CardDescription>
@@ -87,45 +87,45 @@ export function Subscription() {
         <CardContent>
           <div className="grid gap-6 md:grid-cols-2 md:gap-8">
             <div className="space-y-6">
-              <h3 className="text-lg font-semibold">1. Select Plan ({currentUser.userType})</h3>
+              <h3 className="text-lg font-semibold text-foreground">{t('subscription.step1', '1. Select Plan')} ({currentUser.userType})</h3>
               <RadioGroup value={selectedPlan} onValueChange={(v: 'monthly' | 'yearly') => setSelectedPlan(v)}>
                 <div
-                  className={`cursor-pointer rounded-lg border p-3 sm:p-4 ${selectedPlan === 'monthly' ? 'border-green-600 ring-2 ring-green-600' : ''}`}
+                  className={`cursor-pointer rounded-lg border p-3 transition-colors sm:p-4 ${selectedPlan === 'monthly' ? 'border-primary bg-primary-soft ring-2 ring-ring' : 'border-border hover:bg-accent'}`}
                   onClick={() => setSelectedPlan('monthly')}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <RadioGroupItem value="monthly" id="monthly" />
-                      <Label htmlFor="monthly" className="font-medium text-base sm:text-lg">{userPlans.monthly.name}</Label>
+                      <Label htmlFor="monthly" className="font-medium text-base text-foreground sm:text-lg">{userPlans.monthly.name}</Label>
                     </div>
-                    <p className="text-xl font-bold sm:text-2xl">{userPlans.monthly.price} XAF</p>
+                    <p className="text-xl font-bold text-primary sm:text-2xl">{userPlans.monthly.price} XAF</p>
                   </div>
                 </div>
                 <div
-                  className={`cursor-pointer rounded-lg border p-3 sm:p-4 ${selectedPlan === 'yearly' ? 'border-green-600 ring-2 ring-green-600' : ''}`}
+                  className={`cursor-pointer rounded-lg border p-3 transition-colors sm:p-4 ${selectedPlan === 'yearly' ? 'border-primary bg-primary-soft ring-2 ring-ring' : 'border-border hover:bg-accent'}`}
                   onClick={() => setSelectedPlan('yearly')}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <RadioGroupItem value="yearly" id="yearly" />
-                      <Label htmlFor="yearly" className="font-medium text-base sm:text-lg">{userPlans.yearly.name}</Label>
+                      <Label htmlFor="yearly" className="font-medium text-base text-foreground sm:text-lg">{userPlans.yearly.name}</Label>
                     </div>
-                    <p className="text-xl font-bold sm:text-2xl">{userPlans.yearly.price} XAF</p>
+                    <p className="text-xl font-bold text-primary sm:text-2xl">{userPlans.yearly.price} XAF</p>
                   </div>
                 </div>
               </RadioGroup>
             </div>
 
             <div className="space-y-6">
-              <h3 className="text-lg font-semibold">2. Mobile Money Payment</h3>
+              <h3 className="text-lg font-semibold text-foreground">{t('subscription.step2', '2. Mobile Money Payment')}</h3>
               <div className="space-y-3">
                 <Label>{t('ui.choose_method', 'Choose Method')}</Label>
                 <RadioGroup value={paymentMethod} onValueChange={(v: 'mtn-momo' | 'orange-money') => setPaymentMethod(v)}>
-                  <div className="flex items-center space-x-2 border rounded-lg p-3">
+                  <div className={`flex items-center space-x-2 rounded-lg border p-3 transition-colors ${paymentMethod === 'mtn-momo' ? 'border-primary bg-primary-soft' : 'border-border'}`}>
                     <RadioGroupItem value="mtn-momo" id="mtn-method" />
                     <Label htmlFor="mtn-method" className="cursor-pointer">{t('ui.mtn_momo', 'MTN MoMo')}</Label>
                   </div>
-                  <div className="flex items-center space-x-2 border rounded-lg p-3">
+                  <div className={`flex items-center space-x-2 rounded-lg border p-3 transition-colors ${paymentMethod === 'orange-money' ? 'border-primary bg-primary-soft' : 'border-border'}`}>
                     <RadioGroupItem value="orange-money" id="orange-method" />
                     <Label htmlFor="orange-method" className="cursor-pointer">{t('ui.orange_money', 'Orange Money')}</Label>
                   </div>
@@ -145,21 +145,21 @@ export function Subscription() {
 
               <Alert>
                 <AlertDescription>
-                  Click continue to open payment review with sender, receiver, and transaction fee details.
+                  {t('subscription.continueHint', 'Click continue to open payment review with sender, receiver, and transaction fee details.')}
                 </AlertDescription>
               </Alert>
 
-              <Card className="bg-gray-50">
+              <Card className="border border-border bg-secondary shadow-none">
                 <CardContent className="p-4">
-                  <p className="font-semibold mb-2">{t('ui.order_summary', 'Order Summary')}</p>
-                  <div className="flex justify-between text-sm">
-                    <p>{planDetails.name} Plan</p>
+                  <p className="font-semibold mb-2 text-foreground">{t('ui.order_summary', 'Order Summary')}</p>
+                  <div className="flex justify-between text-sm text-muted-foreground">
+                    <p>{planDetails.name} {t('subscription.plan', 'Plan')}</p>
                     <p>{planDetails.price.toLocaleString()} XAF</p>
                   </div>
                 </CardContent>
               </Card>
 
-              <Button className="w-full bg-[#05B43D] hover:bg-[#018F2D]" size="lg" onClick={handleContinue}>
+              <Button className="w-full" size="lg" onClick={handleContinue}>
                 <Check className="mr-2 h-4 w-4" />
                 <Smartphone className="mr-2 h-4 w-4" />
                 {t('ui.continue_to_payment_review', 'Continue to Payment Review')}

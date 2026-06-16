@@ -131,7 +131,7 @@ export function AdminUserDetails() {
                         <p className="text-xs text-muted-foreground mt-1">
                           {listing.category || '-'} - Views: {Number(listing.views || 0)}
                         </p>
-                        <p className="text-sm font-semibold text-green-600 mt-1">
+                        <p className="text-sm font-semibold text-primary mt-1">
                           {formatMoney(Number(listing.price || 0))}
                         </p>
                       </div>
@@ -181,7 +181,7 @@ export function AdminUserDetails() {
                           <p className="font-medium break-words">{transaction.transactionRef || transaction.id}</p>
                           <Badge variant="secondary">{transaction.status || '-'}</Badge>
                         </div>
-                        <p className="text-sm font-semibold text-green-600 mt-1">
+                        <p className="text-sm font-semibold text-primary mt-1">
                           {formatMoney(Number(transaction.amount || 0))}
                         </p>
                         <p className="text-xs text-muted-foreground mt-1">

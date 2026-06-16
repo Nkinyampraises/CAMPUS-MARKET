@@ -11,7 +11,7 @@ import { API_URL } from '@/lib/api';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 const formatMoney = (value: number) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value || 0);
+  `${Math.round(value || 0).toLocaleString('fr-FR')} FCFA`;
 
 const paymentLabel = (method: string) => {
   if (method === 'mtn-momo') return 'MTN MoMo';
@@ -77,7 +77,7 @@ export function BuyerPayments() {
             <label htmlFor="payment-method-filter" className="text-sm text-muted-foreground">{t('ui.filter_by', 'Filter by:')}</label>
             <select
               id="payment-method-filter"
-              className="border rounded-md h-9 px-3 text-sm"
+              className="h-9 rounded-md border border-border bg-input px-3 text-sm text-foreground focus-visible:ring-2 focus-visible:ring-ring"
               value={filterMethod}
               onChange={(e) => setFilterMethod(e.target.value as 'all' | 'mtn-momo' | 'orange-money' | 'cash')}
             >
@@ -95,18 +95,18 @@ export function BuyerPayments() {
           ) : (
             <div className="space-y-3">
               {filtered.map((transaction) => (
-                <div key={transaction.id} className="border rounded-lg p-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+                <div key={transaction.id} className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4 shadow-card lg:flex-row lg:items-center lg:justify-between">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <p className="font-semibold">{transaction.listingTitle || transaction.itemId || 'Transaction'}</p>
+                      <p className="font-semibold text-foreground">{transaction.listingTitle || transaction.itemId || t('ui.transaction', 'Transaction')}</p>
                       <Badge variant="secondary">{paymentLabel(transaction.paymentMethod)}</Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground">Reference: {transaction.transactionRef || '-'}</p>
-                    <p className="text-sm text-muted-foreground">Status: {transaction.statusLabel || transaction.status || '-'}</p>
+                    <p className="text-sm text-muted-foreground">{t('ui.reference', 'Reference:')} {transaction.transactionRef || '-'}</p>
+                    <p className="text-sm text-muted-foreground">{t('ui.status', 'Status:')} {transaction.statusLabel || transaction.status || '-'}</p>
                     <p className="text-sm text-muted-foreground">{new Date(transaction.createdAt || transaction.timestamp || '').toLocaleString()}</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <p className="font-bold text-blue-600">{formatMoney(transaction.amount || 0)}</p>
+                    <p className="font-bold text-primary">{formatMoney(transaction.amount || 0)}</p>
                     <Button
                       variant="outline"
                       size="sm"

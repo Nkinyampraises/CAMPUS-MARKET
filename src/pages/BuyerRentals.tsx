@@ -107,9 +107,9 @@ export function BuyerRentals() {
               {rentals.map((order) => {
                 const rentalStatus = getRentalStatus(order, returnedIds);
                 return (
-                  <div key={order.id} className="border rounded-lg p-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+                  <div key={order.id} className="border border-border rounded-lg p-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 bg-card transition-shadow hover:shadow-card">
                     <div className="space-y-1">
-                      <p className="font-semibold">{order.listingTitle || 'Rental item'}</p>
+                      <p className="font-semibold text-foreground">{order.listingTitle || 'Rental item'}</p>
                       <p className="text-sm text-muted-foreground">
                         Rental period: {order.rentalPeriod || 'monthly'}
                       </p>

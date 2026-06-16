@@ -153,8 +153,8 @@ export function Settings() {
               placeholder="Confirm password"
             />
           </div>
-          <Button className="bg-[#05B43D] hover:bg-[#018F2D]" onClick={handleChangePassword} disabled={changingPassword}>
-            {changingPassword ? 'Updating...' : 'Update Password'}
+          <Button onClick={handleChangePassword} disabled={changingPassword}>
+            {changingPassword ? t('ui.updating', 'Updating...') : t('ui.update_password', 'Update Password')}
           </Button>
         </CardContent>
       </Card>
@@ -236,7 +236,7 @@ export function Settings() {
             <Label htmlFor="profile-visibility">{t('ui.profile_visibility', 'Profile visibility')}</Label>
             <select
               id="profile-visibility"
-              className="w-full border rounded-md h-10 px-3 text-sm"
+              className="h-10 w-full rounded-md border border-border bg-input px-3 text-sm text-foreground focus-visible:ring-2 focus-visible:ring-ring"
               value={privacyOptions.profileVisibility}
               onChange={(e) =>
                 setPrivacyOptions((prev) => ({
@@ -249,8 +249,8 @@ export function Settings() {
               <option value="private">{t('ui.private', 'Private')}</option>
             </select>
           </div>
-          <Button className="bg-[#05B43D] hover:bg-[#018F2D]" onClick={handleSavePreferences} disabled={savingPreferences}>
-            {savingPreferences ? 'Saving...' : 'Save Preferences'}
+          <Button onClick={handleSavePreferences} disabled={savingPreferences}>
+            {savingPreferences ? t('ui.saving', 'Saving...') : t('ui.save_preferences', 'Save Preferences')}
           </Button>
         </CardContent>
       </Card>

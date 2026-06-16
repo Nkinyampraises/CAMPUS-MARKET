@@ -13,14 +13,17 @@ import { useLanguage } from '@/contexts/LanguageContext';
 
 const FAQS = [
   {
+    key: 'confirm_order',
     q: 'How do I confirm an order?',
     a: 'Open the order details page and confirm delivery after the seller uploads proof.',
   },
   {
+    key: 'request_refund',
     q: 'How do I request a refund?',
     a: 'From order details, choose refund and include a clear issue reason.',
   },
   {
+    key: 'contact_support',
     q: 'How do I contact support?',
     a: 'Use the support form below. Your request is sent to admins as a support report.',
   },
@@ -88,9 +91,9 @@ export function HelpSupport() {
         </CardHeader>
         <CardContent className="space-y-4">
           {FAQS.map((item) => (
-            <div key={item.q} className="border rounded-lg p-3">
-              <p className="font-medium">{item.q}</p>
-              <p className="text-sm text-muted-foreground">{item.a}</p>
+            <div key={item.key} className="rounded-lg border border-border bg-card p-3">
+              <p className="font-medium text-foreground">{t(`ui.faq_${item.key}_q`, item.q)}</p>
+              <p className="text-sm text-muted-foreground">{t(`ui.faq_${item.key}_a`, item.a)}</p>
             </div>
           ))}
         </CardContent>
@@ -120,8 +123,8 @@ export function HelpSupport() {
               placeholder="Describe your issue clearly..."
             />
           </div>
-          <Button className="bg-[#05B43D] hover:bg-[#018F2D]" disabled={submitting} onClick={submitSupport}>
-            {submitting ? 'Sending...' : 'Send to Admin Support'}
+          <Button disabled={submitting} onClick={submitSupport}>
+            {submitting ? t('ui.sending', 'Sending...') : t('ui.send_to_admin_support', 'Send to Admin Support')}
           </Button>
         </CardContent>
       </Card>

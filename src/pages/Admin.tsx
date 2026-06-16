@@ -334,7 +334,7 @@ export function Admin() {
               <Banknote className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">
+              <div className="text-2xl font-bold text-primary">
                 {formatCurrency(totalRevenue)}
               </div>
               <p className="text-xs text-muted-foreground">
@@ -485,7 +485,7 @@ export function Admin() {
                             Seller: {seller?.name} • Views: {item.views}
                           </p>
                           <div className="flex items-center gap-2">
-                            <p className="font-bold text-green-600">{formatCurrency(item.price)}</p>
+                            <p className="font-bold text-primary">{formatCurrency(item.price)}</p>
                             <Badge variant="outline" className="text-xs">
                               {item.type}
                             </Badge>
@@ -561,7 +561,7 @@ export function Admin() {
                           </p>
                         </div>
                         <div className="text-left sm:text-right">
-                          <p className="font-bold text-green-600">
+                          <p className="font-bold text-primary">
                             {formatCurrency(grossAmount)}
                           </p>
                           <p className="text-xs text-muted-foreground">Revenue: {formatCurrency(revenueAmount)}</p>
@@ -594,12 +594,12 @@ export function Admin() {
                       >
                         <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                           <div className="flex flex-wrap items-center gap-2 text-sm">
-                            <Badge variant="outline" className="border-[#05B43D] text-[#05B43D] text-[10px]">
+                            <Badge variant="outline" className="border-primary text-primary text-[10px]">
                               {conv.user1?.userType || 'user'}
                             </Badge>
                             <span className="font-bold">{conv.user1?.name || 'Unknown'}</span>
                             <span className="text-muted-foreground text-xs">↔</span>
-                            <Badge variant="outline" className="border-blue-400 text-blue-600 text-[10px]">
+                            <Badge variant="outline" className="border-[var(--teal)] text-[var(--teal)] text-[10px]">
                               {conv.user2?.userType || 'user'}
                             </Badge>
                             <span className="font-bold">{conv.user2?.name || 'Unknown'}</span>
@@ -611,7 +611,7 @@ export function Admin() {
                         <p className="text-sm text-muted-foreground truncate">{conv.latestMessage || 'No preview'}</p>
                         <div className="flex items-center gap-2 mt-2">
                           <Badge variant="secondary" className="text-xs">{conv.messageCount} messages</Badge>
-                          <span className="text-xs text-[#05B43D] font-medium">Click to read full conversation →</span>
+                          <span className="text-xs text-primary font-medium">Click to read full conversation →</span>
                         </div>
                       </div>
                     ))

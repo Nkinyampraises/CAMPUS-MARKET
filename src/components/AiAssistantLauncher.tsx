@@ -281,24 +281,24 @@ export function AiAssistantLauncher() {
   return (
     <div className="fixed bottom-6 right-5 z-40">
       {isOpen && (
-        <div className="mb-3 w-[340px] max-w-[calc(100vw-2rem)] rounded-2xl border border-[#ddd2ea] bg-white p-3 shadow-xl">
+        <div className="mb-3 w-[340px] max-w-[calc(100vw-2rem)] rounded-2xl border border-border bg-card p-3 shadow-modal">
           <div className="mb-2 flex items-center justify-between">
-            <p className="inline-flex items-center gap-1 text-sm font-semibold text-[#2f2f2f]">
-              <Sparkles className="h-4 w-4 text-[#6f3bb2]" />
+            <p className="inline-flex items-center gap-1 text-sm font-semibold text-foreground">
+              <Sparkles className="h-4 w-4 text-primary" />
               {t('assistant.quickChat', 'Quick chat with Sasha')}
             </p>
             <button
               type="button"
-              className="text-xs text-[#7c7c7c] hover:text-[#4f4f4f]"
+              className="text-xs text-muted-foreground hover:text-foreground"
               onClick={() => setIsOpen(false)}
             >
               {t('assistant.close', 'Close')}
             </button>
           </div>
 
-          <div className="mb-2 max-h-48 space-y-2 overflow-y-auto rounded-xl bg-[#F3F5F4] p-2">
+          <div className="mb-2 max-h-56 space-y-2 overflow-y-auto rounded-xl bg-muted/40 p-2.5">
             {isLoadingHistory ? (
-              <p className="inline-flex items-center text-xs text-[#737373]">
+              <p className="inline-flex items-center text-xs text-muted-foreground">
                 <Loader2 className="mr-1 h-3 w-3 animate-spin" />
                 {t('assistant.loading', 'Loading chat history...')}
               </p>
@@ -306,17 +306,21 @@ export function AiAssistantLauncher() {
               messages.slice(-6).map((message) => (
                 <div
                   key={message.id}
-                  className={`rounded-lg px-2 py-1.5 text-xs ${
-                    message.role === 'user'
-                      ? 'ml-6 bg-[#e6f9ee] text-[#05B43D]'
-                      : 'mr-6 bg-white text-[#363636]'
-                  }`}
+                  className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
-                  {message.content}
+                  <div
+                    className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-3 py-2 text-xs leading-relaxed ${
+                      message.role === 'user'
+                        ? 'rounded-br-md bg-primary-soft text-foreground'
+                        : 'rounded-bl-md border border-border bg-card text-foreground'
+                    }`}
+                  >
+                    {message.content}
+                  </div>
                 </div>
               ))
             ) : (
-              <p className="text-xs text-[#747474]">
+              <p className="px-1 py-2 text-xs text-muted-foreground">
                 {t('assistant.quickEmpty', 'Ask me anything — products, advice, science, tech, or anything else!')}
               </p>
             )}
@@ -327,7 +331,7 @@ export function AiAssistantLauncher() {
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
               placeholder={t('assistant.quickPlaceholder', 'Ask Sasha anything...')}
-              className="h-9 rounded-full border-[#dbcdf0]"
+              className="h-9 rounded-full border-border bg-input focus-visible:ring-ring"
               disabled={isDailyLimitReached}
               onKeyDown={(event) => {
                 if (event.key === 'Enter') {
@@ -338,16 +342,17 @@ export function AiAssistantLauncher() {
             />
             <Button
               type="button"
+              size="icon"
               onClick={() => void sendQuickMessage()}
               disabled={isSending || isDailyLimitReached}
-              className="h-9 rounded-full bg-[#6f3bb2] px-3 text-white hover:bg-[#5f2fa0]"
+              className="h-9 w-9 shrink-0 rounded-full bg-primary text-primary-foreground hover:bg-primary-strong"
             >
               {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <SendHorizontal className="h-4 w-4" />}
             </Button>
           </div>
 
           {dailyUsage && (
-            <p className="mt-2 text-[11px] text-[#7a7a7a]">
+            <p className="mt-2 text-[11px] text-muted-foreground">
               {dailyUsage.remaining > 0
                 ? `AI requests left today: ${dailyUsage.remaining}/${dailyUsage.limit}`
                 : `Daily AI request limit reached (${dailyUsage.limit}/${dailyUsage.limit}).`}
@@ -357,12 +362,12 @@ export function AiAssistantLauncher() {
           <div className="mt-2 flex items-center justify-between">
             <button
               type="button"
-              className="text-xs font-medium text-[#6f3bb2] hover:text-[#5f2fa0]"
+              className="text-xs font-medium text-primary hover:text-primary-strong"
               onClick={() => navigate('/ai-assistant')}
             >
               {t('assistant.openFull', 'Open full assistant')}
             </button>
-            <span className="inline-flex items-center gap-1 text-[11px] text-[#8a8a8a]">
+            <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
               <MessageCircle className="h-3 w-3" />
               {t('assistant.quickMode', 'Quick mode')}
             </span>
@@ -374,7 +379,7 @@ export function AiAssistantLauncher() {
         <button
           type="button"
           onClick={() => setIsOpen((prev) => !prev)}
-          className="rounded-2xl border-2 border-[#6f3bb2] bg-white px-4 py-1.5 text-base font-semibold text-[#30407f] shadow-sm transition-transform duration-200 hover:-translate-y-0.5"
+          className="rounded-full border border-border bg-card px-4 py-1.5 text-base font-semibold text-foreground shadow-card transition-transform duration-200 hover:-translate-y-0.5"
           aria-label={t('assistant.launchQuick', 'Toggle Sasha quick chat')}
         >
           {t('assistant.launchLabel', "Hi! I'm Sasha")}
@@ -382,10 +387,10 @@ export function AiAssistantLauncher() {
         <button
           type="button"
           onClick={() => navigate('/ai-assistant')}
-          className="mt-2 inline-flex h-20 w-20 items-center justify-center rounded-full border-[5px] border-[#8a9ce7] bg-[radial-gradient(circle_at_30%_30%,#ffffff_0%,#d8f1ff_60%,#c3e6f9_100%)] shadow-md transition-transform hover:-translate-y-0.5"
+          className="mt-2 inline-flex h-20 w-20 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-elevated transition-transform hover:-translate-y-0.5 hover:bg-primary-strong"
           aria-label={t('assistant.launch', 'Open Sasha AI assistant')}
         >
-          <Bot className="h-10 w-10 text-[#2f8ab3]" />
+          <Bot className="h-10 w-10" />
         </button>
       </div>
     </div>

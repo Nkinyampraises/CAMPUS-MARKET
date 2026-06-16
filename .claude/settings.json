@@ -22,7 +22,13 @@
       "Bash(python tmp/fix_use_language.py)",
       "Bash(python tmp/fix_french_fallbacks.py)",
       "Bash(grep -n \"dollar\\\\|\\\\$\\\\|formatCurrency\\\\|USD\\\\|XAF\\\\|FCFA\" src/pages/BuyerDashboard.tsx)",
-      "Bash(python -c \"import json,sys; [print\\(d['deploy']['status'].ljust\\(12\\), d['deploy']['commit']['message'][:60]\\) for d in json.load\\(sys.stdin\\)]\")"
+      "Bash(python -c \"import json,sys; [print\\(d['deploy']['status'].ljust\\(12\\), d['deploy']['commit']['message'][:60]\\) for d in json.load\\(sys.stdin\\)]\")",
+      "Bash(git -C \"c:\\\\Users\\\\MATRIX TECHNOLOGY\\\\Documents\\\\market\" log --oneline -20)",
+      "Bash(git -C \"c:\\\\Users\\\\MATRIX TECHNOLOGY\\\\Documents\\\\market\" log --all --format=\"%h %s\")",
+      "Bash(node server/index.js)",
+      "Bash(node --env-file=.env server/index.js)",
+      "Bash(node --env-file=.env server-render.ts)",
+      "Bash(curl -s http://localhost:8002/make-server-50b25a4f/health)"
     ]
   }
 }

@@ -3,12 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/app/components/ui/button';
 import { Card, CardContent } from '@/app/components/ui/card';
-import { Badge } from '@/app/components/ui/badge';
 import { Input } from '@/app/components/ui/input';
 import { ArrowUpDown, Heart, Package, Search, ShoppingBag, SlidersHorizontal } from 'lucide-react';
-import { cn } from '@/app/components/ui/utils';
 import { toast } from 'sonner';
 
+import { ProductCard } from '@/components/ProductCard';
 import { API_URL } from '@/lib/api';
 import { fetchPublicCatalog, type NamedCatalogOption, resolveNamedCatalogLabel } from '@/lib/catalog';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -108,50 +107,45 @@ export function Favorites() {
     return sorted;
   }, [categories, favoriteItems, filterType, searchQuery, sortBy]);
 
-  const getActionLabel = (item: any) => {
-    const categoryName = resolveNamedCatalogLabel(categories, item?.category, '').toLowerCase();
-    if (item?.type === 'rent') return 'Schedule Tour';
-    if (categoryName.includes('service') || categoryName.includes('tutor')) return 'Contact Tutor';
-    return 'View Details';
-  };
-
-  const getCardSpan = (index: number) =>
-    index % 5 === 1
-      ? 'col-span-12 md:col-span-8 lg:col-span-6'
-      : 'col-span-12 md:col-span-4 lg:col-span-3';
+  const resolveLocationLabel = (item: any) =>
+    resolveNamedCatalogLabel(
+      universities,
+      item?.location,
+      item?.location ? String(item.location) : t('marketplace.campusPickup', 'Campus pickup'),
+    );
 
   if (!isAuthenticated || !currentUser) {
     return null;
   }
 
   return (
-    <div className="min-h-screen bg-[#FFFFFF] py-8">
+    <div className="min-h-screen bg-background py-8">
       <div className="w-full px-4 lg:px-8 xl:px-12">
         <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-[#013b36]">{t('ui.saved_items', 'Saved Items')}</h1>
-            <p className="mt-1 text-sm text-[#55766b]">
-              Your curated collection of home essentials, tech finds, and practical daily-use items.
+            <h1 className="text-3xl font-extrabold tracking-tight text-foreground">{t('ui.saved_items', 'Saved Items')}</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {t('ui.saved_items_subtitle', 'Your curated collection of home essentials, tech finds, and practical daily-use items.')}
             </p>
-            <p className="mt-2 text-sm font-semibold text-[#018F2D]">{favoriteItems.length} item(s) saved</p>
+            <p className="mt-2 text-sm font-semibold text-primary">{favoriteItems.length} {t('ui.items_saved_suffix', 'item(s) saved')}</p>
           </div>
 
           <div className="flex w-full flex-col gap-2 md:w-auto md:flex-row md:items-center">
             <div className="relative w-full md:w-[320px]">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6b8a81]" />
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search saved items..."
-                className="h-10 rounded-xl border-[#c7ddd2] bg-white pl-9 text-[#153c33]"
+                placeholder={t('ui.search_saved_items', 'Search saved items...')}
+                className="h-10 rounded-xl border-border bg-input pl-9 text-foreground"
               />
             </div>
             <div className="relative">
-              <SlidersHorizontal className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6b8a81]" />
+              <SlidersHorizontal className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <select
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value as 'all' | 'sell' | 'rent')}
-                className="h-10 min-w-[155px] rounded-xl border border-[#c7ddd2] bg-white pl-9 pr-8 text-sm text-[#173f36] outline-none transition-colors focus:border-[#018F2D]"
+                className="h-10 min-w-[155px] rounded-xl border border-border bg-input pl-9 pr-8 text-sm text-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <option value="all">{t('ui.all_types', 'All Types')}</option>
                 <option value="sell">{t('ui.for_sale', 'For Sale')}</option>
@@ -159,11 +153,11 @@ export function Favorites() {
               </select>
             </div>
             <div className="relative">
-              <ArrowUpDown className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6b8a81]" />
+              <ArrowUpDown className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as 'recent' | 'price-low' | 'price-high')}
-                className="h-10 min-w-[165px] rounded-xl border border-[#c7ddd2] bg-white pl-9 pr-8 text-sm text-[#173f36] outline-none transition-colors focus:border-[#018F2D]"
+                className="h-10 min-w-[165px] rounded-xl border border-border bg-input pl-9 pr-8 text-sm text-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <option value="recent">{t('ui.recently_added', 'Recently Added')}</option>
                 <option value="price-low">{t('ui.price_low_to_high', 'Price: Low to High')}</option>
@@ -174,16 +168,16 @@ export function Favorites() {
         </div>
 
         {favoriteItems.length === 0 ? (
-          <Card className="rounded-3xl border border-[#d2e4dc] bg-white">
+          <Card className="rounded-2xl border border-border bg-card shadow-card">
             <CardContent className="py-14 text-center">
-              <Package className="mx-auto mb-4 h-12 w-12 text-[#7f9b92]" />
-              <h3 className="mb-2 text-xl font-semibold text-[#113c32]">{t('ui.no_saved_items_yet', 'No saved items yet')}</h3>
-              <p className="mx-auto mb-6 max-w-md text-sm text-[#59796f]">
+              <Package className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+              <h3 className="mb-2 text-xl font-semibold text-foreground">{t('ui.no_saved_items_yet', 'No saved items yet')}</h3>
+              <p className="mx-auto mb-6 max-w-md text-sm text-muted-foreground">
                 {t('ui.start_browsing_and_save_items_that_match_what_you_', 'Start browsing and save items that match what you need for campus life.')}
               </p>
               <Button
                 onClick={() => navigate('/marketplace')}
-                className="rounded-xl bg-[#018F2D] px-6 text-white hover:bg-[#0a594c]"
+                className="rounded-xl px-6"
               >
                 <ShoppingBag className="mr-2 h-4 w-4" />
                 {t('ui.browse_marketplace', 'Browse Marketplace')}
@@ -191,10 +185,10 @@ export function Favorites() {
             </CardContent>
           </Card>
         ) : filteredItems.length === 0 ? (
-          <Card className="rounded-3xl border border-[#d2e4dc] bg-white">
+          <Card className="rounded-2xl border border-border bg-card shadow-card">
             <CardContent className="py-14 text-center">
-              <h3 className="mb-2 text-xl font-semibold text-[#113c32]">{t('ui.no_items_match_your_search', 'No items match your search')}</h3>
-              <p className="mx-auto mb-6 max-w-md text-sm text-[#59796f]">
+              <h3 className="mb-2 text-xl font-semibold text-foreground">{t('ui.no_items_match_your_search', 'No items match your search')}</h3>
+              <p className="mx-auto mb-6 max-w-md text-sm text-muted-foreground">
                 {t('ui.try_a_different_keyword_or_reset_your_filters_to_s', 'Try a different keyword or reset your filters to see all your saved items.')}
               </p>
               <Button
@@ -204,7 +198,7 @@ export function Favorites() {
                   setFilterType('all');
                   setSortBy('recent');
                 }}
-                className="rounded-xl border-[#b9d4c8] text-[#018F2D] hover:bg-[#edf7f2]"
+                className="rounded-xl"
               >
                 {t('ui.clear_filters', 'Clear Filters')}
               </Button>
@@ -212,111 +206,32 @@ export function Favorites() {
           </Card>
         ) : (
           <>
-            <div className="grid grid-cols-12 items-start gap-4 lg:gap-5">
-              {filteredItems.map((item, index) => {
-                const categoryLabel = resolveNamedCatalogLabel(categories, item?.category, 'General');
-                const locationLabel = resolveNamedCatalogLabel(
-                  universities,
-                  item?.location,
-                  item?.location ? String(item.location) : 'Campus pickup',
-                );
-                const isFeatured = index % 5 === 1;
-
-                return (
-                  <Card
-                    key={item.id}
-                    className={cn(
-                      getCardSpan(index),
-                      'h-fit overflow-hidden rounded-2xl border border-[#d2e4dc] bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
-                    )}
-                  >
-                    <div className={cn('relative overflow-hidden bg-[#e8f1ec]', isFeatured ? 'aspect-[8/3]' : 'aspect-[4/3]')}>
-                      {item?.images?.[0] ? (
-                        <img
-                          src={item.images[0]}
-                          alt={item?.title || 'Saved item'}
-                          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-                        />
-                      ) : (
-                        <div className="flex h-full items-center justify-center text-sm text-[#6a8c82]">
-                          {t('ui.no_image_available', 'No image available')}
-                        </div>
-                      )}
-                      <button
-                        onClick={() => handleRemoveFavorite(item.id)}
-                        className="absolute right-3 top-3 rounded-full bg-white/95 p-1.5 shadow-sm transition-colors hover:bg-[#ffeef1]"
-                        aria-label="Remove from favorites"
-                      >
-                        <Heart className="h-4 w-4 fill-[#e35166] text-[#e35166]" />
-                      </button>
-                    </div>
-
-                    <CardContent className="space-y-3 p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="text-[10px] font-semibold uppercase tracking-wide text-[#6f9186]">
-                            {categoryLabel}
-                          </p>
-                          <h3 className="mt-1 line-clamp-2 text-base font-bold leading-tight text-[#111111]">
-                            {item?.title || 'Saved Item'}
-                          </h3>
-                        </div>
-                        <Badge
-                          className={cn(
-                            'shrink-0 rounded-full px-2.5 py-0.5 text-[10px] uppercase',
-                            item?.status === 'available'
-                              ? 'bg-[#dff6ea] text-[#0a7c56]'
-                              : item?.status === 'sold'
-                                ? 'bg-[#eaedf0] text-[#51606d]'
-                                : 'bg-[#e4effc] text-[#2a5ca8]',
-                          )}
-                        >
-                          {item?.status || 'available'}
-                        </Badge>
-                      </div>
-
-                      <p className="line-clamp-2 text-sm text-[#8A8A8A]">
-                        {item?.description || 'No description provided.'}
-                      </p>
-
-                      <div className="flex items-end justify-between gap-3">
-                        <div>
-                          <p className="text-xs text-[#7b978e]">{locationLabel}</p>
-                          <p className="text-2xl font-black tracking-tight text-[#004f3f]">
-                            {formatCurrency(Number(item?.price || 0))}
-                          </p>
-                        </div>
-                        <Badge variant="outline" className="rounded-full border-[#c5dace] text-[#366458]">
-                          {item?.type === 'rent' ? 'Rent' : 'Sale'}
-                        </Badge>
-                      </div>
-
-                      <Button
-                        className={cn(
-                          'w-full rounded-xl text-sm font-semibold text-white',
-                          isFeatured ? 'bg-[#018F2D] hover:bg-[#0a584b]' : 'bg-[#111111] hover:bg-[#0c2f28]',
-                        )}
-                        onClick={() => navigate(`/item/${item.id}`)}
-                      >
-                        {getActionLabel(item)}
-                      </Button>
-                    </CardContent>
-                  </Card>
-                );
-              })}
+            <div className="grid grid-cols-2 items-start gap-4 sm:grid-cols-3 lg:grid-cols-4 lg:gap-5">
+              {filteredItems.map((item) => (
+                <ProductCard
+                  key={item.id}
+                  item={item}
+                  isSaved
+                  onSave={(id) => handleRemoveFavorite(id)}
+                  onNavigate={() => navigate(`/item/${item.id}`)}
+                  t={t}
+                  formatCurrency={(n) => formatCurrency(Number(n || 0))}
+                  resolveLocationLabel={resolveLocationLabel}
+                />
+              ))}
             </div>
 
-            <div className="mt-10 rounded-3xl border border-dashed border-[#c6d8cf] bg-[#F3F5F4] px-6 py-12 text-center">
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[#e6f3ec]">
-                <Heart className="h-5 w-5 text-[#018F2D]" />
+            <div className="mt-10 rounded-2xl border border-dashed border-border bg-secondary px-6 py-12 text-center">
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary-soft">
+                <Heart className="h-5 w-5 text-primary" />
               </div>
-              <h3 className="text-2xl font-extrabold tracking-tight text-[#103d34]">{t('ui.finding_more_items', 'Finding more items?')}</h3>
-              <p className="mx-auto mt-2 max-w-xl text-sm text-[#8A8A8A]">
-                Keep browsing your favorite home essentials and discover more trusted marketplace deals.
+              <h3 className="text-2xl font-extrabold tracking-tight text-foreground">{t('ui.finding_more_items', 'Finding more items?')}</h3>
+              <p className="mx-auto mt-2 max-w-xl text-sm text-muted-foreground">
+                {t('ui.finding_more_items_subtitle', 'Keep browsing your favorite home essentials and discover more trusted marketplace deals.')}
               </p>
               <Button
                 onClick={() => navigate('/marketplace')}
-                className="mt-5 rounded-xl bg-[#018F2D] px-6 text-white hover:bg-[#0a594c]"
+                className="mt-5 rounded-xl px-6"
               >
                 {t('ui.browse_marketplace', 'Browse Marketplace')}
               </Button>

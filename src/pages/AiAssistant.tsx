@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Badge } from '@/app/components/ui/badge';
 import { Button } from '@/app/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Input } from '@/app/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/app/components/ui/sheet';
+import { cn } from '@/app/components/ui/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useHeaderHeight } from '@/hooks/useHeaderHeight';
 import { API_URL } from '@/lib/api';
 import {
   Bot,
@@ -264,6 +264,101 @@ const toGuestThreadPayload = (threads: ChatThread[]) =>
     messages: toHistoryPayload(thread.messages),
   }));
 
+// ── Full-fidelity local persistence (keeps images, recommendations, etc.) ────
+const AUTH_CHAT_THREADS_KEY_PREFIX = 'sasha-ai-chat-threads-user-';
+
+const normalizeThreadMessagesFull = (value: unknown): ChatMessage[] => {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry) => {
+      const content = isNonEmptyString(entry?.content) ? entry.content.trim() : '';
+      if (!content) return null;
+      const images = Array.isArray(entry?.images)
+        ? entry.images.filter((img: unknown): img is string => typeof img === 'string' && img.length > 0)
+        : undefined;
+      const recommendations = Array.isArray(entry?.recommendations) ? entry.recommendations : undefined;
+      const nextQuestions = Array.isArray(entry?.nextQuestions)
+        ? entry.nextQuestions.filter(isNonEmptyString)
+        : undefined;
+      return {
+        id: isNonEmptyString(entry?.id) ? entry.id : createLocalId('chat'),
+        role: entry?.role === 'assistant' ? 'assistant' : 'user',
+        content,
+        createdAt: safeDateTime(entry?.createdAt, toIsoNow()),
+        ...(images && images.length ? { images } : {}),
+        ...(recommendations && recommendations.length ? { recommendations } : {}),
+        ...(nextQuestions && nextQuestions.length ? { nextQuestions } : {}),
+        ...(entry?.stylePlan !== undefined ? { stylePlan: entry.stylePlan } : {}),
+        ...(entry?.kitchenList !== undefined ? { kitchenList: entry.kitchenList } : {}),
+      } as ChatMessage;
+    })
+    .filter((entry): entry is ChatMessage => Boolean(entry));
+};
+
+const normalizeChatThreadsFull = (value: unknown, fallbackTitle = 'New chat'): ChatThread[] => {
+  if (!Array.isArray(value)) return [];
+  const deduped = new Map<string, ChatThread>();
+  for (const entry of value) {
+    const id = isNonEmptyString(entry?.id) ? entry.id : createLocalId('thread');
+    const messages = normalizeThreadMessagesFull(entry?.messages);
+    const createdAt = safeDateTime(entry?.createdAt, messages[0]?.createdAt || toIsoNow());
+    const updatedAt = safeDateTime(entry?.updatedAt, messages[messages.length - 1]?.createdAt || createdAt);
+    const title = isNonEmptyString(entry?.title) ? entry.title.trim() : buildThreadTitleFromMessages(messages, fallbackTitle);
+    deduped.set(id, { id, title: title || fallbackTitle, createdAt, updatedAt, messages });
+  }
+  return sortThreadsByUpdatedAt(Array.from(deduped.values()));
+};
+
+const toFullMessagePayload = (messages: ChatMessage[]) =>
+  messages.slice(-40).map((message) => ({
+    id: message.id,
+    role: message.role,
+    content: message.content,
+    createdAt: message.createdAt,
+    ...(message.images && message.images.length ? { images: message.images } : {}),
+    ...(message.recommendations && message.recommendations.length ? { recommendations: message.recommendations } : {}),
+    ...(message.nextQuestions && message.nextQuestions.length ? { nextQuestions: message.nextQuestions } : {}),
+  }));
+
+const toFullThreadPayload = (threads: ChatThread[]) =>
+  threads.map((thread) => ({
+    id: thread.id,
+    title: thread.title,
+    createdAt: thread.createdAt,
+    updatedAt: thread.updatedAt,
+    messages: toFullMessagePayload(thread.messages),
+  }));
+
+// Persist the full conversation; if storage is full (base64 images are large),
+// retry without image data so text + recommendations are never lost.
+const persistThreadsToStorage = (key: string, threads: ChatThread[]) => {
+  if (!key) return;
+  const full = toFullThreadPayload(threads);
+  try {
+    localStorage.setItem(key, JSON.stringify(full));
+    return;
+  } catch {
+    /* storage full — fall back to a lighter payload below */
+  }
+  try {
+    const withoutImages = full.map((thread) => ({
+      ...thread,
+      messages: thread.messages.map(({ images, ...rest }) => rest),
+    }));
+    localStorage.setItem(key, JSON.stringify(withoutImages));
+  } catch {
+    /* give up silently — nothing else we can safely do */
+  }
+};
+
+// Prefer the richer local threads; add any backend-only threads on top.
+const mergeAuthThreads = (local: ChatThread[], backend: ChatThread[]): ChatThread[] => {
+  if (local.length === 0) return backend;
+  const localIds = new Set(local.map((thread) => thread.id));
+  const backendOnly = backend.filter((thread) => !localIds.has(thread.id));
+  return sortThreadsByUpdatedAt([...local, ...backendOnly]);
+};
+
 const formatRecentTimestamp = (value: string) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '';
@@ -305,6 +400,13 @@ export function AiAssistant() {
     [threads, activeThreadId],
   );
   const messages = activeThread?.messages || [];
+
+  // Where the full conversation is cached locally (per user, so accounts don't mix).
+  const chatStorageKey = isAuthenticated
+    ? currentUser?.id
+      ? `${AUTH_CHAT_THREADS_KEY_PREFIX}${currentUser.id}`
+      : ''
+    : GUEST_AI_CHAT_THREADS_STORAGE_KEY;
 
   const requestWithAuthRetry = async (path: string, init?: RequestInit) => {
     const token =
@@ -417,12 +519,15 @@ export function AiAssistant() {
               )
             : [];
 
-          const nextThreads =
-            fromConversations.length > 0
-              ? fromConversations
-              : fromLegacyMessages.length > 0
-                ? fromLegacyMessages
-                : [createEmptyThread(defaultThreadTitle)];
+          const backendThreads = fromConversations.length > 0 ? fromConversations : fromLegacyMessages;
+
+          // Restore the full local copy (text + images + recommendations) and
+          // prefer it over the backend, which may not return assistant replies.
+          const localFull = chatStorageKey
+            ? normalizeChatThreadsFull(parseJsonArray(localStorage.getItem(chatStorageKey)), defaultThreadTitle)
+            : [];
+          const merged = mergeAuthThreads(localFull, backendThreads);
+          const nextThreads = merged.length > 0 ? merged : [createEmptyThread(defaultThreadTitle)];
 
           const requestedActiveId = isNonEmptyString(data?.activeConversationId) ? data.activeConversationId : '';
           const resolvedActiveId =
@@ -431,7 +536,7 @@ export function AiAssistant() {
           setThreads(nextThreads);
           setActiveThreadId(resolvedActiveId);
         } else {
-          const storedThreads = normalizeChatThreads(
+          const storedThreads = normalizeChatThreadsFull(
             parseJsonArray(localStorage.getItem(GUEST_AI_CHAT_THREADS_STORAGE_KEY)),
             defaultThreadTitle,
           );
@@ -464,19 +569,27 @@ export function AiAssistant() {
     };
 
     loadHistory();
-  }, [isAuthenticated, accessToken, currentUser?.id, defaultThreadTitle]);
+  }, [isAuthenticated, accessToken, currentUser?.id, defaultThreadTitle, chatStorageKey]);
 
   useEffect(() => {
-    if (isAuthenticated) return;
-    localStorage.setItem(
-      GUEST_AI_CHAT_THREADS_STORAGE_KEY,
-      JSON.stringify(toGuestThreadPayload(threads)),
-    );
-    localStorage.setItem(
-      GUEST_AI_CHAT_STORAGE_KEY,
-      JSON.stringify(toHistoryPayload(activeThread?.messages || [])),
-    );
-  }, [threads, activeThread, isAuthenticated]);
+    // Don't write until the initial history load has finished — otherwise the
+    // empty initial state would overwrite (wipe) the saved cache before it's read.
+    if (isHistoryLoading) return;
+    // Persist the FULL conversation (text + recommendations + images) for every
+    // user so history survives navigation. Backend storage is unchanged.
+    persistThreadsToStorage(chatStorageKey, threads);
+    if (!isAuthenticated) {
+      // Keep the legacy single-history key in sync for the floating launcher.
+      try {
+        localStorage.setItem(
+          GUEST_AI_CHAT_STORAGE_KEY,
+          JSON.stringify(toHistoryPayload(activeThread?.messages || [])),
+        );
+      } catch {
+        /* ignore quota errors */
+      }
+    }
+  }, [threads, activeThread, isAuthenticated, chatStorageKey, isHistoryLoading]);
 
   useEffect(() => {
     return () => {
@@ -775,374 +888,360 @@ export function AiAssistant() {
     setPendingImages([]);
   };
 
-  return (
-    <div className="min-h-screen bg-[#FFFFFF] py-8">
-      <div className="mx-auto max-w-7xl px-4 lg:px-6">
-        <section className="mb-6 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className="text-4xl font-extrabold text-[#111111]">
-              <span className="text-[#05B43D]">{t('ui.sasha', 'Sasha')}</span> {t('assistant.title', 'AI Assistant')}
-            </h1>
-            <p className="mt-3 text-base font-semibold text-[#4A4A4A]">
-              {t(
-                'assistant.subtitle',
-                'Chat with AI to discover products, room arrangement ideas, and kitchen essentials.',
-              )}
-            </p>
-          </div>
+  const headerHeight = useHeaderHeight();
 
-          <div className="flex items-center gap-2">
+  const suggestions = [
+    t('assistant.suggest1', 'Decorate my room under 150,000 XAF'),
+    t('assistant.suggest2', 'Build a student kitchen essentials list'),
+    t('assistant.suggest3', 'Find a cheap laptop for engineering'),
+    t('assistant.suggest4', 'Affordable furniture near campus'),
+  ];
+
+  const renderThreads = (onPick?: () => void) =>
+    threads.length > 0 ? (
+      <div className="space-y-0.5">
+        {threads.map((thread) => (
+          <button
+            key={thread.id}
+            type="button"
+            onClick={() => {
+              setActiveThreadId(thread.id);
+              onPick?.();
+            }}
+            className={cn(
+              'flex w-full flex-col rounded-lg px-3 py-2 text-left transition-colors',
+              activeThread?.id === thread.id
+                ? 'bg-accent text-accent-foreground'
+                : 'text-foreground hover:bg-secondary',
+            )}
+          >
+            <span className="truncate text-sm font-medium">{thread.title || t('assistant.newChat', 'New chat')}</span>
+            <span className="mt-0.5 text-[11px] text-muted-foreground">{formatRecentTimestamp(thread.updatedAt)}</span>
+          </button>
+        ))}
+      </div>
+    ) : (
+      <p className="px-3 py-2 text-xs text-muted-foreground">{t('assistant.noRecents', 'No recent chats yet.')}</p>
+    );
+
+  const composer = (
+    <div className="space-y-2">
+      {pendingImages.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {pendingImages.map((image) => (
+            <div key={image.id} className="group relative">
+              <img src={image.dataUrl} alt={image.name} className="h-16 w-16 rounded-lg border border-border object-cover" />
+              <button
+                type="button"
+                aria-label="Remove image"
+                className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-foreground text-[11px] text-background opacity-0 transition-opacity group-hover:opacity-100"
+                onClick={() => setPendingImages((prev) => prev.filter((entry) => entry.id !== image.id))}
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="rounded-3xl border border-border bg-card p-2 shadow-card transition-shadow focus-within:shadow-elevated">
+        <input
+          ref={fileInputRef}
+          type="file"
+          title="Upload image"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={(event) => {
+            void handlePickImages(event.target.files);
+            event.target.value = '';
+          }}
+        />
+        <Input
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          placeholder={t('assistant.placeholder', 'Ask Sasha anything — products, advice, tech, or any question...')}
+          className="h-11 border-0 bg-transparent px-3 text-sm shadow-none focus-visible:ring-0"
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' && !event.shiftKey) {
+              event.preventDefault();
+              void sendMessage();
+            }
+          }}
+        />
+        <div className="flex items-center justify-between px-1 pt-1">
+          <div className="flex items-center gap-1">
             <Button
               type="button"
-              variant="outline"
-              className="h-10 w-10 rounded-full border-[#e6e0dc] p-0 text-[#5a5a5a] hover:bg-[#f4efec] lg:hidden"
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 rounded-full text-muted-foreground hover:text-primary"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isSending || isDailyLimitReached}
+              aria-label={t('assistant.attachImage', 'Attach image')}
+            >
+              <ImagePlus className="h-[18px] w-[18px]" />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className={cn('h-9 w-9 rounded-full', isRecording ? 'text-destructive' : 'text-muted-foreground hover:text-primary')}
+              onClick={isRecording ? stopRecording : startRecording}
+              disabled={isTranscribing || isSending || isDailyLimitReached}
+              aria-label={isRecording ? 'Stop recording' : 'Start recording'}
+            >
+              {isRecording ? <MicOff className="h-[18px] w-[18px]" /> : <Mic className="h-[18px] w-[18px]" />}
+            </Button>
+          </div>
+          <Button
+            type="button"
+            size="icon"
+            className="h-9 w-9 rounded-full bg-primary text-primary-foreground hover:bg-primary-strong"
+            onClick={() => void sendMessage()}
+            disabled={isSending || isTranscribing || isDailyLimitReached}
+            aria-label={t('assistant.send', 'Send')}
+          >
+            {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <SendHorizontal className="h-4 w-4" />}
+          </Button>
+        </div>
+      </div>
+
+      {(dailyUsage || isTranscribing) && (
+        <div className="px-2 text-center text-[11px] text-muted-foreground">
+          {isTranscribing && (
+            <span className="mr-2 inline-flex items-center">
+              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+              {t('assistant.transcribing', 'Transcribing voice...')}
+            </span>
+          )}
+          {dailyUsage &&
+            (dailyUsage.remaining > 0
+              ? `${dailyUsage.remaining}/${dailyUsage.limit} ${t('assistant.requestsLeft', 'AI requests left today')}`
+              : `${t('assistant.limitReached', 'Daily AI limit reached')} (${dailyUsage.limit}/${dailyUsage.limit})`)}
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="flex bg-background" style={{ height: `calc(100vh - ${headerHeight}px)` }}>
+      {/* ── Desktop sidebar ── */}
+      <aside className="hidden w-72 shrink-0 flex-col border-r border-border bg-card lg:flex">
+        <div className="p-3">
+          <Button
+            type="button"
+            className="w-full justify-start gap-2 rounded-xl bg-primary text-primary-foreground hover:bg-primary-strong"
+            onClick={startNewChat}
+          >
+            <Plus className="h-4 w-4" />
+            {t('assistant.newChat', 'New chat')}
+          </Button>
+        </div>
+        <div className="flex items-center justify-between px-4 pb-1 pt-2">
+          <button
+            type="button"
+            className="flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-muted-foreground"
+            onClick={() => setIsRecentsOpen((prev) => !prev)}
+          >
+            {t('assistant.recents', 'Recents')}
+            <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', isRecentsOpen ? 'rotate-0' : '-rotate-90')} />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto px-2 pb-3">{isRecentsOpen && renderThreads()}</div>
+        <div className="border-t border-border p-3">
+          <Button
+            type="button"
+            variant="ghost"
+            className="w-full justify-start gap-2 text-muted-foreground hover:text-primary"
+            onClick={() => navigate('/marketplace')}
+          >
+            {t('assistant.backMarketplace', 'Back to marketplace')}
+          </Button>
+        </div>
+      </aside>
+
+      {/* ── Mobile sidebar sheet ── */}
+      <Sheet open={isSidebarMenuOpen} onOpenChange={setIsSidebarMenuOpen}>
+        <SheetContent side="left" className="w-[86vw] max-w-xs border-r border-border bg-card p-0 sm:max-w-xs lg:hidden">
+          <SheetHeader className="sr-only p-0">
+            <SheetTitle>{t('assistant.chatsMenu', 'Chats menu')}</SheetTitle>
+          </SheetHeader>
+          <div className="p-3">
+            <Button
+              type="button"
+              className="w-full justify-start gap-2 rounded-xl bg-primary text-primary-foreground hover:bg-primary-strong"
+              onClick={() => {
+                startNewChat();
+                setIsSidebarMenuOpen(false);
+              }}
+            >
+              <Plus className="h-4 w-4" />
+              {t('assistant.newChat', 'New chat')}
+            </Button>
+          </div>
+          <div className="px-4 pb-1 pt-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              {t('assistant.recents', 'Recents')}
+            </span>
+          </div>
+          <div className="overflow-y-auto px-2 pb-3">{renderThreads(() => setIsSidebarMenuOpen(false))}</div>
+        </SheetContent>
+      </Sheet>
+
+      {/* ── Main column ── */}
+      <div className="flex min-w-0 flex-1 flex-col">
+        {/* Top bar */}
+        <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-2.5">
+          <div className="flex min-w-0 items-center gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="rounded-full lg:hidden"
               onClick={() => setIsSidebarMenuOpen(true)}
               aria-label={t('assistant.openChatsMenu', 'Open chats menu')}
             >
               <Menu className="h-5 w-5" />
             </Button>
-            <Button
-              variant="outline"
-              className="rounded-full border-[#e6e0dc] text-[#5a5a5a] hover:bg-[#f4efec]"
-              onClick={clearHistory}
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              {t('assistant.clearCurrent', 'Clear current chat')}
-            </Button>
-            <Button
-              className="rounded-full bg-[#05B43D] text-white hover:bg-[#166146]"
-              onClick={() => navigate('/marketplace')}
-            >
-              {t('assistant.backMarketplace', 'Back to marketplace')}
-            </Button>
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary">
+              <Bot className="h-4 w-4" />
+            </span>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-bold text-foreground">{activeThread?.title || t('ui.sasha', 'Sasha')}</p>
+              <p className="truncate text-[11px] text-muted-foreground">
+                {t('assistant.titleSub', 'Your campus shopping assistant')}
+              </p>
+            </div>
           </div>
-        </section>
-
-        <Sheet open={isSidebarMenuOpen} onOpenChange={setIsSidebarMenuOpen}>
-          <SheetContent
-            side="left"
-            className="w-[88vw] max-w-sm border-r border-[#ece4df] bg-[#FFFFFF] p-4 sm:max-w-sm lg:hidden"
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="gap-1.5 text-muted-foreground hover:text-destructive"
+            onClick={clearHistory}
           >
-            <SheetHeader className="sr-only p-0">
-              <SheetTitle>{t('assistant.chatsMenu', 'Chats menu')}</SheetTitle>
-            </SheetHeader>
-            <Card className="h-fit rounded-3xl border border-[#ece4df] bg-white shadow-sm">
-              <CardHeader className="space-y-4 border-b border-[#f1ebe7]">
-                <Button
-                  type="button"
-                  className="w-full rounded-xl bg-[#05B43D] text-white hover:bg-[#166146]"
-                  onClick={() => {
-                    startNewChat();
-                    setIsSidebarMenuOpen(false);
-                  }}
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  {t('assistant.newChat', 'New chat')}
-                </Button>
+            <Trash2 className="h-4 w-4" />
+            <span className="hidden sm:inline">{t('assistant.clearCurrent', 'Clear chat')}</span>
+          </Button>
+        </div>
 
-                <button
-                  type="button"
-                  className="flex w-full items-center justify-between rounded-lg px-1 text-sm font-medium text-[#4b4b4b]"
-                  onClick={() => setIsRecentsOpen((prev) => !prev)}
-                >
-                  <span>{t('assistant.recents', 'Recents')}</span>
-                  <ChevronDown
-                    className={`h-4 w-4 transition-transform ${isRecentsOpen ? 'rotate-0' : '-rotate-90'}`}
-                  />
-                </button>
-              </CardHeader>
-              <CardContent className="p-3">
-                {isRecentsOpen ? (
-                  threads.length > 0 ? (
-                    <div className="space-y-1">
-                      {threads.map((thread) => (
-                        <button
-                          key={thread.id}
-                          type="button"
-                          onClick={() => {
-                            setActiveThreadId(thread.id);
-                            setIsSidebarMenuOpen(false);
-                          }}
-                          className={`w-full rounded-xl px-3 py-2 text-left transition-colors ${
-                            activeThread?.id === thread.id
-                              ? 'bg-[#e6f9ee] text-[#195c43]'
-                              : 'text-[#333333] hover:bg-[#f7f2ef]'
-                          }`}
-                        >
-                          <p className="truncate text-sm font-medium">
-                            {thread.title || t('assistant.newChat', 'New chat')}
-                          </p>
-                          <p className="mt-1 text-xs text-[#7b7b7b]">{formatRecentTimestamp(thread.updatedAt)}</p>
-                        </button>
-                      ))}
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="mx-auto max-w-3xl px-4 py-6">
+            {isHistoryLoading ? (
+              <div className="flex h-[40vh] items-center justify-center text-sm text-muted-foreground">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {t('assistant.loading', 'Loading chat history...')}
+              </div>
+            ) : messages.length > 0 ? (
+              <div className="space-y-6">
+                {messages.map((message) =>
+                  message.role === 'user' ? (
+                    <div key={message.id} className="flex justify-end">
+                      <div className="max-w-[85%] rounded-2xl rounded-br-md bg-primary-soft px-4 py-3 text-foreground">
+                        <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
+                        {Array.isArray(message.images) && message.images.length > 0 && (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {message.images.map((image, index) => (
+                              <img
+                                key={`${message.id}-img-${index}`}
+                                src={image}
+                                alt="Uploaded context"
+                                className="h-20 w-20 rounded-lg border border-border object-cover"
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ) : (
-                    <p className="text-xs text-[#8a8a8a]">{t('assistant.noRecents', 'No recent chats yet.')}</p>
-                  )
-                ) : null}
-              </CardContent>
-            </Card>
-          </SheetContent>
-        </Sheet>
+                    <div key={message.id} className="flex gap-3">
+                      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                        <Bot className="h-4 w-4" />
+                      </span>
+                      <div className="min-w-0 flex-1 space-y-3">
+                        <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">{message.content}</p>
 
-        <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
-          <Card className="hidden h-fit rounded-3xl border border-[#ece4df] bg-white shadow-sm lg:block">
-            <CardHeader className="space-y-4 border-b border-[#f1ebe7]">
-              <Button
-                type="button"
-                className="w-full rounded-xl bg-[#05B43D] text-white hover:bg-[#166146]"
-                onClick={startNewChat}
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                {t('assistant.newChat', 'New chat')}
-              </Button>
+                        {Array.isArray(message.recommendations) && message.recommendations.length > 0 && (
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            {message.recommendations.slice(0, 4).map((item) => (
+                              <button
+                                key={item.id}
+                                type="button"
+                                onClick={() => {
+                                  void trackRecommendationEvent(item.id, 'recommendation_click', 'chat-bubble');
+                                  navigate(`/item/${item.id}`);
+                                }}
+                                className="flex gap-3 rounded-xl border border-border bg-card p-2.5 text-left transition-all hover:border-primary/30 hover:shadow-card"
+                              >
+                                {item.image ? (
+                                  <img src={item.image} alt={item.title} className="h-14 w-14 shrink-0 rounded-lg object-cover" />
+                                ) : null}
+                                <span className="min-w-0 flex-1">
+                                  <span className="line-clamp-1 block text-xs font-semibold text-foreground">{item.title}</span>
+                                  <span className="mt-0.5 block text-sm font-bold text-primary">{formatCurrency(item.price)}</span>
+                                  {isNonEmptyString(item.reason) ? (
+                                    <span className="mt-0.5 line-clamp-1 block text-[11px] text-muted-foreground">{item.reason}</span>
+                                  ) : null}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
 
-              <button
-                type="button"
-                className="flex w-full items-center justify-between rounded-lg px-1 text-sm font-medium text-[#4b4b4b]"
-                onClick={() => setIsRecentsOpen((prev) => !prev)}
-              >
-                <span>{t('assistant.recents', 'Recents')}</span>
-                <ChevronDown
-                  className={`h-4 w-4 transition-transform ${isRecentsOpen ? 'rotate-0' : '-rotate-90'}`}
-                />
-              </button>
-            </CardHeader>
-            <CardContent className="p-3">
-              {isRecentsOpen ? (
-                threads.length > 0 ? (
-                  <div className="space-y-1">
-                    {threads.map((thread) => (
-                      <button
-                        key={thread.id}
-                        type="button"
-                        onClick={() => setActiveThreadId(thread.id)}
-                        className={`w-full rounded-xl px-3 py-2 text-left transition-colors ${
-                          activeThread?.id === thread.id
-                            ? 'bg-[#e6f9ee] text-[#195c43]'
-                            : 'text-[#333333] hover:bg-[#f7f2ef]'
-                        }`}
-                      >
-                        <p className="truncate text-sm font-medium">
-                          {thread.title || t('assistant.newChat', 'New chat')}
-                        </p>
-                        <p className="mt-1 text-xs text-[#7b7b7b]">{formatRecentTimestamp(thread.updatedAt)}</p>
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-xs text-[#8a8a8a]">{t('assistant.noRecents', 'No recent chats yet.')}</p>
-                )
-              ) : null}
-            </CardContent>
-          </Card>
-
-          <Card className="flex min-h-[70vh] flex-col rounded-3xl border border-[#ece4df] bg-white shadow-sm">
-            <CardHeader className="border-b border-[#f1ebe7] pb-4">
-              <div className="flex items-center gap-3">
-                <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#e6f9ee] text-[#05B43D]">
-                  <Bot className="h-5 w-5" />
-                </div>
-                <div>
-                  <CardTitle className="text-base text-[#222222]">
-                    {activeThread?.title || t('assistant.chatTitle', "Let's plan your setup")}
-                  </CardTitle>
-                  <p className="text-xs text-[#818181]">
-                    {t('assistant.chatHint', 'Ask for products, room styling, kitchen setup, or cheaper alternatives.')}
-                  </p>
-                </div>
-              </div>
-            </CardHeader>
-
-            <CardContent className="flex-1 overflow-y-auto p-4">
-              {isHistoryLoading ? (
-                <div className="flex h-full items-center justify-center text-sm text-[#8d8d8d]">
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {t('assistant.loading', 'Loading chat history...')}
-                </div>
-              ) : messages.length > 0 ? (
-                <div className="space-y-4">
-                  {messages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={`max-w-[90%] rounded-2xl px-4 py-3 ${
-                        message.role === 'user'
-                          ? 'ml-auto bg-[#05B43D] text-white'
-                          : 'bg-[#f4efec] text-[#232323]'
-                      }`}
-                    >
-                      <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
-
-                      {Array.isArray(message.images) && message.images.length > 0 && (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {message.images.map((image, index) => (
-                            <img
-                              key={`${message.id}-img-${index}`}
-                              src={image}
-                              alt="Uploaded context"
-                              className="h-20 w-20 rounded-lg border border-white/40 object-cover"
-                            />
-                          ))}
-                        </div>
-                      )}
-
-                      {message.role === 'assistant' && Array.isArray(message.recommendations) && message.recommendations.length > 0 && (
-                        <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                          {message.recommendations.slice(0, 4).map((item) => (
-                            <button
-                              key={item.id}
-                              type="button"
-                              onClick={() => {
-                                void trackRecommendationEvent(item.id, 'recommendation_click', 'chat-bubble');
-                                navigate(`/item/${item.id}`);
-                              }}
-                              className="rounded-xl border border-[#e8dfd9] bg-white p-2 text-left transition-colors hover:bg-[#faf6f3]"
-                            >
-                              {item.image ? (
-                                <img
-                                  src={item.image}
-                                  alt={item.title}
-                                  className="mb-2 h-20 w-full rounded-md object-cover"
-                                />
-                              ) : null}
-                              <p className="line-clamp-1 text-xs font-semibold text-[#202020]">{item.title}</p>
-                              <p className="mt-1 text-xs font-semibold text-[#05B43D]">{formatCurrency(item.price)}</p>
-                              {isNonEmptyString(item.reason) ? (
-                                <p className="mt-1 line-clamp-2 text-[11px] text-[#6e6e6e]">{item.reason}</p>
-                              ) : null}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-
-                      {Array.isArray(message.nextQuestions) && message.nextQuestions.length > 0 && (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {message.nextQuestions.map((question, index) => (
-                            <Badge
-                              key={`${message.id}-q-${index}`}
-                              className="cursor-pointer rounded-full bg-white/90 px-3 py-1 text-[11px] text-[#1f1f1f] hover:bg-white"
-                              onClick={() => setDraft(question)}
-                            >
-                              {question}
-                            </Badge>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                  <div ref={chatBottomRef} />
-                </div>
-              ) : (
-                <div className="flex h-full flex-col items-center justify-center px-3 text-center">
-                  <div className="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-full bg-[#e6f9ee] text-[#05B43D]">
-                    <Bot className="h-6 w-6" />
-                  </div>
-                  <p className="max-w-lg text-sm text-[#646464]">
-                    {t(
-                      'assistant.empty',
-                      'Try: "I want to decorate my room under 150,000 XAF" or "Build a kitchen list for a student apartment."',
-                    )}
-                  </p>
-                </div>
-              )}
-            </CardContent>
-
-            <CardFooter className="border-t border-[#f1ebe7] p-4">
-              <div className="w-full space-y-3">
-                {pendingImages.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {pendingImages.map((image) => (
-                      <div key={image.id} className="group relative">
-                        <img
-                          src={image.dataUrl}
-                          alt={image.name}
-                          className="h-16 w-16 rounded-lg border border-[#e9dfda] object-cover"
-                        />
-                        <button
-                          type="button"
-                          className="absolute -right-1 -top-1 rounded-full bg-[#1f1f1f] px-1.5 text-[10px] text-white opacity-0 transition-opacity group-hover:opacity-100"
-                          onClick={() => setPendingImages((prev) => prev.filter((entry) => entry.id !== image.id))}
-                        >
-                          x
-                        </button>
+                        {Array.isArray(message.nextQuestions) && message.nextQuestions.length > 0 && (
+                          <div className="flex flex-wrap gap-2">
+                            {message.nextQuestions.map((question, index) => (
+                              <button
+                                key={`${message.id}-q-${index}`}
+                                type="button"
+                                onClick={() => setDraft(question)}
+                                className="rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-primary hover:bg-primary-soft hover:text-primary"
+                              >
+                                {question}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ),
                 )}
-
-                <div className="flex items-center gap-2">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    title="Upload image"
-                    accept="image/*"
-                    multiple
-                    className="hidden"
-                    onChange={(event) => {
-                      void handlePickImages(event.target.files);
-                      event.target.value = '';
-                    }}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="h-10 rounded-full border-[#e4dbd6] px-3"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isSending || isDailyLimitReached}
-                  >
-                    <ImagePlus className="h-4 w-4" />
-                  </Button>
-
-                  <Button
-                    type="button"
-                    variant={isRecording ? 'default' : 'outline'}
-                    className={`h-10 rounded-full border-[#e4dbd6] px-3 ${isRecording ? 'bg-[#d94c57] text-white hover:bg-[#c53e49]' : ''}`}
-                    onClick={isRecording ? stopRecording : startRecording}
-                    disabled={isTranscribing || isSending || isDailyLimitReached}
-                  >
-                    {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-                  </Button>
-
-                  <Input
-                    value={draft}
-                    onChange={(event) => setDraft(event.target.value)}
-                    placeholder={t('assistant.placeholder', 'Ask Sasha anything — products, advice, science, tech, or any question...')}
-                    className="h-10 rounded-full border-[#e4dbd6] bg-[#faf8f6]"
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter' && !event.shiftKey) {
-                        event.preventDefault();
-                        void sendMessage();
-                      }
-                    }}
-                  />
-
-                  <Button
-                    type="button"
-                    className="h-10 rounded-full bg-[#05B43D] px-4 text-white hover:bg-[#166146]"
-                    onClick={() => void sendMessage()}
-                    disabled={isSending || isTranscribing || isDailyLimitReached}
-                  >
-                    {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <SendHorizontal className="h-4 w-4" />}
-                  </Button>
-                </div>
-
-                {dailyUsage && (
-                  <p className="text-xs text-[#7a7a7a]">
-                    {dailyUsage.remaining > 0
-                      ? `AI requests left in this 24-hour window: ${dailyUsage.remaining}/${dailyUsage.limit}`
-                      : `24-hour AI request limit reached (${dailyUsage.limit}/${dailyUsage.limit}).`}
-                  </p>
-                )}
-
-                {isTranscribing && (
-                  <p className="text-xs text-[#7a7a7a]">
-                    <Loader2 className="mr-1 inline h-3 w-3 animate-spin" />
-                    {t('assistant.transcribing', 'Transcribing voice...')}
-                  </p>
-                )}
+                <div ref={chatBottomRef} />
               </div>
-            </CardFooter>
-          </Card>
+            ) : (
+              <div className="flex min-h-[50vh] flex-col items-center justify-center text-center">
+                <span className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-elevated">
+                  <Bot className="h-7 w-7" />
+                </span>
+                <h2 className="text-2xl font-bold text-foreground">{t('assistant.greeting', "Hi, I'm Sasha 👋")}</h2>
+                <p className="mt-2 max-w-md text-sm text-muted-foreground">
+                  {t(
+                    'assistant.subtitle',
+                    'Ask me to find products, plan your room, or build a kitchen list — anything for campus life.',
+                  )}
+                </p>
+                <div className="mt-6 grid w-full max-w-lg gap-2 sm:grid-cols-2">
+                  {suggestions.map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setDraft(s)}
+                      className="rounded-xl border border-border bg-card px-4 py-3 text-left text-sm text-foreground transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-card"
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Composer */}
+        <div className="border-t border-border bg-background">
+          <div className="mx-auto max-w-3xl px-4 py-3">{composer}</div>
         </div>
       </div>
     </div>

@@ -218,7 +218,7 @@ export function Review() {
   }
 
   return (
-    <div className="bg-gray-50 min-h-screen py-8">
+    <div className="bg-background min-h-screen py-8">
       <div className="container mx-auto px-4 max-w-2xl">
         <Card>
           <CardHeader>
@@ -233,12 +233,12 @@ export function Review() {
                 </Alert>
               )}
 
-              <div className="bg-gray-50 rounded-lg p-4 border">
-                <p className="text-sm text-muted-foreground mb-1">Item</p>
-                <p className="font-semibold mb-3">{itemTitle}</p>
+              <div className="rounded-lg border border-border bg-secondary p-4">
+                <p className="text-sm text-muted-foreground mb-1">{t('ui.item', 'Item')}</p>
+                <p className="font-semibold text-foreground mb-3">{itemTitle}</p>
 
                 <p className="text-sm text-muted-foreground mb-1">{t('ui.seller', 'Seller')}</p>
-                <p className="font-semibold">{seller?.name || 'Seller'}</p>
+                <p className="font-semibold text-foreground">{seller?.name || 'Seller'}</p>
               </div>
 
               <div className="space-y-2">
@@ -256,7 +256,7 @@ export function Review() {
                     >
                       <Star
                         className={`h-8 w-8 ${
-                          star <= (hoverRating || rating) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'
+                          star <= (hoverRating || rating) ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground/40'
                         } transition-colors`}
                       />
                     </button>
@@ -287,14 +287,14 @@ export function Review() {
                 >
                   {t('ui.cancel', 'Cancel')}
                 </Button>
-                <Button type="submit" className="flex-1 bg-[#05B43D] hover:bg-[#018F2D]" disabled={loading || rating === 0}>
+                <Button type="submit" className="flex-1" disabled={loading || rating === 0}>
                   {loading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       {t('ui.submitting', 'Submitting...')}
                     </>
                   ) : (
-                    'Submit Review'
+                    t('ui.submit_review', 'Submit Review')
                   )}
                 </Button>
               </div>

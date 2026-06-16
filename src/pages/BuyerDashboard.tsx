@@ -142,53 +142,61 @@ export function BuyerDashboard() {
       <div className="container mx-auto px-4">
         <div className="mb-8 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-4xl font-extrabold text-[#111111]"><span className="text-[#05B43D]">{t('ui.buyer', 'Buyer')}</span> {t('ui.dashboard', 'Dashboard')}</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl"><span className="text-primary">{t('ui.buyer', 'Buyer')}</span> {t('ui.dashboard', 'Dashboard')}</h1>
             <p className="text-muted-foreground">{t('ui.escrow_protected_purchases_for', 'Escrow-protected purchases for')} {currentUser.name}</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">{t("buyer.totalOrders", "Total Orders")}</CardTitle>
-              <ShoppingBag className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{orders.length}</div>
-              <p className="text-xs text-muted-foreground">{t('ui.escrow_transactions', 'Escrow transactions')}</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+          <Card className="shadow-card transition-shadow hover:shadow-elevated">
+            <CardContent className="flex items-start justify-between gap-3 p-5">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-muted-foreground">{t("buyer.totalOrders", "Total Orders")}</p>
+                <div className="mt-2 text-2xl font-bold text-foreground">{orders.length}</div>
+                <p className="mt-1 text-xs text-muted-foreground">{t('ui.escrow_transactions', 'Escrow transactions')}</p>
+              </div>
+              <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary">
+                <ShoppingBag className="h-5 w-5" />
+              </span>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">{t("buyer.pendingDelivery", "Pending Delivery")}</CardTitle>
-              <PackageCheck className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.pending}</div>
-              <p className="text-xs text-muted-foreground">{t('ui.en_attente_de_confirmation_vendeur', 'Pending Vendor Confirmation')}</p>
+          <Card className="shadow-card transition-shadow hover:shadow-elevated">
+            <CardContent className="flex items-start justify-between gap-3 p-5">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-muted-foreground">{t("buyer.pendingDelivery", "Pending Delivery")}</p>
+                <div className="mt-2 text-2xl font-bold text-foreground">{stats.pending}</div>
+                <p className="mt-1 text-xs text-muted-foreground">{t('ui.en_attente_de_confirmation_vendeur', 'Pending Vendor Confirmation')}</p>
+              </div>
+              <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary">
+                <PackageCheck className="h-5 w-5" />
+              </span>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">{t("buyer.totalSpent", "Total Spent")}</CardTitle>
-              <Banknote className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-600">{formatMoney(stats.totalSpent)}</div>
-              <p className="text-xs text-muted-foreground">{t('ui.sur_toutes_les_commandes', 'All Order Lists')}</p>
+          <Card className="shadow-card transition-shadow hover:shadow-elevated">
+            <CardContent className="flex items-start justify-between gap-3 p-5">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-muted-foreground">{t("buyer.totalSpent", "Total Spent")}</p>
+                <div className="mt-2 text-2xl font-bold text-foreground">{formatMoney(stats.totalSpent)}</div>
+                <p className="mt-1 text-xs text-muted-foreground">{t('ui.sur_toutes_les_commandes', 'All Order Lists')}</p>
+              </div>
+              <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground">
+                <Banknote className="h-5 w-5" />
+              </span>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">{t("buyer.savedItems", "Saved Items")}</CardTitle>
-              <Heart className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-600">{favoriteItems.length}</div>
-              <p className="text-xs text-muted-foreground">{t('ui.articles_en_liste_de_souhaits', 'Wishlist Items')}</p>
+          <Card className="shadow-card transition-shadow hover:shadow-elevated">
+            <CardContent className="flex items-start justify-between gap-3 p-5">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-muted-foreground">{t("buyer.savedItems", "Saved Items")}</p>
+                <div className="mt-2 text-2xl font-bold text-foreground">{favoriteItems.length}</div>
+                <p className="mt-1 text-xs text-muted-foreground">{t('ui.articles_en_liste_de_souhaits', 'Wishlist Items')}</p>
+              </div>
+              <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary">
+                <Heart className="h-5 w-5" />
+              </span>
             </CardContent>
           </Card>
         </div>
@@ -210,10 +218,10 @@ export function BuyerDashboard() {
                 <CardContent>
                   <div className="space-y-4">
                     {orders.map((order) => (
-                      <div key={order.id} className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 p-4 border rounded-lg">
+                      <div key={order.id} className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 p-4 border border-border rounded-lg bg-card">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <p className="font-medium">{order.listingTitle || 'Item'}</p>
+                            <p className="font-medium text-foreground">{order.listingTitle || 'Item'}</p>
                             <Badge variant={order.status === 'delivered_released' ? 'default' : 'secondary'}>
                               {order.statusLabel || order.status}
                             </Badge>
@@ -226,7 +234,7 @@ export function BuyerDashboard() {
                           </p>
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
-                          <p className="font-bold text-blue-600">{formatMoney(order.amount || 0)}</p>
+                          <p className="font-bold text-primary">{formatMoney(order.amount || 0)}</p>
                           <Button
                             size="sm"
                             variant="outline"
@@ -246,7 +254,7 @@ export function BuyerDashboard() {
                   <ShoppingBag className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-semibold mb-2">{t('ui.no_orders_yet', 'No orders yet')}</h3>
                   <p className="text-muted-foreground mb-4">{t('ui.start_shopping_to_create_your_first_escrow_protect', 'Start shopping to create your first escrow-protected order.')}</p>
-                  <Button className="bg-[#05B43D] hover:bg-[#018F2D]" onClick={() => navigate('/marketplace')}>
+                  <Button onClick={() => navigate('/marketplace')}>
                     {t('ui.browse_marketplace', 'Browse Marketplace')}
                   </Button>
                 </CardContent>
@@ -256,16 +264,16 @@ export function BuyerDashboard() {
 
           <TabsContent value="favorites">
             {safeFavoriteItems.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
                 {safeFavoriteItems.map((item: any) => (
-                  <Card key={item.id} className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate(`/item/${item.id}`)}>
+                  <Card key={item.id} className="overflow-hidden shadow-card hover:shadow-elevated transition-shadow cursor-pointer" onClick={() => navigate(`/item/${item.id}`)}>
                     <div className="aspect-square relative overflow-hidden bg-muted">
                       <img src={item?.images?.[0]} alt={item?.title || 'Saved item'} className="w-full h-full object-cover" />
                       <Badge className="absolute top-2 right-2">{item.status}</Badge>
                     </div>
                     <CardContent className="p-4">
-                      <h3 className="font-semibold mb-2 line-clamp-2">{item.title || 'Untitled item'}</h3>
-                      <p className="text-lg font-bold text-green-600 mb-3">{formatMoney(item.price || 0)}</p>
+                      <h3 className="font-semibold mb-2 line-clamp-2 text-foreground">{item.title || 'Untitled item'}</h3>
+                      <p className="text-lg font-bold text-primary mb-3">{formatMoney(item.price || 0)}</p>
                       <Button className="w-full" onClick={(e) => { e.stopPropagation(); navigate(`/item/${item.id}`); }}>
                         {t('ui.view_details', 'View Details')}
                       </Button>
@@ -279,7 +287,7 @@ export function BuyerDashboard() {
                   <Heart className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-semibold mb-2">{t('ui.no_saved_items', 'No saved items')}</h3>
                   <p className="text-muted-foreground mb-4">{t('ui.save_items_while_browsing', 'Save items while browsing.')}</p>
-                  <Button className="bg-[#05B43D] hover:bg-[#018F2D]" onClick={() => navigate('/marketplace')}>
+                  <Button onClick={() => navigate('/marketplace')}>
                     {t('ui.browse_marketplace', 'Browse Marketplace')}
                   </Button>
                 </CardContent>
@@ -294,7 +302,7 @@ export function BuyerDashboard() {
                 <CardDescription>{t('ui.chat_with_sellers_about_your_orders', 'Chat with sellers about your orders.')}</CardDescription>
               </CardHeader>
               <CardContent>
-                <Button className="bg-[#05B43D] hover:bg-[#018F2D] w-full" onClick={() => navigate('/messages')}>
+                <Button className="w-full" onClick={() => navigate('/messages')}>
                   <MessageSquare className="mr-2 h-4 w-4" />
                   {t('ui.open_messages', 'Open Messages')}
                 </Button>

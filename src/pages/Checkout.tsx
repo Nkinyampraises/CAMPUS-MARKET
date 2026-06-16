@@ -317,6 +317,9 @@ export function Checkout() {
         context: 'order',
         title: item?.title || 'Marketplace purchase',
         amount: item?.price || 0,
+        // Carry the exact fee shown on this checkout screen so the payment review
+        // (and the amount actually charged) matches — 2% with a 3 FCFA minimum.
+        feeOverride: Math.max(3, Math.round((Number(item?.price) || 0) * 0.02)),
         paymentMethod,
         fromName: currentUser?.name || 'Buyer',
         fromPhone: phoneNumber,
@@ -359,8 +362,12 @@ export function Checkout() {
     );
   }
 
-  const subtotal = Math.max(0, Number(item.price || 0));
-  const platformFee = Math.max(500, Math.round(subtotal * 0.007));
+  // Round to a whole franc — XAF/FCFA has no fractional unit, and rounding here
+  // guarantees no stray sub-franc gets dropped from the displayed amount.
+  const subtotal = Math.max(0, Math.round(Number(item.price || 0)));
+  // Platform fee: 2% of the item price, with a small 3 FCFA minimum so tiny
+  // amounts still cover processing (e.g. 50 → 3, 500 → 10, 1000 → 20).
+  const platformFee = Math.max(3, Math.round(subtotal * 0.02));
   const checkoutTotal = subtotal + platformFee;
   const categoryLabel = resolveNamedCatalogLabel(categories, item.category, 'Marketplace Item');
   const conditionLabel = String(item.condition || 'Good')
@@ -369,27 +376,27 @@ export function Checkout() {
   const paymentPhoneLabel = paymentMethod === 'mtn-momo' ? 'MTN' : 'Orange';
 
   return (
-    <div className="min-h-screen bg-[#FFFFFF] py-8">
+    <div className="min-h-screen bg-background py-8">
       <div className="w-full px-4 lg:px-8 xl:px-12">
-        <Button variant="ghost" onClick={() => navigate(-1)} className="mb-3 text-[#4A4A4A] hover:bg-[#e7f3ed]">
+        <Button variant="ghost" onClick={() => navigate(-1)} className="mb-3">
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
+          {t('ui.back', 'Back')}
         </Button>
 
         <div className="mb-5">
-          <h1 className="text-4xl font-extrabold tracking-tight text-[#111111]">{t('ui.secure', 'Secure')}<span className="text-[#05B43D]">{t('ui.checkout', 'Checkout')}</span></h1>
-          <p className="mt-1 text-sm text-[#5e7e75]">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">{t('ui.secure', 'Secure')} <span className="text-primary">{t('ui.checkout', 'Checkout')}</span></h1>
+          <p className="mt-1 text-sm text-muted-foreground">
             {t('ui.complete_your_purchase_from_the_university_of_buea', 'Complete your purchase from the University of Buea Marketplace.')}
           </p>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[0.95fr_1.35fr]">
-          <Card className="h-fit rounded-2xl border border-[#d3e2db] bg-white shadow-sm">
+          <Card className="h-fit rounded-2xl border border-border bg-card shadow-card">
             <CardHeader className="pb-2">
-              <CardTitle className="text-xl font-bold text-[#123c33]">{t("checkout.orderSummary", "Order Summary")}</CardTitle>
+              <CardTitle className="text-xl font-semibold text-foreground">{t("checkout.orderSummary", "Order Summary")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-5">
-              <div className="rounded-xl border border-[#deebe5] bg-[#F3F5F4] p-3">
+              <div className="rounded-xl border border-border bg-secondary p-3">
                 <div className="flex items-start gap-3">
                   <img
                     src={item.images?.[0] || 'https://placehold.co/200x200?text=Item'}
@@ -397,37 +404,36 @@ export function Checkout() {
                     className="h-16 w-16 rounded-md object-cover"
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[#6f8f85]">{categoryLabel}</p>
-                    <h3 className="line-clamp-2 text-sm font-bold leading-tight text-[#0f3b32]">{item.title}</h3>
-                    <p className="mt-1 text-xs text-[#6f8f85]">Condition: {conditionLabel}</p>
-                    <div className="mt-1 flex items-center justify-between">
-                      <p className="text-lg font-extrabold text-[#045444]">{subtotal.toLocaleString()} XAF</p>
-                      <span className="text-xs text-[#6f8f85]">{t('ui.qty_1', 'Qty: 1')}</span>
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{categoryLabel}</p>
+                    <h3 className="line-clamp-2 text-sm font-semibold leading-tight text-foreground">{item.title}</h3>
+                    <p className="mt-1 text-xs text-muted-foreground">{t('ui.condition', 'Condition')}: {conditionLabel}</p>
+                    <div className="mt-1 flex items-center">
+                      <p className="text-lg font-bold text-primary">{subtotal.toLocaleString()} XAF</p>
                     </div>
                   </div>
                 </div>
               </div>
 
               <div className="space-y-2 text-sm">
-                <div className="flex items-center justify-between text-[#8A8A8A]">
+                <div className="flex items-center justify-between text-muted-foreground">
                   <span>{t('ui.subtotal', 'Subtotal')}</span>
                   <span>{subtotal.toLocaleString()} XAF</span>
                 </div>
-                <div className="flex items-center justify-between text-[#8A8A8A]">
+                <div className="flex items-center justify-between text-muted-foreground">
                   <span>{t("checkout.platformFee", "Platform Fee")}</span>
                   <span>{platformFee.toLocaleString()} XAF</span>
                 </div>
 
-                <div className="mt-2 border-t border-[#DDE3E2] pt-2">
-                  <div className="flex items-center justify-between text-xl font-black text-[#018F2D]">
+                <div className="mt-2 border-t border-border pt-2">
+                  <div className="flex items-center justify-between text-xl font-bold text-primary">
                     <span>{t('ui.total', 'Total')}</span>
                     <span>{checkoutTotal.toLocaleString()} XAF</span>
                   </div>
                 </div>
               </div>
 
-              <Alert className="rounded-xl border-[#b7e5ce] bg-[#ecfff4] text-[#116145]">
-                <ShieldCheck className="h-4 w-4 text-[#0f8057]" />
+              <Alert className="rounded-xl border-border bg-primary-soft text-primary-strong">
+                <ShieldCheck className="h-4 w-4 text-primary" />
                 <AlertDescription className="text-xs">
                   {t('ui.payments_are_held_in_escrow_until_pickup_is_confir', 'Payments are held in escrow until pickup is confirmed.')}
                 </AlertDescription>
@@ -436,11 +442,11 @@ export function Checkout() {
           </Card>
 
           <div className="space-y-6">
-            <Card className="rounded-2xl border border-[#d3e2db] bg-white shadow-sm">
+            <Card className="rounded-2xl border border-border bg-card shadow-card">
               <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-xl font-bold text-[#123c33]">
-                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-[#e9f4ef]">
-                    <CreditCard className="h-4 w-4 text-[#018F2D]" />
+                <CardTitle className="flex items-center gap-2 text-xl font-semibold text-foreground">
+                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-primary-soft">
+                    <CreditCard className="h-4 w-4 text-primary" />
                   </span>
                   {t('ui.payment_method', 'Payment Method')}
                 </CardTitle>
@@ -455,18 +461,18 @@ export function Checkout() {
                     <RadioGroupItem value="mtn-momo" id="mtn" className="peer sr-only" />
                     <Label
                       htmlFor="mtn"
-                      className="flex cursor-pointer items-center justify-between rounded-xl border border-[#c6dcd1] bg-[#fcfffd] p-3.5 transition-colors hover:bg-[#f5fbf8] peer-data-[state=checked]:border-[#018F2D] peer-data-[state=checked]:bg-[#eefaf4]"
+                      className="flex cursor-pointer items-center justify-between rounded-xl border border-border bg-card p-3.5 transition-colors hover:bg-accent peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary-soft"
                     >
                       <div className="flex items-start gap-3">
                         <span className="inline-flex h-8 w-8 items-center justify-center rounded bg-[#fdd816] text-[10px] font-black text-[#0d3b31]">
                           MTN
                         </span>
                         <span>
-                          <span className="block text-sm font-semibold text-[#0f3b32]">{t("checkout.mtnMomo", "MTN Mobile Money")}</span>
-                          <span className="block text-xs text-[#6f8f85]">{t("checkout.instantProcessing", "Instant processing")}</span>
+                          <span className="block text-sm font-semibold text-foreground">{t("checkout.mtnMomo", "MTN Mobile Money")}</span>
+                          <span className="block text-xs text-muted-foreground">{t("checkout.instantProcessing", "Instant processing")}</span>
                         </span>
                       </div>
-                      <span className="h-4 w-4 rounded-full border border-[#8db2a4] peer-data-[state=checked]:border-[5px] peer-data-[state=checked]:border-[#018F2D]" />
+                      <span className="h-4 w-4 rounded-full border border-border peer-data-[state=checked]:border-[5px] peer-data-[state=checked]:border-primary" />
                     </Label>
                   </div>
 
@@ -474,25 +480,25 @@ export function Checkout() {
                     <RadioGroupItem value="orange-money" id="orange" className="peer sr-only" />
                     <Label
                       htmlFor="orange"
-                      className="flex cursor-pointer items-center justify-between rounded-xl border border-[#c6dcd1] bg-[#fcfffd] p-3.5 transition-colors hover:bg-[#f5fbf8] peer-data-[state=checked]:border-[#018F2D] peer-data-[state=checked]:bg-[#eefaf4]"
+                      className="flex cursor-pointer items-center justify-between rounded-xl border border-border bg-card p-3.5 transition-colors hover:bg-accent peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary-soft"
                     >
                       <div className="flex items-start gap-3">
                         <span className="inline-flex h-8 w-8 items-center justify-center rounded bg-[#ff7b00] text-[10px] font-black text-white">
                           ORG
                         </span>
                         <span>
-                          <span className="block text-sm font-semibold text-[#0f3b32]">{t("checkout.orangeMoney", "Orange Money")}</span>
-                          <span className="block text-xs text-[#6f8f85]">{t("checkout.instantProcessing", "Instant processing")}</span>
+                          <span className="block text-sm font-semibold text-foreground">{t("checkout.orangeMoney", "Orange Money")}</span>
+                          <span className="block text-xs text-muted-foreground">{t("checkout.instantProcessing", "Instant processing")}</span>
                         </span>
                       </div>
-                      <span className="h-4 w-4 rounded-full border border-[#8db2a4] peer-data-[state=checked]:border-[5px] peer-data-[state=checked]:border-[#018F2D]" />
+                      <span className="h-4 w-4 rounded-full border border-border peer-data-[state=checked]:border-[5px] peer-data-[state=checked]:border-primary" />
                     </Label>
                   </div>
                 </RadioGroup>
 
                 <div className="space-y-2">
-                  <Label htmlFor="phone-number" className="text-sm text-[#274e45]">
-                    Phone Number ({paymentPhoneLabel} Account)
+                  <Label htmlFor="phone-number" className="text-sm text-foreground">
+                    {t('checkout.phoneAccount', 'Phone Number')} ({paymentPhoneLabel} {t('ui.account', 'Account')})
                   </Label>
                   <Input
                     id="phone-number"
@@ -500,17 +506,16 @@ export function Checkout() {
                     placeholder="+237 6XX XXX XXX"
                     value={phoneNumber}
                     onChange={(e) => setPhoneNumber(e.target.value)}
-                    className="border-[#cfe0d8] bg-[#fbfdfc]"
                   />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="rounded-2xl border border-[#d3e2db] bg-white shadow-sm">
+            <Card className="rounded-2xl border border-border bg-card shadow-card">
               <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-xl font-bold text-[#123c33]">
-                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-[#fff3db]">
-                    <CalendarClock className="h-4 w-4 text-[#8b5a00]" />
+                <CardTitle className="flex items-center gap-2 text-xl font-semibold text-foreground">
+                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-accent">
+                    <CalendarClock className="h-4 w-4 text-accent-foreground" />
                   </span>
                   {t('ui.pickup_details', 'Pickup Details')}
                 </CardTitle>
@@ -518,31 +523,29 @@ export function Checkout() {
               <CardContent className="space-y-5">
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="pickup-date" className="text-sm text-[#274e45]">{t("checkout.preferredDate", "Preferred Date")}</Label>
+                    <Label htmlFor="pickup-date" className="text-sm text-foreground">{t("checkout.preferredDate", "Preferred Date")}</Label>
                     <Input
                       id="pickup-date"
                       type="date"
                       value={pickupDate}
                       onChange={(e) => setPickupDate(e.target.value)}
-                      className="border-[#cfe0d8] bg-[#fbfdfc]"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="pickup-time" className="text-sm text-[#274e45]">{t("checkout.preferredTime", "Preferred Time")}</Label>
+                    <Label htmlFor="pickup-time" className="text-sm text-foreground">{t("checkout.preferredTime", "Preferred Time")}</Label>
                     <Input
                       id="pickup-time"
                       type="time"
                       value={pickupTime}
                       onChange={(e) => setPickupTime(e.target.value)}
-                      className="border-[#cfe0d8] bg-[#fbfdfc]"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="pickup-location" className="text-sm text-[#274e45]">
+                  <Label htmlFor="pickup-location" className="text-sm text-foreground">
                     <span className="inline-flex items-center gap-1.5">
-                      <MapPin className="h-4 w-4 text-[#018F2D]" />
+                      <MapPin className="h-4 w-4 text-primary" />
                       {t('ui.meeting_location', 'Meeting Location')}
                     </span>
                   </Label>
@@ -553,16 +556,15 @@ export function Checkout() {
                     disabled={!mapsReady}
                     onChange={(e) => setPickupLocation((prev) => ({ ...prev, name: e.target.value }))}
                     value={pickupLocation.name}
-                    className="border-[#cfe0d8] bg-[#fbfdfc]"
                   />
-                  <p className="text-xs text-[#668279]">{t('ui.allowed_university_campuses_and_roundabouts_only', 'Allowed: university campuses and roundabouts only.')}</p>
-                  {mapsError ? <p className="text-xs text-amber-700">{mapsError}</p> : null}
+                  <p className="text-xs text-muted-foreground">{t('ui.allowed_university_campuses_and_roundabouts_only', 'Allowed: university campuses and roundabouts only.')}</p>
+                  {mapsError ? <p className="text-xs text-[#D97706]">{mapsError}</p> : null}
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-sm text-[#274e45]">{t('ui.select_from_approved_locations', 'Select from approved locations')}</Label>
+                  <Label className="text-sm text-foreground">{t('ui.select_from_approved_locations', 'Select from approved locations')}</Label>
                   <Select onValueChange={handleFallbackPickupSelect}>
-                    <SelectTrigger className="border-[#cfe0d8] bg-[#fbfdfc]">
+                    <SelectTrigger>
                       <SelectValue placeholder="Choose approved pickup point" />
                     </SelectTrigger>
                     <SelectContent>
@@ -575,7 +577,7 @@ export function Checkout() {
                   </Select>
                 </div>
 
-                <div className="overflow-hidden rounded-xl border border-[#cde0d6] bg-[#f1f7f4]">
+                <div className="overflow-hidden rounded-xl border border-border bg-secondary">
                   {pickupLocation.name ? (
                     <MeetupMap
                       locationName={pickupLocation.name}
@@ -584,7 +586,7 @@ export function Checkout() {
                       longitude={pickupLocation.lng}
                     />
                   ) : (
-                    <div className="flex h-44 items-center justify-center text-sm text-[#68867c]">
+                    <div className="flex h-44 items-center justify-center text-sm text-muted-foreground">
                       {t('ui.select_a_pickup_point_to_preview_the_map', 'Select a pickup point to preview the map.')}
                     </div>
                   )}
@@ -598,7 +600,8 @@ export function Checkout() {
 
                 <Button
                   onClick={handleReviewPayment}
-                  className="h-12 w-full rounded-xl bg-[#05B43D] text-base font-semibold text-white hover:bg-[#018F2D]"
+                  size="lg"
+                  className="h-12 w-full text-base"
                 >
                   {t('ui.review_payment', 'Review Payment')}
                 </Button>

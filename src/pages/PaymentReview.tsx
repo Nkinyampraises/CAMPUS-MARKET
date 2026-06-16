@@ -254,61 +254,62 @@ export function PaymentReview() {
   // User just taps Call then enters their PIN. No copying, no typing.
   const DesktopPayModal = showDesktopModal ? (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl">
+      <div className="w-full max-w-sm rounded-3xl bg-card p-6 shadow-modal">
 
         {/* Header */}
         <div className="mb-5 text-center">
-          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#e8f9f5]">
-            <Smartphone className="h-7 w-7 text-[#05B43D]" />
+          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-soft">
+            <Smartphone className="h-7 w-7 text-primary" />
           </div>
-          <h3 className="text-xl font-extrabold text-[#111111]">{t('ui.scan_to_pay', 'Scan to Pay')}</h3>
-          <p className="mt-1 text-sm text-[#8A8A8A]">
+          <h3 className="text-xl font-semibold text-foreground">{t('ui.scan_to_pay', 'Scan to Pay')}</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
             {t('ui.point_your_phone_camera_at_the_qr_code_below', 'Point your phone camera at the QR code below')}
           </p>
         </div>
 
         {/* QR Code */}
-        <div className="mx-auto mb-5 flex w-fit flex-col items-center rounded-2xl border-2 border-[#05B43D] bg-[#f0fdf8] p-3">
+        <div className="mx-auto mb-5 flex w-fit flex-col items-center rounded-2xl border-2 border-primary bg-primary-soft p-3">
           <img
             src={qrCodeUrl}
             alt="Scan to open MTN MoMo payment"
             className="h-52 w-52 rounded-xl"
           />
-          <p className="mt-2 text-[11px] font-semibold text-[#018F2D]">
+          <p className="mt-2 text-[11px] font-semibold text-primary-strong">
             {formatMoney(totalAmount)} FCFA — MTN MoMo
           </p>
         </div>
 
         {/* Steps */}
-        <ol className="mb-5 space-y-2.5 text-sm text-[#4A4A4A]">
+        <ol className="mb-5 space-y-2.5 text-sm text-muted-foreground">
           <li className="flex items-center gap-3">
-            <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#05B43D] text-xs font-bold text-white">1</span>
+            <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">1</span>
             {t('ui.open_your_phone_camera_and_scan_the_qr_code', 'Open your phone camera and scan the QR code')}
           </li>
           <li className="flex items-center gap-3">
-            <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#05B43D] text-xs font-bold text-white">2</span>
-            Tap the link that appears — your dialer opens
+            <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">2</span>
+            {t('payment.tapLinkDialer', 'Tap the link that appears — your dialer opens')}
           </li>
           <li className="flex items-center gap-3">
-            <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#05B43D] text-xs font-bold text-white">3</span>
-            Tap <strong>Call</strong> then enter your <strong>{t('ui.mtn_momo_pin', 'MTN MoMo PIN')}</strong>
+            <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">3</span>
+            {t('payment.tapCallEnterPin', 'Tap Call then enter your')} <strong>{t('ui.mtn_momo_pin', 'MTN MoMo PIN')}</strong>
           </li>
           <li className="flex items-center gap-3">
-            <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#018F2D] text-xs font-bold text-white">4</span>
-            {t('ui.come_back_here_and_click', 'Come back here and click')}<strong>"I've Paid"</strong>
+            <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-primary-strong text-xs font-bold text-primary-foreground">4</span>
+            {t('ui.come_back_here_and_click', 'Come back here and click')} <strong>{t('payment.ivePaid', "I've Paid")}</strong>
           </li>
         </ol>
 
         {/* Buttons */}
         <div className="flex flex-col gap-2">
           <Button
-            className="h-12 w-full rounded-xl bg-[#05B43D] text-base font-bold text-white hover:bg-[#018F2D]"
+            size="lg"
+            className="h-12 w-full text-base"
             onClick={() => { setUssdStarted(true); setShowDesktopModal(false); }}
           >
             <CheckCircle2 className="mr-2 h-5 w-5" />
-            I've Paid — Confirm Order
+            {t('payment.ivePaidConfirm', "I've Paid — Confirm Order")}
           </Button>
-          <Button variant="ghost" className="w-full text-[#4A4A4A] hover:bg-[#e6f9ee]" onClick={() => setShowDesktopModal(false)}>
+          <Button variant="ghost" className="w-full" onClick={() => setShowDesktopModal(false)}>
             {t('ui.cancel', 'Cancel')}
           </Button>
         </div>
@@ -331,57 +332,57 @@ export function PaymentReview() {
       : 'Confirm Payment';
 
   return (
-    <div className="min-h-screen bg-[#FFFFFF] py-7">
+    <div className="min-h-screen bg-background py-7">
       {DesktopPayModal}
       <div className="w-full px-4 lg:px-8 xl:px-12">
-        <Button variant="ghost" onClick={() => navigate(-1)} className="mb-3 text-[#4A4A4A] hover:bg-[#e6f9ee]">
+        <Button variant="ghost" onClick={() => navigate(-1)} className="mb-3">
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
+          {t('ui.back', 'Back')}
         </Button>
 
-        <h1 className="text-4xl font-extrabold tracking-tight text-[#111111]">{t('ui.review_your', 'Review your')}<span className="text-[#05B43D]">{t('ui.payment', 'Payment')}</span></h1>
-        <p className="mt-1 max-w-2xl text-sm text-[#8A8A8A]">
-          Verify the transaction details below before confirming. Funds will be held in escrow until item collection.
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">{t('ui.review_your', 'Review your')} <span className="text-primary">{t('ui.payment', 'Payment')}</span></h1>
+        <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+          {t('payment.verifyDetails', 'Verify the transaction details below before confirming. Funds will be held in escrow until item collection.')}
         </p>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[1.35fr_0.92fr]">
           <div className="space-y-5">
-            <Card className="rounded-3xl border border-[#DDE3E2] bg-white shadow-sm">
+            <Card className="rounded-3xl border border-border bg-card shadow-card">
               <CardContent className="space-y-5 p-5 sm:p-6">
-                <div className="rounded-2xl border border-[#DDE3E2] bg-[#F3F5F4] p-4">
+                <div className="rounded-2xl border border-border bg-secondary p-4">
                   <div className="grid items-center gap-3 sm:grid-cols-[1fr_auto_1fr]">
-                    <div className="rounded-2xl border border-[#dbe8e1] bg-white p-3">
-                      <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A8A8A]">{t("payment.sender", "Sender")}</p>
-                      <p className="mt-1 text-sm font-extrabold text-[#111111]">{state.fromName}</p>
-                      <p className="text-xs text-[#8A8A8A]">{senderLabel}</p>
+                    <div className="rounded-2xl border border-border bg-card p-3">
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{t("payment.sender", "Sender")}</p>
+                      <p className="mt-1 text-sm font-semibold text-foreground">{state.fromName}</p>
+                      <p className="text-xs text-muted-foreground">{senderLabel}</p>
                     </div>
 
-                    <div className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-[#05B43D]">
-                      <ArrowRight className="h-4 w-4 text-white" />
+                    <div className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-primary">
+                      <ArrowRight className="h-4 w-4 text-primary-foreground" />
                     </div>
 
-                    <div className="rounded-2xl border border-[#dbe8e1] bg-white p-3">
-                      <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A8A8A]">{t("payment.receiver", "Receiver")}</p>
-                      <p className="mt-1 text-sm font-extrabold text-[#111111]">{receiverName}</p>
-                      <p className="text-xs text-[#8A8A8A]">{receiverLabel}</p>
+                    <div className="rounded-2xl border border-border bg-card p-3">
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{t("payment.receiver", "Receiver")}</p>
+                      <p className="mt-1 text-sm font-semibold text-foreground">{receiverName}</p>
+                      <p className="text-xs text-muted-foreground">{receiverLabel}</p>
                     </div>
                   </div>
 
-                  <div className="mt-4 rounded-2xl border border-[#dbe8e1] bg-white p-3">
+                  <div className="mt-4 rounded-2xl border border-border bg-card p-3">
                     <div className="flex items-center gap-3">
                       <img
                         src={itemImage}
                         alt={state.title}
-                        className="h-20 w-20 flex-shrink-0 rounded-xl object-cover shadow-sm"
+                        className="h-20 w-20 flex-shrink-0 rounded-xl object-cover shadow-card"
                         onError={(e) => {
                           (e.currentTarget as HTMLImageElement).src =
                             `https://placehold.co/80x80/e8f4ee/0d6e5c?text=${encodeURIComponent(state.title.charAt(0).toUpperCase())}`;
                         }}
                       />
                       <div className="min-w-0 flex-1">
-                        <h3 className="line-clamp-2 text-base font-extrabold leading-tight text-[#111111]">{state.title}</h3>
-                        <p className="text-xs text-[#8A8A8A]">{paymentMethodLabel} • Escrow protected</p>
-                        <span className="mt-1 inline-flex items-center rounded-full bg-[#f4dcac] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#664600]">
+                        <h3 className="line-clamp-2 text-base font-semibold leading-tight text-foreground">{state.title}</h3>
+                        <p className="text-xs text-muted-foreground">{paymentMethodLabel} • {t('payment.escrowProtected', 'Escrow protected')}</p>
+                        <span className="mt-1 inline-flex items-center rounded-full bg-[#FEF3C7] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#D97706]">
                           {t('ui.academic_authenticated', 'Academic Authenticated')}
                         </span>
                       </div>
@@ -389,22 +390,22 @@ export function PaymentReview() {
                   </div>
                 </div>
 
-                <Card className="rounded-2xl border border-[#DDE3E2] bg-[#F3F5F4] shadow-none">
+                <Card className="rounded-2xl border border-border bg-secondary shadow-none">
                   <CardContent className="space-y-3 p-4">
-                    <h3 className="flex items-center gap-2 text-lg font-bold text-[#0f3b32]">
-                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[#e6f9ee]">
-                        <Smartphone className="h-4 w-4 text-[#018F2D]" />
+                    <h3 className="flex items-center gap-2 text-lg font-semibold text-foreground">
+                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-primary-soft">
+                        <Smartphone className="h-4 w-4 text-primary" />
                       </span>
                       {t('ui.mobile_money_authorization', 'Mobile Money Authorization')}
                     </h3>
-                    <p className="text-sm text-[#5f7c73]">
-                      Please keep your phone ready. Fee example: {formatMoney(feeHintBaseAmount)} XAF + {formatMoney(feeHintAmount)} XAF.
+                    <p className="text-sm text-muted-foreground">
+                      {t('payment.keepPhoneReady', 'Please keep your phone ready.')} {t('payment.feeExample', 'Fee example')}: {formatMoney(feeHintBaseAmount)} XAF + {formatMoney(feeHintAmount)} XAF.
                     </p>
                     <div className="grid gap-2 sm:grid-cols-2">
-                      <div className={`rounded-lg border px-3 py-2 text-xs font-semibold ${state.paymentMethod === 'mtn-momo' ? 'border-[#018F2D] bg-[#e6f9ee] text-[#018F2D]' : 'border-[#d5e4dd] bg-white text-[#355f55]'}`}>
+                      <div className={`rounded-lg border px-3 py-2 text-xs font-semibold ${state.paymentMethod === 'mtn-momo' ? 'border-primary bg-primary-soft text-primary-strong' : 'border-border bg-card text-muted-foreground'}`}>
                         MTN MOMO: {ussdCode}
                       </div>
-                      <div className={`rounded-lg border px-3 py-2 text-xs font-semibold ${state.paymentMethod === 'orange-money' ? 'border-[#018F2D] bg-[#e6f9ee] text-[#018F2D]' : 'border-[#d5e4dd] bg-white text-[#355f55]'}`}>
+                      <div className={`rounded-lg border px-3 py-2 text-xs font-semibold ${state.paymentMethod === 'orange-money' ? 'border-primary bg-primary-soft text-primary-strong' : 'border-border bg-card text-muted-foreground'}`}>
                         ORANGE MONEY: *150#
                       </div>
                     </div>
@@ -414,47 +415,48 @@ export function PaymentReview() {
             </Card>
           </div>
 
-          <Card className="h-fit rounded-3xl border border-[#DDE3E2] bg-white shadow-sm">
+          <Card className="h-fit rounded-3xl border border-border bg-card shadow-card">
             <CardContent className="space-y-4 p-5 sm:p-6">
-              <h2 className="text-2xl font-bold text-[#111111]">{t("payment.summary", "Payment Summary")}</h2>
+              <h2 className="text-2xl font-semibold text-foreground">{t("payment.summary", "Payment Summary")}</h2>
 
               <div className="space-y-2.5 text-sm">
-                <div className="flex items-center justify-between text-[#8A8A8A]">
+                <div className="flex items-center justify-between text-muted-foreground">
                   <span>{t("payment.itemPrice", "Item Price")}</span>
                   <span>{formatMoney(state.amount)} FCFA</span>
                 </div>
-                <div className="flex items-center justify-between text-[#8A8A8A]">
+                <div className="flex items-center justify-between text-muted-foreground">
                   <span>{t('ui.platform_fee', 'Platform Fee')}</span>
                   <span>{formatMoney(feeAmount)} FCFA</span>
                 </div>
-                <div className="flex items-center justify-between text-[#8A8A8A]">
+                <div className="flex items-center justify-between text-muted-foreground">
                   <span>{t("payment.escrowProtection", "Escrow Protection")}</span>
-                  <span className="font-semibold text-[#05B43D]">FREE</span>
+                  <span className="font-semibold text-primary">{t('payment.free', 'FREE')}</span>
                 </div>
               </div>
 
-              <div className="border-t border-[#DDE3E2] pt-3">
+              <div className="border-t border-border pt-3">
                 <div className="flex items-end justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold text-[#4A4A4A]">{t("payment.totalPayable", "Total Payable")}</p>
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[#8A8A8A]">{t('ui.incl_vat_where_applicable', 'Incl. VAT where applicable')}</p>
+                    <p className="text-sm font-semibold text-foreground">{t("payment.totalPayable", "Total Payable")}</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{t('ui.incl_vat_where_applicable', 'Incl. VAT where applicable')}</p>
                   </div>
-                  <p className="text-[2rem] font-black leading-none text-[#018F2D]">{formatMoney(totalAmount)} FCFA</p>
+                  <p className="text-[2rem] font-bold leading-none text-primary">{formatMoney(totalAmount)} FCFA</p>
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-[#DDE3E2] bg-[#F3F5F4] p-3">
-                <p className="flex items-center gap-2 text-sm font-semibold text-[#018F2D]">
-                  <ShieldCheck className="h-4 w-4 text-[#05B43D]" />
+              <div className="rounded-2xl border border-border bg-secondary p-3">
+                <p className="flex items-center gap-2 text-sm font-semibold text-primary">
+                  <ShieldCheck className="h-4 w-4 text-primary" />
                   {t('ui.buyer_protection_active', 'Buyer Protection Active.')}
                 </p>
-                <p className="mt-1 text-xs text-[#8A8A8A]">
+                <p className="mt-1 text-xs text-muted-foreground">
                   {t('ui.your_money_is_safe_until_you_confirm_receipt_of_th', 'Your money is safe until you confirm receipt of the item.')}
                 </p>
               </div>
 
                 <Button
-                  className="h-12 w-full rounded-xl bg-[#05B43D] text-lg font-semibold text-white hover:bg-[#018F2D]"
+                  size="lg"
+                  className="h-12 w-full text-lg"
                   onClick={handleConfirm}
                   disabled={submitting}
                 >
@@ -464,14 +466,14 @@ export function PaymentReview() {
 
               <Button
                 variant="ghost"
-                className="w-full text-[#4A4A4A] hover:bg-[#e6f9ee]"
+                className="w-full"
                 onClick={() => navigate(-1)}
                 disabled={submitting}
               >
                 {t('ui.cancel_transaction', 'Cancel Transaction')}
               </Button>
 
-              <div className="flex items-center justify-center gap-4 border-t border-[#e1ece7] pt-3 text-[11px] font-semibold uppercase tracking-wide text-[#7f9890]">
+              <div className="flex items-center justify-center gap-4 border-t border-border pt-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                 <span className="inline-flex items-center gap-1">
                   <Lock className="h-3.5 w-3.5" />
                   {t('ui.secure', 'Secure')}
@@ -482,12 +484,12 @@ export function PaymentReview() {
                 </span>
                 <span className="inline-flex items-center gap-1">
                   <Headset className="h-3.5 w-3.5" />
-                  24/7 Support
+                  {t('payment.support247', '24/7 Support')}
                 </span>
               </div>
 
-              <p className="text-center text-[11px] text-[#8aa096]">
-                By clicking "Confirm & Pay", you agree to the UNITRADE Academic Commerce Terms of Service and Escrow Agreement.
+              <p className="text-center text-[11px] text-muted-foreground">
+                {t('payment.termsAgreement', 'By clicking "Confirm & Pay", you agree to the UNITRADE Academic Commerce Terms of Service and Escrow Agreement.')}
               </p>
             </CardContent>
           </Card>

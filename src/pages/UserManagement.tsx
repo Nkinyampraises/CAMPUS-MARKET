@@ -171,7 +171,7 @@ export function UserManagement() {
               {firstLetter}
             </Avatar>
             <div className="min-w-0">
-              <p className="font-medium text-[#0f1111]">{record.name || '-'}</p>
+              <p className="font-medium text-foreground">{record.name || '-'}</p>
               <p className="break-all text-xs text-muted-foreground">{record.email || '-'}</p>
               <p className="text-xs text-muted-foreground">ID: {record.id}</p>
             </div>
@@ -240,26 +240,26 @@ export function UserManagement() {
 
   return (
     <div className="space-y-5 p-3 sm:p-4">
-      <section className="rounded-2xl border border-[#d7dede] bg-[#f7f9f9] p-4 sm:p-5">
+      <section className="rounded-2xl border border-border bg-secondary p-4 sm:p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <h2 className="text-3xl font-bold leading-tight text-[#00524a]">{t('ui.user_registry', 'User Registry')}</h2>
-            <p className="mt-1 text-[1rem] text-[#30424f]">
+            <h2 className="text-3xl font-bold leading-tight text-primary">{t('ui.user_registry', 'User Registry')}</h2>
+            <p className="mt-1 text-[1rem] text-muted-foreground">
               {t('ui.manage_institutional_accounts_and_marketplace_perm', 'Manage institutional accounts and marketplace permissions across all campuses.')}
             </p>
           </div>
 
-          <div className="self-start rounded-xl bg-[#edf2ef] px-4 py-2">
-            <p className="text-[0.67rem] font-semibold uppercase tracking-[0.12em] text-[#5a6c78]">{t('ui.total_active', 'Total Active')}</p>
-            <p className="text-3xl font-bold text-[#004f47]">{activeUsersCount.toLocaleString()}</p>
+          <div className="self-start rounded-xl bg-primary-soft px-4 py-2">
+            <p className="text-[0.67rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{t('ui.total_active', 'Total Active')}</p>
+            <p className="text-3xl font-bold text-primary">{activeUsersCount.toLocaleString()}</p>
           </div>
         </div>
 
         <div className="mt-5 grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_170px_150px_165px]">
           <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#7a8c98]" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
-              className="h-11 w-full rounded-xl border border-[#d8dede] bg-white pl-10 pr-3 text-sm text-[#0f1111] outline-none transition focus:border-[#00524a] focus:ring-2 focus:ring-[#00524a]/15"
+              className="h-11 w-full rounded-xl border border-border bg-input pl-10 pr-3 text-sm text-foreground outline-none transition focus:border-ring focus-visible:ring-2 focus-visible:ring-ring"
               placeholder="Search by name, email or ID..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
@@ -270,7 +270,7 @@ export function UserManagement() {
             <select
               value={universityInput}
               onChange={(e) => setUniversityInput(e.target.value)}
-              className="h-11 w-full appearance-none rounded-xl border border-[#d8dede] bg-white px-3 pr-9 text-sm text-[#0f1111] outline-none transition focus:border-[#00524a] focus:ring-2 focus:ring-[#00524a]/15"
+              className="h-11 w-full appearance-none rounded-xl border border-border bg-input px-3 pr-9 text-sm text-foreground outline-none transition focus:border-ring focus-visible:ring-2 focus-visible:ring-ring"
             >
               <option value="all">{t('ui.all_universities', 'All Universities')}</option>
               {universityOptions.map((option) => (
@@ -279,27 +279,27 @@ export function UserManagement() {
                 </option>
               ))}
             </select>
-            <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#72828e]" />
+            <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           </div>
 
           <div className="relative">
             <select
               value={statusInput}
               onChange={(e) => setStatusInput(e.target.value as 'all' | 'approved' | 'pending' | 'banned')}
-              className="h-11 w-full appearance-none rounded-xl border border-[#d8dede] bg-white px-3 pr-9 text-sm text-[#0f1111] outline-none transition focus:border-[#00524a] focus:ring-2 focus:ring-[#00524a]/15"
+              className="h-11 w-full appearance-none rounded-xl border border-border bg-input px-3 pr-9 text-sm text-foreground outline-none transition focus:border-ring focus-visible:ring-2 focus-visible:ring-ring"
             >
               <option value="all">{t('ui.all_statuses', 'All Statuses')}</option>
               <option value="approved">{t('ui.approved', 'Approved')}</option>
               <option value="pending">{t('ui.pending', 'Pending')}</option>
               <option value="banned">{t('ui.banned', 'Banned')}</option>
             </select>
-            <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#72828e]" />
+            <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           </div>
 
           <button
             type="button"
             onClick={applyFilters}
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[#013f3a] bg-[#05B43D] px-4 text-sm font-semibold text-white transition hover:bg-[#018F2D]"
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:bg-primary-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Filter className="h-3.5 w-3.5" />
             {t('ui.apply_filters', 'Apply Filters')}
@@ -307,7 +307,7 @@ export function UserManagement() {
         </div>
       </section>
 
-      <div className="rounded-2xl border border-[#d7dede] bg-white p-2 sm:p-3">
+      <div className="overflow-x-auto rounded-2xl border border-border bg-card p-2 sm:p-3">
         <Table
           dataSource={filteredUsers}
           columns={columns}

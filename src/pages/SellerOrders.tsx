@@ -18,7 +18,14 @@ const mapStatus = (order: any): 'pending' | 'paid' | 'delivered' | 'cancelled' =
 };
 
 const formatMoney = (value: number) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value || 0);
+  `${Math.round(value || 0).toLocaleString('fr-FR')} FCFA`;
+
+const statusBadgeClass = (status: 'pending' | 'paid' | 'delivered' | 'cancelled') => {
+  if (status === 'delivered') return 'bg-[#DCFCE7] text-[#16A34A]';
+  if (status === 'paid') return 'bg-[#CCFBF1] text-[#0D9488]';
+  if (status === 'cancelled') return 'bg-[#FEE2E2] text-[#DC2626]';
+  return 'bg-[#FEF3C7] text-[#D97706]';
+};
 
 export function SellerOrders() {
   const navigate = useNavigate();
@@ -190,9 +197,9 @@ export function SellerOrders() {
           ) : sortedOrders.length === 0 ? (
             <p className="text-sm text-muted-foreground">{t('ui.no_purchase_orders_yet', 'No purchase orders yet.')}</p>
           ) : (
-            <div className="overflow-x-auto border rounded-lg">
+            <div className="overflow-x-auto border border-border rounded-lg">
               <table className="w-full text-sm">
-                <thead className="bg-muted/40">
+                <thead className="bg-muted text-muted-foreground">
                   <tr>
                     <th className="text-left p-3">{t('ui.order', 'Order')}</th>
                     <th className="text-left p-3">{t('ui.buyer', 'Buyer')}</th>
@@ -207,15 +214,15 @@ export function SellerOrders() {
                     const normalizedStatus = mapStatus(order);
                     const locked = order.status === 'delivered_released' || order.status === 'refunded';
                     return (
-                      <tr key={order.id} className="border-t">
+                      <tr key={order.id} className="border-t border-border">
                         <td className="p-3 min-w-[220px]">
                           <p className="font-medium">{order.listingTitle || 'Order'}</p>
                           <p className="text-xs text-muted-foreground">{order.id}</p>
                         </td>
                         <td className="p-3">{order.buyerName || '-'}</td>
-                        <td className="p-3 font-semibold text-green-600">{formatMoney(order.amount || 0)}</td>
+                        <td className="p-3 font-semibold text-primary">{formatMoney(order.amount || 0)}</td>
                         <td className="p-3">
-                          <Badge variant={normalizedStatus === 'delivered' ? 'default' : 'secondary'}>
+                          <Badge className={statusBadgeClass(normalizedStatus)}>
                             {normalizedStatus}
                           </Badge>
                         </td>
@@ -227,7 +234,6 @@ export function SellerOrders() {
                             </Button>
                             <Button
                               size="sm"
-                              variant="outline"
                               disabled={locked || updatingId === order.id}
                               onClick={() => applyDecision(order.id, 'accepted')}
                             >
@@ -235,7 +241,7 @@ export function SellerOrders() {
                             </Button>
                             <Button
                               size="sm"
-                              variant="outline"
+                              variant="destructive"
                               disabled={locked || updatingId === order.id}
                               onClick={() => applyDecision(order.id, 'rejected')}
                             >
@@ -243,7 +249,7 @@ export function SellerOrders() {
                             </Button>
                             <Button
                               size="sm"
-                              variant="outline"
+                              variant="accent"
                               disabled={locked || updatingId === order.id}
                               onClick={() => setProofModalOrderId(order.id)}
                             >

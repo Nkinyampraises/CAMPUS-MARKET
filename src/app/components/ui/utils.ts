@@ -6,8 +6,5 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(amount);
+  return `${Math.round(amount || 0).toLocaleString('fr-FR')} FCFA`;
 };

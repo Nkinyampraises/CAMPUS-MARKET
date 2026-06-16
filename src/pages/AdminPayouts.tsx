@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/app/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
-import { Badge } from '@/app/components/ui/badge';
 import { Input } from '@/app/components/ui/input';
 import { Label } from '@/app/components/ui/label';
 import { Loader2, Wallet } from 'lucide-react';
@@ -294,7 +293,7 @@ export function AdminPayouts() {
   return (
     <div className="space-y-4">
       {/* Info banner — explains how platform fees are collected */}
-      <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+      <div className="rounded-xl border border-border bg-[#FEF3C7] p-4 text-sm text-[#D97706]">
         <p className="font-bold mb-1">💡 How Platform Revenue Works</p>
         <p>Platform fees (from transactions and subscriptions) are collected via USSD and go directly into the merchant MTN MoMo account <strong>671562474</strong>. To access your funds, open your MTN MoMo app and transfer to your personal account. The "Withdraw" button below records the withdrawal in the system.</p>
       </div>
@@ -306,26 +305,26 @@ export function AdminPayouts() {
         </CardHeader>
         <CardContent className="space-y-4">
           {platformWalletError ? (
-            <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            <div className="rounded-md border border-border bg-[#FEF3C7] px-3 py-2 text-xs text-[#D97706]">
               {platformWalletError}
             </div>
           ) : null}
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-            <div className="rounded-lg border p-3">
+            <div className="rounded-lg border border-border bg-card p-3 shadow-card">
               <p className="text-xs text-muted-foreground">{t('ui.available_revenue', 'Available Revenue')}</p>
-              <p className="text-xl font-bold text-green-600">
+              <p className="text-xl font-bold text-[#16A34A]">
                 {formatMoney(platformWallet?.withdrawableBalance || 0)}
               </p>
             </div>
-            <div className="rounded-lg border p-3">
+            <div className="rounded-lg border border-border bg-card p-3 shadow-card">
               <p className="text-xs text-muted-foreground">{t('ui.pending_balance', 'Pending Balance')}</p>
-              <p className="text-xl font-bold text-orange-600">
+              <p className="text-xl font-bold text-[#D97706]">
                 {formatMoney(platformWallet?.pendingBalance || 0)}
               </p>
             </div>
-            <div className="rounded-lg border p-3">
+            <div className="rounded-lg border border-border bg-card p-3 shadow-card">
               <p className="text-xs text-muted-foreground">{t('ui.total_withdrawn', 'Total Withdrawn')}</p>
-              <p className="text-xl font-bold">{formatMoney(platformWallet?.totalWithdrawn || 0)}</p>
+              <p className="text-xl font-bold text-foreground">{formatMoney(platformWallet?.totalWithdrawn || 0)}</p>
             </div>
           </div>
 
@@ -355,7 +354,7 @@ export function AdminPayouts() {
               <Label htmlFor="platform-withdraw-provider">{t('ui.provider', 'Provider')}</Label>
               <select
                 id="platform-withdraw-provider"
-                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                className="h-10 w-full rounded-md border border-border bg-input px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 value={platformWithdrawProvider}
                 onChange={(e) => setPlatformWithdrawProvider(e.target.value as 'mtn-momo' | 'orange-money')}
               >
@@ -370,7 +369,6 @@ export function AdminPayouts() {
               Current provider payout mode may be real (CamPay) or mock depending on backend configuration.
             </p>
             <Button
-              className="bg-[#05B43D] hover:bg-[#018F2D]"
               disabled={
                 loading ||
                 withdrawingPlatformRevenue ||
@@ -401,9 +399,9 @@ export function AdminPayouts() {
             ) : (
               <div className="space-y-2">
                 {(platformWallet?.withdrawals || []).slice(0, 5).map((withdrawal) => (
-                  <div key={withdrawal.id} className="flex flex-col gap-2 rounded-lg border p-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+                  <div key={withdrawal.id} className="flex flex-col gap-2 rounded-lg border border-border bg-card p-3 text-sm shadow-card transition-colors hover:bg-accent sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                      <p className="font-medium">{formatMoney(Number(withdrawal.amount || 0))}</p>
+                      <p className="font-medium text-foreground">{formatMoney(Number(withdrawal.amount || 0))}</p>
                       <p className="text-xs text-muted-foreground">
                         {withdrawal.provider === 'orange-money' ? 'Orange Money' : 'MTN Mobile Money'} • {withdrawal.phoneNumber}
                       </p>
@@ -437,13 +435,13 @@ export function AdminPayouts() {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm">{t('ui.already_paid', 'Already Paid')}</CardTitle>
           </CardHeader>
-          <CardContent className="text-2xl font-bold text-green-600">{formatMoney(totals.paid)}</CardContent>
+          <CardContent className="text-2xl font-bold text-[#16A34A]">{formatMoney(totals.paid)}</CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm">{t('ui.pending_payout', 'Pending Payout')}</CardTitle>
           </CardHeader>
-          <CardContent className="text-2xl font-bold text-orange-600">{formatMoney(totals.pending)}</CardContent>
+          <CardContent className="text-2xl font-bold text-[#D97706]">{formatMoney(totals.pending)}</CardContent>
         </Card>
       </div>
 
@@ -466,13 +464,23 @@ export function AdminPayouts() {
             <div className="text-sm text-muted-foreground">{t('ui.no_payout_data_yet', 'No payout data yet.')}</div>
           ) : (
             payouts.map((payout) => (
-              <div key={payout.sellerId} className="border rounded-lg p-4">
+              <div key={payout.sellerId} className="rounded-xl border border-border bg-card p-4 shadow-card transition-colors hover:bg-accent">
                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <div className="font-medium">{payout.sellerName}</div>
+                    <div className="font-medium text-foreground">{payout.sellerName}</div>
                     <div className="text-xs text-muted-foreground break-all">{payout.sellerEmail}</div>
                   </div>
-                  <Badge variant={payout.status === 'paid' ? 'secondary' : 'outline'}>{payout.status}</Badge>
+                  <span
+                    className={`rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${
+                      payout.status === 'paid'
+                        ? 'bg-[#DCFCE7] text-[#16A34A]'
+                        : payout.status === 'partial'
+                          ? 'bg-[#FEF3C7] text-[#D97706]'
+                          : 'bg-[#CCFBF1] text-[#0D9488]'
+                    }`}
+                  >
+                    {payout.status}
+                  </span>
                 </div>
                 <div className="mb-3 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2 md:grid-cols-5">
                   <div>
@@ -488,12 +496,12 @@ export function AdminPayouts() {
                     <p className="font-medium">{formatMoney(payout.netAmount)}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Paid</p>
-                    <p className="font-medium text-green-600">{formatMoney(payout.paidAmount)}</p>
+                    <p className="text-muted-foreground">{t('ui.paid', 'Paid')}</p>
+                    <p className="font-medium text-[#16A34A]">{formatMoney(payout.paidAmount)}</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">{t('ui.pending', 'Pending')}</p>
-                    <p className="font-medium text-orange-600">{formatMoney(payout.pendingAmount)}</p>
+                    <p className="font-medium text-[#D97706]">{formatMoney(payout.pendingAmount)}</p>
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -503,7 +511,7 @@ export function AdminPayouts() {
                   </div>
                   <Button
                     size="sm"
-                    className="w-full bg-[#05B43D] hover:bg-[#018F2D] sm:w-auto"
+                    className="w-full sm:w-auto"
                     disabled={processingId === payout.sellerId || payout.pendingAmount <= 0 || !payout.canBePaid}
                     onClick={() => handleMarkPaid(payout)}
                   >

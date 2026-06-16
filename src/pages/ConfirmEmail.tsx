@@ -81,11 +81,11 @@ export function ConfirmEmail() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
+            <div className="h-12 w-12 rounded-full bg-primary-soft flex items-center justify-center">
               {status === 'loading' ? (
-                <Loader2 className="h-6 w-6 text-green-600 animate-spin" />
+                <Loader2 className="h-6 w-6 text-primary animate-spin" />
               ) : (
-                <MailCheck className="h-6 w-6 text-green-600" />
+                <MailCheck className="h-6 w-6 text-primary" />
               )}
             </div>
           </div>
@@ -98,7 +98,7 @@ export function ConfirmEmail() {
           </Alert>
         </CardContent>
         <CardFooter className="flex flex-col gap-2">
-          <Button asChild className="w-full bg-[#05B43D] hover:bg-[#018F2D]">
+          <Button asChild className="w-full">
             <Link to="/login">{t('ui.go_to_login', 'Go to login')}</Link>
           </Button>
         </CardFooter>

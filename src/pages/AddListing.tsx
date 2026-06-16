@@ -187,11 +187,11 @@ export function AddListing() {
 
   if (isAdmin) {
     return (
-      <div className="min-h-screen bg-[#FFFFFF] px-4 py-12">
-        <div className="mx-auto max-w-xl rounded-2xl border border-[#DDE3E2] bg-white p-8 text-center shadow-sm">
-          <h1 className="text-2xl font-semibold text-[#0b1f1a]">{t('ui.access_denied', 'Access Denied')}</h1>
-          <p className="mt-3 text-[#4A4A4A]">{t('ui.administrators_cannot_create_listings', 'Administrators cannot create listings.')}</p>
-          <Button className="mt-6 bg-[#05B43D] text-white hover:bg-[#018F2D]" onClick={() => navigate('/admin')}>
+      <div className="min-h-screen bg-background px-4 py-12">
+        <div className="mx-auto max-w-xl rounded-2xl border border-border bg-card p-8 text-center shadow-card">
+          <h1 className="text-2xl font-semibold text-foreground">{t('ui.access_denied', 'Access Denied')}</h1>
+          <p className="mt-3 text-muted-foreground">{t('ui.administrators_cannot_create_listings', 'Administrators cannot create listings.')}</p>
+          <Button className="mt-6" onClick={() => navigate('/admin')}>
             {t('ui.go_to_admin_dashboard', 'Go to Admin Dashboard')}
           </Button>
         </div>
@@ -200,25 +200,24 @@ export function AddListing() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FFFFFF] py-8">
+    <div className="min-h-screen bg-background py-8">
       <div className="w-full px-4 lg:px-8 xl:px-12">
-        <section className="mb-6 rounded-2xl border border-[#DDE3E2] bg-white p-6 shadow-sm sm:p-7">
-          <div className="inline-flex items-center gap-2 rounded-full bg-[#e8f5ef] px-3 py-1 text-xs font-semibold uppercase tracking-[0.15em] text-[#0f6f58]">
+        <section className="mb-6 rounded-2xl border border-border bg-card p-6 shadow-card sm:p-7">
+          <div className="inline-flex items-center gap-2 rounded-full bg-primary-soft px-3 py-1 text-xs font-semibold uppercase tracking-[0.15em] text-primary">
             <Sparkles className="h-3.5 w-3.5" />
             {t('ui.seller_studio', 'Seller Studio')}
           </div>
           <div className="mt-3 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <h1 className="text-4xl font-extrabold text-[#111111] sm:text-5xl">{t('ui.create_a', 'Create a')}<span className="text-[#05B43D]">{t('ui.new_listing', 'New Listing')}</span></h1>
-              <p className="mt-2 max-w-3xl text-sm text-[#4A4A4A]">
-                Add clear details, good photos, and accurate pricing to attract serious buyers faster.
+              <h1 className="text-3xl font-bold text-foreground sm:text-4xl">{t('ui.create_a', 'Create a')} <span className="text-primary">{t('ui.new_listing', 'New Listing')}</span></h1>
+              <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
+                {t('listing.createSubtitle', 'Add clear details, good photos, and accurate pricing to attract serious buyers faster.')}
               </p>
             </div>
             <Button
               type="button"
               variant="outline"
               onClick={() => navigate('/dashboard')}
-              className="border-[#bdd8cd] text-[#124a3b] hover:bg-[#f3faf7]"
             >
               {t('ui.cancel', 'Cancel')}
             </Button>
@@ -233,9 +232,9 @@ export function AddListing() {
 
         <form onSubmit={handleSubmit} className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_300px]">
           <div className="space-y-6">
-            <Card className="rounded-2xl border border-[#DDE3E2] bg-white shadow-sm">
+            <Card className="rounded-2xl border border-border bg-card shadow-card">
               <CardHeader>
-                <CardTitle className="text-2xl font-semibold text-[#0b1f1a]">{t("listing.basicDetails", "Basic Details")}</CardTitle>
+                <CardTitle className="text-xl font-semibold text-foreground">{t("listing.basicDetails", "Basic Details")}</CardTitle>
                 <CardDescription>{t("listing.basicHint", "Tell students what you are listing and why it is worth buying.")}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -247,7 +246,7 @@ export function AddListing() {
                     placeholder="e.g., Comfortable Single Bed with Mattress"
                     value={formData.title}
                     onChange={(e) => handleChange('title', e.target.value)}
-                    className="border-[#cfe0d8] bg-white"
+                    className="bg-input border-border focus-visible:ring-ring"
                     required
                   />
                 </div>
@@ -260,23 +259,23 @@ export function AddListing() {
                     value={formData.description}
                     onChange={(e) => handleChange('description', e.target.value)}
                     rows={5}
-                    className="border-[#cfe0d8] bg-white"
+                    className="bg-input border-border focus-visible:ring-ring"
                     required
                   />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="rounded-2xl border border-[#DDE3E2] bg-white shadow-sm">
+            <Card className="rounded-2xl border border-border bg-card shadow-card">
               <CardHeader>
-                <CardTitle className="text-2xl font-semibold text-[#0b1f1a]">{t("listing.setup", "Listing Setup")}</CardTitle>
+                <CardTitle className="text-xl font-semibold text-foreground">{t("listing.setup", "Listing Setup")}</CardTitle>
                 <CardDescription>{t("listing.setupHint", "Set category, location, condition, and the best pricing model.")}</CardDescription>
               </CardHeader>
               <CardContent className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="category">Category *</Label>
                   <Select value={formData.category} onValueChange={(value) => handleChange('category', value)} required>
-                    <SelectTrigger className="border-[#cfe0d8] bg-white">
+                    <SelectTrigger className="bg-input border-border focus-visible:ring-ring">
                       <SelectValue placeholder="Select a category" />
                     </SelectTrigger>
                     <SelectContent>
@@ -292,7 +291,7 @@ export function AddListing() {
                 <div className="space-y-2">
                   <Label htmlFor="location">Location *</Label>
                   <Select value={formData.location} onValueChange={(value) => handleChange('location', value)} required>
-                    <SelectTrigger className="border-[#cfe0d8] bg-white">
+                    <SelectTrigger className="bg-input border-border focus-visible:ring-ring">
                       <SelectValue placeholder="Select location" />
                     </SelectTrigger>
                     <SelectContent>
@@ -308,7 +307,7 @@ export function AddListing() {
                 <div className="space-y-2">
                   <Label htmlFor="condition">Condition *</Label>
                   <Select value={formData.condition} onValueChange={(value) => handleChange('condition', value)} required>
-                    <SelectTrigger className="border-[#cfe0d8] bg-white">
+                    <SelectTrigger className="bg-input border-border focus-visible:ring-ring">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -324,7 +323,7 @@ export function AddListing() {
                   <Label htmlFor="price">
                     Price (FCFA) *
                     {formData.type === 'rent' && (
-                      <span className="ml-1 text-[#5f7a71]">
+                      <span className="ml-1 text-muted-foreground">
                         per {formData.rentalPeriod === 'daily' ? 'day' : formData.rentalPeriod === 'weekly' ? 'week' : 'month'}
                       </span>
                     )}
@@ -337,7 +336,7 @@ export function AddListing() {
                     onChange={(e) => handleChange('price', e.target.value)}
                     min="0"
                     step="any"
-                    className="border-[#cfe0d8] bg-white"
+                    className="bg-input border-border focus-visible:ring-ring"
                     required
                   />
                 </div>
@@ -349,13 +348,13 @@ export function AddListing() {
                     onValueChange={(value) => handleChange('type', value)}
                     className="grid gap-3 sm:grid-cols-2"
                   >
-                    <Label htmlFor="sell" className="flex cursor-pointer items-center gap-3 rounded-xl border border-[#cfe0d8] bg-[#f7fcfa] p-3">
+                    <Label htmlFor="sell" className="flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-muted p-3">
                       <RadioGroupItem value="sell" id="sell" />
-                      <span className="font-medium text-[#0f2c24]">{t("listing.forSale", "For Sale")}</span>
+                      <span className="font-medium text-foreground">{t("listing.forSale", "For Sale")}</span>
                     </Label>
-                    <Label htmlFor="rent" className="flex cursor-pointer items-center gap-3 rounded-xl border border-[#cfe0d8] bg-[#f7fcfa] p-3">
+                    <Label htmlFor="rent" className="flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-muted p-3">
                       <RadioGroupItem value="rent" id="rent" />
-                      <span className="font-medium text-[#0f2c24]">{t("listing.forRent", "For Rent")}</span>
+                      <span className="font-medium text-foreground">{t("listing.forRent", "For Rent")}</span>
                     </Label>
                   </RadioGroup>
                 </div>
@@ -364,7 +363,7 @@ export function AddListing() {
                   <div className="space-y-2 md:col-span-2">
                     <Label htmlFor="rentalPeriod">{t('ui.rental_period', 'Rental Period')}</Label>
                     <Select value={formData.rentalPeriod} onValueChange={(value) => handleChange('rentalPeriod', value)}>
-                      <SelectTrigger className="border-[#cfe0d8] bg-white">
+                      <SelectTrigger className="bg-input border-border focus-visible:ring-ring">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -378,9 +377,9 @@ export function AddListing() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-2xl border border-[#DDE3E2] bg-white shadow-sm">
+            <Card className="rounded-2xl border border-border bg-card shadow-card">
               <CardHeader>
-                <CardTitle className="text-2xl font-semibold text-[#0b1f1a]">{t("listing.photos", "Photos")}</CardTitle>
+                <CardTitle className="text-xl font-semibold text-foreground">{t("listing.photos", "Photos")}</CardTitle>
                 <CardDescription>{t("listing.photoHint", "Upload up to five clear images from different angles.")}</CardDescription>
               </CardHeader>
               <CardContent>
@@ -392,13 +391,13 @@ export function AddListing() {
               <Button
                 type="button"
                 variant="outline"
-                className="flex-1 border-[#c2d9cf] text-[#124a3b] hover:bg-[#f3faf7]"
+                className="flex-1"
                 onClick={() => navigate('/dashboard')}
                 disabled={loading}
               >
                 {t('ui.cancel', 'Cancel')}
               </Button>
-              <Button type="submit" className="flex-1 bg-[#05B43D] text-white hover:bg-[#018F2D]" disabled={loading}>
+              <Button type="submit" className="flex-1" disabled={loading}>
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -412,47 +411,47 @@ export function AddListing() {
           </div>
 
           <aside className="space-y-6 xl:sticky xl:top-24 xl:self-start">
-            <Card className="rounded-2xl border border-[#DDE3E2] bg-white shadow-sm">
+            <Card className="rounded-2xl border border-border bg-card shadow-card">
               <CardHeader>
-                <CardTitle className="text-lg font-semibold text-[#0b1f1a]">{t("listing.completion", "Completion")}</CardTitle>
+                <CardTitle className="text-lg font-semibold text-foreground">{t("listing.completion", "Completion")}</CardTitle>
                 <CardDescription>{completedCount} of {completionItems.length} steps complete</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="h-2 rounded-full bg-[#e5efeb]">
-                  <div className="h-2 rounded-full bg-[#05B43D]" style={{ width: `${completionPercent}%` }} />
+                <div className="h-2 rounded-full bg-muted">
+                  <div className="h-2 rounded-full bg-primary" style={{ width: `${completionPercent}%` }} />
                 </div>
                 <div className="space-y-2">
                   {completionItems.map((item) => (
                     <div key={item.label} className="flex items-center gap-2 text-sm">
                       {item.complete ? (
-                        <CheckCircle2 className="h-4 w-4 text-[#0f6f58]" />
+                        <CheckCircle2 className="h-4 w-4 text-primary" />
                       ) : (
-                        <Circle className="h-4 w-4 text-[#8aa69c]" />
+                        <Circle className="h-4 w-4 text-muted-foreground" />
                       )}
-                      <span className={item.complete ? 'text-[#0f2c24]' : 'text-[#5f7a71]'}>{item.label}</span>
+                      <span className={item.complete ? 'text-foreground' : 'text-muted-foreground'}>{item.label}</span>
                     </div>
                   ))}
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="rounded-2xl border border-[#DDE3E2] bg-white shadow-sm">
+            <Card className="rounded-2xl border border-border bg-card shadow-card">
               <CardHeader>
-                <CardTitle className="text-lg font-semibold text-[#0b1f1a]">{t("listing.preview", "Listing Preview")}</CardTitle>
+                <CardTitle className="text-lg font-semibold text-foreground">{t("listing.preview", "Listing Preview")}</CardTitle>
                 <CardDescription>{t("listing.quickSummary", "Quick summary before publishing.")}</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-2 text-sm text-[#4A4A4A]">
-                <p><span className="font-medium text-[#0f2c24]">{t('ui.title', 'Title:')}</span> {formData.title || 'Not set'}</p>
-                <p><span className="font-medium text-[#0f2c24]">{t('ui.type', 'Type:')}</span> {formData.type === 'rent' ? 'For Rent' : 'For Sale'}</p>
-                <p><span className="font-medium text-[#0f2c24]">{t('ui.category', 'Category:')}</span> {categoryLabel}</p>
-                <p><span className="font-medium text-[#0f2c24]">{t('ui.location', 'Location:')}</span> {locationLabel}</p>
+              <CardContent className="space-y-2 text-sm text-muted-foreground">
+                <p><span className="font-medium text-foreground">{t('ui.title', 'Title:')}</span> {formData.title || 'Not set'}</p>
+                <p><span className="font-medium text-foreground">{t('ui.type', 'Type:')}</span> {formData.type === 'rent' ? 'For Rent' : 'For Sale'}</p>
+                <p><span className="font-medium text-foreground">{t('ui.category', 'Category:')}</span> {categoryLabel}</p>
+                <p><span className="font-medium text-foreground">{t('ui.location', 'Location:')}</span> {locationLabel}</p>
                 <p>
-                  <span className="font-medium text-[#0f2c24]">{t('ui.price', 'Price:')}</span>{' '}
+                  <span className="font-medium text-foreground">{t('ui.price', 'Price:')}</span>{' '}
                   {Number.isFinite(parsedPreviewPrice) && parsedPreviewPrice > 0
                     ? `${new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(parsedPreviewPrice)} FCFA`
                     : 'Not set'}
                 </p>
-                <p><span className="font-medium text-[#0f2c24]">{t('ui.photos', 'Photos:')}</span> {formData.images.length}/5</p>
+                <p><span className="font-medium text-foreground">{t('ui.photos', 'Photos:')}</span> {formData.images.length}/5</p>
               </CardContent>
             </Card>
           </aside>

@@ -150,9 +150,9 @@ export function AdminSettings() {
         </div>
 
         <div className="space-y-4">
-          <div className="flex flex-col gap-3 border rounded-lg p-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-3 shadow-card sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="font-medium">{t('ui.maintenance_mode', 'Maintenance Mode')}</p>
+              <p className="font-medium text-foreground">{t('ui.maintenance_mode', 'Maintenance Mode')}</p>
               <p className="text-xs text-muted-foreground">{t('ui.disable_normal_operations_during_maintenance', 'Disable normal operations during maintenance.')}</p>
             </div>
             <Switch
@@ -161,9 +161,9 @@ export function AdminSettings() {
               onCheckedChange={(checked) => setSettings((prev) => ({ ...prev, maintenanceMode: checked }))}
             />
           </div>
-          <div className="flex flex-col gap-3 border rounded-lg p-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-3 shadow-card sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="font-medium">{t('ui.allow_new_registrations', 'Allow New Registrations')}</p>
+              <p className="font-medium text-foreground">{t('ui.allow_new_registrations', 'Allow New Registrations')}</p>
               <p className="text-xs text-muted-foreground">{t('ui.enable_or_disable_new_user_signups', 'Enable or disable new user signups.')}</p>
             </div>
             <Switch
@@ -174,9 +174,9 @@ export function AdminSettings() {
               }
             />
           </div>
-          <div className="flex flex-col gap-3 border rounded-lg p-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-3 shadow-card sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="font-medium">{t('ui.auto_payout_to_mtn_on_release', 'Auto Payout to MTN on Release')}</p>
+              <p className="font-medium text-foreground">{t('ui.auto_payout_to_mtn_on_release', 'Auto Payout to MTN on Release')}</p>
               <p className="text-xs text-muted-foreground">{t('ui.when_enabled_released_mtn_escrow_payments_are_auto', 'When enabled, released MTN escrow payments are auto-sent to seller mobile money.')}</p>
             </div>
             <Switch
@@ -189,14 +189,14 @@ export function AdminSettings() {
           </div>
         </div>
 
-        <Button className="w-full bg-[#05B43D] hover:bg-[#018F2D] sm:w-auto" onClick={handleSave} disabled={saving}>
+        <Button className="w-full sm:w-auto" onClick={handleSave} disabled={saving}>
           {saving ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               {t('ui.saving', 'Saving...')}
             </>
           ) : (
-            'Save Settings'
+            t('ui.save_settings', 'Save Settings')
           )}
         </Button>
       </CardContent>

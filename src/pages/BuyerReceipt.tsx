@@ -10,7 +10,7 @@ import { API_URL } from '@/lib/api';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 const formatMoney = (value: number) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value || 0);
+  `${Math.round(value || 0).toLocaleString('fr-FR')} FCFA`;
 
 const paymentLabel = (method: string) => {
   if (method === 'mtn-momo') return 'MTN MoMo';
@@ -118,7 +118,7 @@ export function BuyerReceipt() {
       <div className="flex items-center justify-between mb-4">
         <Button variant="ghost" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
+          {t('ui.back', 'Back')}
         </Button>
         <Button variant="outline" onClick={() => window.print()}>
           <Printer className="h-4 w-4 mr-2" />

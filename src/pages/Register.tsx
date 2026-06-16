@@ -153,33 +153,33 @@ export function Register() {
 
   const fmt = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(1)}k+` : n > 0 ? `${n}+` : '—';
   const stats = [
-    { icon: <Users className="h-5 w-5 text-[#05B43D]" />, value: fmt(platformStats.students), label: t('ui.students', 'Students') },
-    { icon: <ListChecks className="h-5 w-5 text-[#05B43D]" />, value: fmt(platformStats.listings), label: t('ui.live_listings', 'Live Listings') },
-    { icon: <TrendingUp className="h-5 w-5 text-[#05B43D]" />, value: fmt(platformStats.deals), label: t('ui.deals_closed', 'Deals Closed') },
-    { icon: <Star className="h-5 w-5 text-[#05B43D]" />, value: `${platformStats.rating}★`, label: t('ui.avg_rating', 'Avg Rating') },
+    { icon: <Users className="h-5 w-5 text-[var(--teal-light)]" />, value: fmt(platformStats.students), label: t('ui.students', 'Students') },
+    { icon: <ListChecks className="h-5 w-5 text-[var(--teal-light)]" />, value: fmt(platformStats.listings), label: t('ui.live_listings', 'Live Listings') },
+    { icon: <TrendingUp className="h-5 w-5 text-[var(--teal-light)]" />, value: fmt(platformStats.deals), label: t('ui.deals_closed', 'Deals Closed') },
+    { icon: <Star className="h-5 w-5 text-[var(--teal-light)]" />, value: `${platformStats.rating}★`, label: t('ui.avg_rating', 'Avg Rating') },
   ];
 
   return (
-    <div className="min-h-screen bg-[#f4f5f0] flex items-center justify-center p-4 lg:p-8">
-      <div className="w-full max-w-[1400px] grid lg:grid-cols-[1.2fr_0.8fr] gap-0 overflow-hidden rounded-2xl shadow-2xl shadow-black/10">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4 lg:p-8">
+      <div className="w-full max-w-[1400px] grid lg:grid-cols-[1.2fr_0.8fr] gap-0 overflow-hidden rounded-2xl border border-border shadow-modal">
 
         {/* ── Left: Register Form ─────────────────────────── */}
-        <div className="bg-white px-10 py-10 sm:px-14">
+        <div className="bg-card px-10 py-10 sm:px-14">
           {/* Logo */}
           <div className="mb-6 flex items-center gap-2.5">
-            <ShoppingBag className="h-8 w-8 rounded-xl bg-[#05B43D] p-1.5 text-white" />
-            <span className="text-xl font-extrabold text-[#05B43D]">UNITRADE</span>
+            <ShoppingBag className="h-8 w-8 rounded-xl bg-primary p-1.5 text-primary-foreground" />
+            <span className="text-xl font-extrabold text-primary">UNITRADE</span>
           </div>
 
-          <h1 className="text-3xl font-extrabold text-[#111111]">{t('ui.join_unitrade', 'Join UNITRADE')}</h1>
-          <p className="mt-1.5 text-sm text-[#8A8A8A]">
+          <h1 className="text-3xl font-extrabold text-foreground">{t('ui.join_unitrade', 'Join UNITRADE')}</h1>
+          <p className="mt-1.5 text-sm text-muted-foreground">
             {t('ui.fill_in_your_details_to_create_a_verified_student_', 'Fill in your details to create a verified student marketplace account.')}
           </p>
 
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
             {error && <Alert variant="destructive" className="rounded-xl"><AlertDescription>{error}</AlertDescription></Alert>}
             {confirmationLink && (
-              <Alert className="rounded-xl border-green-200 bg-green-50 text-green-800">
+              <Alert className="rounded-xl border-primary/30 bg-primary-soft text-primary-strong">
                 <AlertDescription>
                   {t('ui.use_this_confirmation_link', 'Use this confirmation link:')}{' '}
                   <a href={confirmationLink} className="font-bold underline break-all">{confirmationLink}</a>
@@ -190,31 +190,31 @@ export function Register() {
             {/* Name + Email */}
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label htmlFor="name" className="text-xs font-bold uppercase tracking-widest text-[#4A4A4A]">{t('ui.full_name', 'Full Name')}</Label>
+                <Label htmlFor="name" className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t('ui.full_name', 'Full Name')}</Label>
                 <Input id="name" type="text" placeholder="Amina Ngoma" value={formData.name}
                   onChange={(e) => handleChange('name', e.target.value)}
-                  className="h-11 rounded-xl border-[#DDE3E2] bg-[#F3F5F4] focus-visible:border-[#05B43D] focus-visible:ring-[#05B43D]/20" required />
+                  className="h-11 rounded-xl border-border bg-secondary focus-visible:border-ring focus-visible:ring-ring" required />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="email" className="text-xs font-bold uppercase tracking-widest text-[#4A4A4A]">{t('ui.university_email', 'University Email')}</Label>
+                <Label htmlFor="email" className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t('ui.university_email', 'University Email')}</Label>
                 <Input id="email" type="email" placeholder="your.email@student.ub.cm" value={formData.email}
                   onChange={(e) => handleChange('email', e.target.value)}
-                  className="h-11 rounded-xl border-[#DDE3E2] bg-[#F3F5F4] focus-visible:border-[#05B43D] focus-visible:ring-[#05B43D]/20" required />
+                  className="h-11 rounded-xl border-border bg-secondary focus-visible:border-ring focus-visible:ring-ring" required />
               </div>
             </div>
 
             {/* Phone + University */}
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label htmlFor="phone" className="text-xs font-bold uppercase tracking-widest text-[#4A4A4A]">{t('ui.phone_number', 'Phone Number')}</Label>
+                <Label htmlFor="phone" className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t('ui.phone_number', 'Phone Number')}</Label>
                 <Input id="phone" type="tel" placeholder="+237 670 123 456" value={formData.phone}
                   onChange={(e) => handleChange('phone', e.target.value)}
-                  className="h-11 rounded-xl border-[#DDE3E2] bg-[#F3F5F4] focus-visible:border-[#05B43D] focus-visible:ring-[#05B43D]/20" required />
+                  className="h-11 rounded-xl border-border bg-secondary focus-visible:border-ring focus-visible:ring-ring" required />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="university" className="text-xs font-bold uppercase tracking-widest text-[#4A4A4A]">{t('ui.university', 'University')}</Label>
+                <Label htmlFor="university" className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t('ui.university', 'University')}</Label>
                 <Select value={formData.university} onValueChange={(v) => handleChange('university', v)} required>
-                  <SelectTrigger className="h-11 rounded-xl border-[#DDE3E2] bg-[#F3F5F4] focus:border-[#05B43D]">
+                  <SelectTrigger className="h-11 rounded-xl border-border bg-secondary focus:border-ring">
                     <SelectValue placeholder={t('ui.select_your_university', 'Select your university')} />
                   </SelectTrigger>
                   <SelectContent>
@@ -226,45 +226,45 @@ export function Register() {
 
             {/* Student ID */}
             <div className="space-y-1.5">
-              <Label htmlFor="studentId" className="text-xs font-bold uppercase tracking-widest text-[#4A4A4A]">{t('ui.student_id_optional', 'Student ID (Optional)')}</Label>
+              <Label htmlFor="studentId" className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t('ui.student_id_optional', 'Student ID (Optional)')}</Label>
               <Input id="studentId" type="text" placeholder="UB2024001" value={formData.studentId}
                 onChange={(e) => handleChange('studentId', e.target.value)}
-                className="h-11 rounded-xl border-[#DDE3E2] bg-[#F3F5F4] focus-visible:border-[#05B43D] focus-visible:ring-[#05B43D]/20" />
+                className="h-11 rounded-xl border-border bg-secondary focus-visible:border-ring focus-visible:ring-ring" />
             </div>
 
             {/* Profile Picture */}
-            <div className="rounded-xl border border-[#DDE3E2] bg-[#F3F5F4] p-3">
-              <Label className="text-xs font-bold uppercase tracking-widest text-[#4A4A4A]">{t('ui.profile_picture_optional', 'Profile Picture (Optional)')}</Label>
+            <div className="rounded-xl border border-border bg-secondary p-3">
+              <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t('ui.profile_picture_optional', 'Profile Picture (Optional)')}</Label>
               <div className="mt-2 flex items-center gap-3">
-                <Avatar className="h-12 w-12 border-2 border-[#05B43D]/30">
+                <Avatar className="h-12 w-12 border-2 border-primary/30">
                   {formData.profilePicture ? <AvatarImage src={formData.profilePicture} alt={formData.name || 'Profile'} /> : null}
-                  <AvatarFallback className="bg-[#e8f9ee] text-[#05B43D] font-bold">{(formData.name || 'U').charAt(0).toUpperCase()}</AvatarFallback>
+                  <AvatarFallback className="bg-primary-soft text-primary font-bold">{(formData.name || 'U').charAt(0).toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
                   <Input type="file" accept="image/*" disabled={uploadingProfilePicture}
                     onChange={(e) => handleProfilePictureUpload(e.target.files?.[0] || null)}
-                    className="h-9 rounded-lg border-[#DDE3E2] bg-white text-sm" />
-                  {uploadingProfilePicture && <p className="mt-1 flex items-center gap-1 text-xs text-[#05B43D]"><Upload className="h-3 w-3" />{t('ui.uploading', 'Uploading...')}</p>}
+                    className="h-9 rounded-lg border-border bg-card text-sm" />
+                  {uploadingProfilePicture && <p className="mt-1 flex items-center gap-1 text-xs text-primary"><Upload className="h-3 w-3" />{t('ui.uploading', 'Uploading...')}</p>}
                 </div>
               </div>
             </div>
 
             {/* Account type */}
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-widest text-[#4A4A4A]">{t('ui.i_want_to', 'I want to:')}</Label>
+              <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t('ui.i_want_to', 'I want to:')}</Label>
               <RadioGroup value={formData.userType} onValueChange={(v) => handleChange('userType', v)} className="grid gap-2 sm:grid-cols-2">
-                <Label htmlFor="buyer" className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 p-3 transition-all ${formData.userType === 'buyer' ? 'border-[#05B43D] bg-[#e8f9ee]' : 'border-[#DDE3E2] bg-white hover:border-[#05B43D]/40'}`}>
+                <Label htmlFor="buyer" className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 p-3 transition-all ${formData.userType === 'buyer' ? 'border-primary bg-primary-soft' : 'border-border bg-card hover:border-primary/40'}`}>
                   <RadioGroupItem value="buyer" id="buyer" />
                   <div>
-                    <p className="flex items-center gap-1.5 text-sm font-bold text-[#111111]"><ShoppingCart className="h-4 w-4 text-[#05B43D]" />{t('ui.buy_items', 'Buy Items')}</p>
-                    <p className="text-xs text-[#8A8A8A]">{t('ui.browse_and_purchase', 'Browse and purchase')}</p>
+                    <p className="flex items-center gap-1.5 text-sm font-bold text-foreground"><ShoppingCart className="h-4 w-4 text-primary" />{t('ui.buy_items', 'Buy Items')}</p>
+                    <p className="text-xs text-muted-foreground">{t('ui.browse_and_purchase', 'Browse and purchase')}</p>
                   </div>
                 </Label>
-                <Label htmlFor="seller" className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 p-3 transition-all ${formData.userType === 'seller' ? 'border-[#05B43D] bg-[#e8f9ee]' : 'border-[#DDE3E2] bg-white hover:border-[#05B43D]/40'}`}>
+                <Label htmlFor="seller" className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 p-3 transition-all ${formData.userType === 'seller' ? 'border-primary bg-primary-soft' : 'border-border bg-card hover:border-primary/40'}`}>
                   <RadioGroupItem value="seller" id="seller" />
                   <div>
-                    <p className="flex items-center gap-1.5 text-sm font-bold text-[#111111]"><Store className="h-4 w-4 text-[#05B43D]" />{t('ui.sell_items', 'Sell Items')}</p>
-                    <p className="text-xs text-[#8A8A8A]">{t('ui.list_and_earn', 'List and earn')}</p>
+                    <p className="flex items-center gap-1.5 text-sm font-bold text-foreground"><Store className="h-4 w-4 text-primary" />{t('ui.sell_items', 'Sell Items')}</p>
+                    <p className="text-xs text-muted-foreground">{t('ui.list_and_earn', 'List and earn')}</p>
                   </div>
                 </Label>
               </RadioGroup>
@@ -273,57 +273,56 @@ export function Register() {
             {/* Password */}
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label htmlFor="password" className="text-xs font-bold uppercase tracking-widest text-[#4A4A4A]">{t('ui.password', 'Password')}</Label>
+                <Label htmlFor="password" className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t('ui.password', 'Password')}</Label>
                 <PasswordInput id="password" placeholder="Min. 6 characters" value={formData.password}
                   onChange={(e) => handleChange('password', e.target.value)}
-                  className="h-11 rounded-xl border-[#DDE3E2] bg-[#F3F5F4] focus-visible:border-[#05B43D]" required />
+                  className="h-11 rounded-xl border-border bg-secondary focus-visible:border-ring focus-visible:ring-ring" required />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="confirmPassword" className="text-xs font-bold uppercase tracking-widest text-[#4A4A4A]">{t('ui.confirm_password', 'Confirm Password')}</Label>
+                <Label htmlFor="confirmPassword" className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t('ui.confirm_password', 'Confirm Password')}</Label>
                 <PasswordInput id="confirmPassword" placeholder="Re-enter password" value={formData.confirmPassword}
                   onChange={(e) => handleChange('confirmPassword', e.target.value)}
-                  className="h-11 rounded-xl border-[#DDE3E2] bg-[#F3F5F4] focus-visible:border-[#05B43D]" required />
+                  className="h-11 rounded-xl border-border bg-secondary focus-visible:border-ring focus-visible:ring-ring" required />
               </div>
             </div>
 
             {/* Submit */}
-            <button type="submit" disabled={loading}
-              className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#05B43D] text-base font-bold text-white shadow-lg shadow-[#05B43D]/30 hover:bg-[#018F2D] transition-all disabled:opacity-60">
+            <Button type="submit" size="lg" disabled={loading} className="h-12 w-full text-base font-bold">
               {loading ? <><Loader2 className="h-4 w-4 animate-spin" />{t('ui.creating_account', 'Creating Account...')}</> : <>{t('ui.sign_up', 'Sign Up')} <ArrowRight className="h-4 w-4" /></>}
-            </button>
+            </Button>
 
-            <p className="text-center text-sm text-[#8A8A8A]">
+            <p className="text-center text-sm text-muted-foreground">
               {t('ui.already_have_an_account', 'Already have an account?')}{' '}
-              <Link to="/login" className="font-bold text-[#05B43D] hover:text-[#018F2D] hover:underline">{t('ui.sign_in', 'Sign In')}</Link>
+              <Link to="/login" className="font-bold text-primary hover:text-primary-strong hover:underline">{t('ui.sign_in', 'Sign In')}</Link>
             </p>
           </form>
         </div>
 
         {/* ── Right: Stats Panel ──────────────────────────── */}
-        <div className="hidden lg:flex lg:flex-col bg-[#F3F5F4] px-10 py-12">
-          <h2 className="text-4xl font-extrabold leading-tight text-[#111111]">
+        <div className="hidden lg:flex lg:flex-col bg-forest px-10 py-12 text-primary-foreground">
+          <h2 className="text-4xl font-extrabold leading-tight text-primary-foreground">
             {t('ui.buy_sell_connect', 'Buy. Sell.')}<br />{t('ui.connect', 'Connect.')}
           </h2>
-          <p className="mt-3 text-sm text-[#8A8A8A]">
+          <p className="mt-3 text-sm text-primary-foreground/75">
             {t('ui.student_to_student_marketplace', 'The student to student marketplace — buy, sell and rent safely.')}
           </p>
 
           {/* Stats grid */}
           <div className="mt-8 grid grid-cols-2 gap-4">
             {stats.map((s, i) => (
-              <div key={i} className="rounded-2xl border border-[#DDE3E2] bg-white p-5 shadow-sm">
-                <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-[#e8f9ee]">{s.icon}</div>
-                <p className="text-2xl font-extrabold text-[#111111]">{s.value}</p>
-                <p className="mt-0.5 text-xs font-semibold uppercase tracking-widest text-[#8A8A8A]">{s.label}</p>
+              <div key={i} className="rounded-2xl border border-white/15 bg-white/10 p-5">
+                <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-white/15">{s.icon}</div>
+                <p className="text-2xl font-extrabold text-primary-foreground">{s.value}</p>
+                <p className="mt-0.5 text-xs font-semibold uppercase tracking-widest text-primary-foreground/75">{s.label}</p>
               </div>
             ))}
           </div>
 
           {/* Bottom note */}
-          <div className="mt-auto pt-8 rounded-2xl border border-[#DDE3E2] bg-white p-5 text-center">
-            <ShoppingBag className="mx-auto mb-2 h-8 w-8 text-[#05B43D]" />
-            <p className="text-sm font-semibold text-[#111111]">{t('ui.student_to_student_trading', 'Student to student trading.')}</p>
-            <p className="mt-1 text-xs text-[#8A8A8A]">{t('ui.verified_safe_and_trusted', 'Verified, safe and trusted across Cameroon.')}</p>
+          <div className="mt-auto pt-8 rounded-2xl border border-white/15 bg-white/10 p-5 text-center">
+            <ShoppingBag className="mx-auto mb-2 h-8 w-8 text-[var(--teal-light)]" />
+            <p className="text-sm font-semibold text-primary-foreground">{t('ui.student_to_student_trading', 'Student to student trading.')}</p>
+            <p className="mt-1 text-xs text-primary-foreground/75">{t('ui.verified_safe_and_trusted', 'Verified, safe and trusted across Cameroon.')}</p>
           </div>
         </div>
 

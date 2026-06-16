@@ -36,8 +36,8 @@ function BarList({
               <span className="truncate">{item?.[labelKey] || '-'}</span>
               <span className="text-muted-foreground">{value}</span>
             </div>
-            <div className="w-full h-2 rounded bg-gray-100 overflow-hidden">
-              <div className="h-2 bg-green-600 rounded" style={{ width }} />
+            <div className="w-full h-2 rounded-full bg-secondary overflow-hidden">
+              <div className="h-2 rounded-full" style={{ width, backgroundColor: 'var(--chart-1)' }} />
             </div>
           </div>
         );
@@ -201,13 +201,13 @@ export function AdminAnalytics() {
               <CardTitle>{t('ui.top_sellers', 'Top Sellers')}</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto border rounded-lg">
+              <div className="overflow-x-auto rounded-lg border border-border">
                 <table className="w-full min-w-[520px] text-sm">
-                  <thead className="bg-muted/40">
+                  <thead className="bg-secondary text-muted-foreground">
                     <tr>
-                      <th className="text-left p-3">{t('ui.seller', 'Seller')}</th>
-                      <th className="text-left p-3">{t('ui.orders', 'Orders')}</th>
-                      <th className="text-left p-3">{t('ui.amount', 'Amount')}</th>
+                      <th className="text-left p-3 font-medium">{t('ui.seller', 'Seller')}</th>
+                      <th className="text-left p-3 font-medium">{t('ui.orders', 'Orders')}</th>
+                      <th className="text-left p-3 font-medium">{t('ui.amount', 'Amount')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -217,7 +217,7 @@ export function AdminAnalytics() {
                       </tr>
                     ) : (
                       analytics.topSellers.map((seller: any) => (
-                        <tr key={seller.sellerId} className="border-t">
+                        <tr key={seller.sellerId} className="border-t border-border text-foreground transition-colors hover:bg-accent">
                           <td className="p-3">{seller.sellerName || seller.sellerId || '-'}</td>
                           <td className="p-3">{Number(seller.count || 0)}</td>
                           <td className="p-3">{Number(seller.amount || 0).toLocaleString()}</td>

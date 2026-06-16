@@ -119,7 +119,7 @@ export function AdminInbox() {
         <button
           type="button"
           onClick={() => setViewingConv(null)}
-          className="flex items-center gap-2 text-sm font-medium text-[#05B43D] hover:underline"
+          className="flex items-center gap-2 text-sm font-medium text-primary hover:underline"
         >
           <ChevronLeft className="h-4 w-4" /> Back to all conversations
         </button>
@@ -129,11 +129,11 @@ export function AdminInbox() {
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="flex items-center gap-2 text-base">
-                  <MessageSquare className="h-5 w-5 text-[#05B43D]" />
+                  <MessageSquare className="h-5 w-5 text-primary" />
                   Conversation between{' '}
-                  <span className="text-[#05B43D]">{viewingConv.user1?.name}</span>
+                  <span className="text-primary">{viewingConv.user1?.name}</span>
                   {' '}↔{' '}
-                  <span className="text-blue-600">{viewingConv.user2?.name}</span>
+                  <span className="text-[var(--teal)]">{viewingConv.user2?.name}</span>
                 </CardTitle>
                 <CardDescription>
                   {viewingConv.messageCount} messages · Last active:{' '}
@@ -160,14 +160,14 @@ export function AdminInbox() {
                     <div key={msg.id} className={`flex gap-2 ${isUser1 ? 'justify-start' : 'justify-end'}`}>
                       <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm ${
                         isUser1
-                          ? 'bg-[#F3F5F4] text-[#111111] rounded-tl-sm'
-                          : 'bg-[#05B43D] text-white rounded-tr-sm'
+                          ? 'bg-secondary text-foreground rounded-tl-sm'
+                          : 'bg-primary text-primary-foreground rounded-tr-sm'
                       }`}>
-                        <p className={`mb-1 text-[10px] font-bold ${isUser1 ? 'text-[#8A8A8A]' : 'text-white/70'}`}>
+                        <p className={`mb-1 text-[10px] font-bold ${isUser1 ? 'text-muted-foreground' : 'text-primary-foreground/70'}`}>
                           {senderName}
                         </p>
                         <p className="leading-relaxed">{msg.content}</p>
-                        <p className={`mt-1 text-[10px] ${isUser1 ? 'text-[#8A8A8A]' : 'text-white/60'}`}>
+                        <p className={`mt-1 text-[10px] ${isUser1 ? 'text-muted-foreground' : 'text-primary-foreground/60'}`}>
                           {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                           {' · '}
                           {msg.createdAt ? new Date(msg.createdAt).toLocaleDateString() : ''}
@@ -192,7 +192,6 @@ export function AdminInbox() {
         <div className="flex gap-2">
           <Button
             variant={activeTab === 'conversations' ? 'default' : 'outline'}
-            className={activeTab === 'conversations' ? 'bg-[#05B43D] hover:bg-[#018F2D]' : ''}
             onClick={() => { setActiveTab('conversations'); fetchConversations(); }}
           >
             <MessageSquare className="mr-2 h-4 w-4" />
@@ -200,7 +199,6 @@ export function AdminInbox() {
           </Button>
           <Button
             variant={activeTab === 'reports' ? 'default' : 'outline'}
-            className={activeTab === 'reports' ? 'bg-[#05B43D] hover:bg-[#018F2D]' : ''}
             onClick={() => setActiveTab('reports')}
           >
             Reports & Support ({reports.length})
@@ -217,7 +215,7 @@ export function AdminInbox() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <MessageSquare className="h-5 w-5 text-[#05B43D]" />
+              <MessageSquare className="h-5 w-5 text-primary" />
               All Buyer–Seller Conversations
             </CardTitle>
             <CardDescription>
@@ -235,17 +233,17 @@ export function AdminInbox() {
                 {conversations.map((conv) => (
                   <div
                     key={conv.key}
-                    className="flex items-center justify-between rounded-xl border border-border p-4 hover:bg-[#F3F5F4] transition-colors cursor-pointer"
+                    className="flex items-center justify-between rounded-xl border border-border p-4 hover:bg-accent transition-colors cursor-pointer"
                     onClick={() => openConversation(conv)}
                   >
                     <div className="min-w-0 flex-1 space-y-1">
                       <div className="flex flex-wrap items-center gap-2 text-sm font-semibold">
-                        <Badge variant="outline" className="border-[#05B43D] text-[#05B43D] text-[10px]">
+                        <Badge variant="outline" className="border-primary text-primary text-[10px]">
                           {conv.user1?.userType || 'user'}
                         </Badge>
                         <span>{conv.user1?.name}</span>
                         <span className="text-muted-foreground">↔</span>
-                        <Badge variant="outline" className="border-blue-400 text-blue-600 text-[10px]">
+                        <Badge variant="outline" className="border-[var(--teal)] text-[var(--teal)] text-[10px]">
                           {conv.user2?.userType || 'user'}
                         </Badge>
                         <span>{conv.user2?.name}</span>
@@ -256,7 +254,7 @@ export function AdminInbox() {
                         {conv.latestAt ? new Date(conv.latestAt).toLocaleString() : ''}
                       </p>
                     </div>
-                    <Button size="sm" variant="outline" className="ml-4 shrink-0 border-[#05B43D] text-[#05B43D] hover:bg-[#e8f9ee]">
+                    <Button size="sm" variant="outline" className="ml-4 shrink-0">
                       Read
                     </Button>
                   </div>

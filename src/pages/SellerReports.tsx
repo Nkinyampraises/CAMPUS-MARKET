@@ -81,7 +81,7 @@ export function SellerReports() {
             <Label htmlFor="seller-report-category">{t('ui.report_type', 'Report Type')}</Label>
             <select
               id="seller-report-category"
-              className="w-full border rounded-md h-10 px-3 text-sm"
+              className="w-full bg-input border border-border rounded-md h-10 px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               value={category}
               onChange={(e) => setCategory(e.target.value as 'buyer' | 'listing_issue' | 'transaction_dispute')}
             >
@@ -113,8 +113,8 @@ export function SellerReports() {
               placeholder="Explain what happened..."
             />
           </div>
-          <Button className="bg-[#05B43D] hover:bg-[#018F2D]" onClick={submitReport} disabled={submitting}>
-            {submitting ? 'Submitting...' : 'Submit Report'}
+          <Button onClick={submitReport} disabled={submitting}>
+            {submitting ? t('ui.submitting', 'Submitting...') : t('ui.submit_report', 'Submit Report')}
           </Button>
         </CardContent>
       </Card>

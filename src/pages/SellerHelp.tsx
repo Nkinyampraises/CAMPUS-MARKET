@@ -88,7 +88,7 @@ export function SellerHelp() {
         </CardHeader>
         <CardContent className="space-y-4">
           {FAQS.map((item) => (
-            <div key={item.q} className="border rounded-lg p-3">
+            <div key={item.q} className="border border-border bg-muted rounded-lg p-3">
               <p className="font-medium">{item.q}</p>
               <p className="text-sm text-muted-foreground">{item.a}</p>
             </div>
@@ -120,8 +120,8 @@ export function SellerHelp() {
               placeholder="Describe your issue clearly..."
             />
           </div>
-          <Button className="bg-[#05B43D] hover:bg-[#018F2D]" disabled={submitting} onClick={submitSupport}>
-            {submitting ? 'Sending...' : 'Send to Admin Support'}
+          <Button disabled={submitting} onClick={submitSupport}>
+            {submitting ? t('ui.sending', 'Sending...') : t('ui.send_to_admin_support', 'Send to Admin Support')}
           </Button>
         </CardContent>
       </Card>

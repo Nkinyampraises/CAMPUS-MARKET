@@ -124,7 +124,7 @@ export function BuyerDisputes() {
             <Label htmlFor="dispute-order">{t('ui.order', 'Order')}</Label>
             <select
               id="dispute-order"
-              className="w-full border rounded-md h-10 px-3 text-sm"
+              className="h-10 w-full rounded-md border border-border bg-input px-3 text-sm text-foreground focus-visible:ring-2 focus-visible:ring-ring"
               value={selectedOrderId}
               onChange={(e) => setSelectedOrderId(e.target.value)}
             >
@@ -146,8 +146,8 @@ export function BuyerDisputes() {
               placeholder="Describe the dispute..."
             />
           </div>
-          <Button className="bg-[#05B43D] hover:bg-[#018F2D]" disabled={submitting} onClick={openDispute}>
-            {submitting ? 'Opening...' : 'Open Dispute'}
+          <Button disabled={submitting} onClick={openDispute}>
+            {submitting ? t('ui.opening', 'Opening...') : t('ui.open_dispute', 'Open Dispute')}
           </Button>
         </CardContent>
       </Card>
@@ -164,10 +164,16 @@ export function BuyerDisputes() {
           ) : (
             <div className="space-y-3">
               {disputes.map((dispute: any) => (
-                <div key={dispute.id} className="border rounded-lg p-4">
+                <div key={dispute.id} className="rounded-lg border border-border bg-card p-4 shadow-card">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="font-semibold">Order: {dispute.orderId || '-'}</p>
-                    <Badge variant={dispute.status === 'resolved' ? 'default' : 'secondary'}>
+                    <p className="font-semibold text-foreground">{t('ui.order', 'Order')}: {dispute.orderId || '-'}</p>
+                    <Badge
+                      className={
+                        dispute.status === 'resolved'
+                          ? 'bg-[#DCFCE7] text-[#16A34A]'
+                          : 'bg-[#FEF3C7] text-[#D97706]'
+                      }
+                    >
                       {dispute.status || 'open'}
                     </Badge>
                   </div>

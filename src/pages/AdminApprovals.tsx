@@ -179,14 +179,14 @@ export function AdminApprovals() {
                   
                   return (
                     <div key={user.id} className="flex flex-col gap-3 rounded-lg border border-border bg-card p-3 sm:p-4 md:flex-row md:items-start md:gap-4">
-                      <div className="h-12 w-12 rounded-full bg-orange-100 dark:bg-orange-900/35 flex items-center justify-center flex-shrink-0">
-                        <Clock className="h-6 w-6 text-orange-600" />
+                      <div className="h-12 w-12 rounded-full bg-[#FEF3C7] dark:bg-[#FEF3C7]/15 flex items-center justify-center flex-shrink-0">
+                        <Clock className="h-6 w-6 text-[#D97706]" />
                       </div>
                       
                       <div className="flex-1 min-w-0">
                         <div className="mb-2 flex flex-wrap items-center gap-2">
                           <h3 className="font-semibold text-lg">{user.name}</h3>
-                          <Badge variant="secondary" className="bg-orange-100 dark:bg-orange-900/35 text-orange-700 dark:text-orange-200">
+                          <Badge variant="secondary" className="bg-[#FEF3C7] text-[#D97706] border-transparent">
                             {t('ui.pending', 'Pending')}
                           </Badge>
                           {user.userType && (
@@ -194,8 +194,8 @@ export function AdminApprovals() {
                               variant="outline"
                               className={
                                 user.userType === 'seller'
-                                  ? 'bg-green-50 dark:bg-green-900/35 text-green-700 dark:text-green-200 border-green-200 dark:border-green-700/40'
-                                  : 'bg-blue-50 dark:bg-blue-900/35 text-blue-700 dark:text-blue-200 border-blue-200 dark:border-blue-700/40'
+                                  ? 'bg-[#DCFCE7] text-[#16A34A] border-transparent'
+                                  : 'bg-[#CCFBF1] text-[#0D9488] border-transparent'
                               }
                             >
                               {user.userType.charAt(0).toUpperCase() + user.userType.slice(1)}
@@ -232,7 +232,7 @@ export function AdminApprovals() {
                       <div className="grid w-full grid-cols-2 gap-2 md:w-auto md:grid-cols-1">
                         <Button
                           size="sm"
-                          className="w-full bg-[#05B43D] hover:bg-[#018F2D]"
+                          className="w-full"
                           onClick={() => handleApproveUser(user.id)}
                           disabled={actionLoading === user.id}
                         >
@@ -247,8 +247,8 @@ export function AdminApprovals() {
                         </Button>
                         <Button
                           size="sm"
-                          variant="outline"
-                          className="w-full text-red-600 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/40"
+                          variant="destructive"
+                          className="w-full"
                           onClick={() => handleDenyUser(user.id)}
                           disabled={actionLoading === user.id}
                         >
@@ -262,7 +262,7 @@ export function AdminApprovals() {
               </div>
             ) : (
               <div className="text-center py-12">
-                <CheckCircle className="h-12 w-12 text-green-600 mx-auto mb-4" />
+                <CheckCircle className="h-12 w-12 text-[#16A34A] mx-auto mb-4" />
                 <h3 className="text-lg font-semibold mb-2">{t('ui.all_caught_up', 'All Caught Up!')}</h3>
                 <p className="text-muted-foreground">
                   {t('ui.no_pending_account_approvals_at_the_moment', 'No pending account approvals at the moment')}

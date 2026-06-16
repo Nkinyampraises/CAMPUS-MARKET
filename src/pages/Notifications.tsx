@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/app/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
-import { CheckCheck } from 'lucide-react';
+import { Bell, CheckCheck } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
@@ -95,11 +95,11 @@ export function Notifications() {
         </Button>
       </div>
 
-      <Card>
+      <Card className="border border-border bg-card shadow-card">
         <CardHeader>
-          <CardTitle>{t('ui.notifications', 'Notifications')}</CardTitle>
-          <CardDescription>
-            New message received · Seller replied · Order confirmed · Payment successful · Rental ending soon
+          <CardTitle className="text-foreground">{t('ui.notifications', 'Notifications')}</CardTitle>
+          <CardDescription className="text-muted-foreground">
+            {t('notifications.description', 'New message received · Seller replied · Order confirmed · Payment successful · Rental ending soon')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -110,27 +110,42 @@ export function Notifications() {
           ) : (
             <div className="space-y-3">
               {notifications.map((notification) => (
-                <button
-                  type="button"
+                <div
                   key={notification.id}
-                  className="w-full text-left border rounded-lg p-4 hover:bg-muted/40 transition-colors"
-                  onClick={() => markSingleAsRead(notification.id)}
+                  className={`flex items-start gap-3 rounded-lg border border-border p-4 transition-colors ${notification.read ? 'bg-card' : 'bg-accent'}`}
                 >
-                  <div className="flex items-center justify-between gap-2 mb-1">
-                    <p className="font-semibold">{notification.title || 'Notification'}</p>
-                    <div className="flex items-center gap-2">
-                      {notification.read ? (
-                        <Badge variant="secondary">Read</Badge>
-                      ) : (
-                        <Badge>New</Badge>
-                      )}
+                  <span className="inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-primary-soft">
+                    <Bell className="h-5 w-5 text-primary" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <p className="font-semibold text-foreground">{notification.title || t('notifications.fallbackTitle', 'Notification')}</p>
+                      <div className="flex items-center gap-2">
+                        {notification.read ? (
+                          <Badge variant="secondary">{t('notifications.read', 'Read')}</Badge>
+                        ) : (
+                          <Badge>{t('notifications.new', 'New')}</Badge>
+                        )}
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-1">{notification.message}</p>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(notification.createdAt || '').toLocaleString()}
+                      </p>
+                      {!notification.read ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-xs"
+                          onClick={() => markSingleAsRead(notification.id)}
+                        >
+                          {t('notifications.markRead', 'Mark as read')}
+                        </Button>
+                      ) : null}
                     </div>
                   </div>
-                  <p className="text-sm text-muted-foreground mb-1">{notification.message}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {new Date(notification.createdAt || '').toLocaleString()}
-                  </p>
-                </button>
+                </div>
               ))}
             </div>
           )}

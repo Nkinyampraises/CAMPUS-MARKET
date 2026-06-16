@@ -5,7 +5,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app
 import { Input } from '@/app/components/ui/input';
 import { Label } from '@/app/components/ui/label';
 import { Textarea } from '@/app/components/ui/textarea';
-import { Badge } from '@/app/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -13,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/app/components/ui/select';
-import { Bell, Loader2, Send } from 'lucide-react';
+import { AlertTriangle, Bell, Loader2, Megaphone, Send } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
@@ -233,7 +232,7 @@ export function AdminNotifications() {
             </div>
           </div>
           <Button
-            className="w-full bg-[#05B43D] hover:bg-[#018F2D] sm:w-auto"
+            className="w-full sm:w-auto"
             onClick={handleSend}
             disabled={submitting}
           >
@@ -264,22 +263,44 @@ export function AdminNotifications() {
             <div className="text-sm text-muted-foreground">{t('ui.no_reports_yet', 'No reports yet.')}</div>
           ) : (
             supportReports.map((report) => (
-              <div key={report.id} className="border rounded-lg p-4">
-                <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline">{report.category}</Badge>
-                    <Badge variant={report.status === 'resolved' ? 'default' : 'secondary'}>
-                      {report.status}
-                    </Badge>
+              <div
+                key={report.id}
+                className={`rounded-xl border border-border p-4 shadow-card transition-colors ${
+                  report.status === 'open' ? 'bg-accent' : 'bg-card hover:bg-accent'
+                }`}
+              >
+                <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary">
+                      <AlertTriangle className="h-4 w-4" />
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-full border border-border bg-secondary px-2.5 py-0.5 text-xs font-medium text-foreground">
+                        {report.category}
+                      </span>
+                      <span
+                        className={`rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${
+                          report.status === 'resolved'
+                            ? 'bg-[#DCFCE7] text-[#16A34A]'
+                            : report.status === 'rejected'
+                              ? 'bg-[#FEE2E2] text-[#DC2626]'
+                              : report.status === 'reviewed'
+                                ? 'bg-[#CCFBF1] text-[#0D9488]'
+                                : 'bg-[#FEF3C7] text-[#D97706]'
+                        }`}
+                      >
+                        {report.status}
+                      </span>
+                    </div>
                   </div>
                   <span className="text-xs text-muted-foreground">
                     {new Date(report.createdAt).toLocaleString()}
                   </span>
                 </div>
-                <p className="text-sm mb-2">{report.description}</p>
-                <p className="text-xs text-muted-foreground mb-2">From: {report.reporterName || report.reporterId}</p>
+                <p className="text-sm text-foreground mb-2">{report.description}</p>
+                <p className="text-xs text-muted-foreground mb-2">{t('ui.from', 'From')}: {report.reporterName || report.reporterId}</p>
                 {report.adminNote ? (
-                  <p className="text-xs text-muted-foreground mb-2">Admin note: {report.adminNote}</p>
+                  <p className="text-xs text-muted-foreground mb-2">{t('ui.admin_note', 'Admin note')}: {report.adminNote}</p>
                 ) : null}
                 <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap">
                   <Button
@@ -328,17 +349,29 @@ export function AdminNotifications() {
             <div className="text-sm text-muted-foreground">{t('ui.no_broadcasts_yet', 'No broadcasts yet.')}</div>
           ) : (
             broadcasts.map((broadcast) => (
-              <div key={broadcast.id} className="border rounded-lg p-4">
+              <div key={broadcast.id} className="rounded-xl border border-border bg-card p-4 shadow-card transition-colors hover:bg-accent">
                 <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="font-medium break-words">{broadcast.title}</div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary">
+                      <Megaphone className="h-4 w-4" />
+                    </div>
+                    <div className="font-medium text-foreground break-words">{broadcast.title}</div>
+                  </div>
                   <div className="flex flex-wrap gap-2">
-                    <Badge variant="outline">{broadcast.target}</Badge>
-                    <Badge
-                      variant={broadcast.priority === 'urgent' ? 'destructive' : 'secondary'}
-                      className={broadcast.priority === 'high' ? 'bg-orange-100 text-orange-700' : ''}
+                    <span className="rounded-full border border-border bg-secondary px-2.5 py-0.5 text-xs font-medium capitalize text-foreground">
+                      {broadcast.target}
+                    </span>
+                    <span
+                      className={`rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${
+                        broadcast.priority === 'urgent'
+                          ? 'bg-[#FEE2E2] text-[#DC2626]'
+                          : broadcast.priority === 'high'
+                            ? 'bg-[#FEF3C7] text-[#D97706]'
+                            : 'bg-secondary text-muted-foreground'
+                      }`}
                     >
                       {broadcast.priority}
-                    </Badge>
+                    </span>
                   </div>
                 </div>
                 <p className="text-sm text-muted-foreground mb-2">{broadcast.message}</p>

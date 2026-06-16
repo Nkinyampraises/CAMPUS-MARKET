@@ -207,7 +207,7 @@ export function SellerManageListings() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       <div className="mb-4 flex justify-end">
-        <Button className="bg-[#05B43D] hover:bg-[#018F2D]" onClick={() => navigate('/add-listing')}>
+        <Button onClick={() => navigate('/add-listing')}>
           <Plus className="h-4 w-4 mr-2" />
           {t('ui.add_listing', 'Add Listing')}
         </Button>
@@ -224,7 +224,7 @@ export function SellerManageListings() {
               <label htmlFor="listing-category" className="text-sm text-muted-foreground">{t('ui.category', 'Category')}</label>
               <select
                 id="listing-category"
-                className="w-full border rounded-md h-10 px-3 text-sm"
+                className="w-full bg-input border border-border rounded-md h-10 px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
               >
@@ -240,7 +240,7 @@ export function SellerManageListings() {
               <label htmlFor="listing-status" className="text-sm text-muted-foreground">{t('ui.status', 'Status')}</label>
               <select
                 id="listing-status"
-                className="w-full border rounded-md h-10 px-3 text-sm"
+                className="w-full bg-input border border-border rounded-md h-10 px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value as 'all' | ListingStatus)}
               >
@@ -256,7 +256,7 @@ export function SellerManageListings() {
               <label htmlFor="listing-type" className="text-sm text-muted-foreground">Type</label>
               <select
                 id="listing-type"
-                className="w-full border rounded-md h-10 px-3 text-sm"
+                className="w-full bg-input border border-border rounded-md h-10 px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value as 'all' | 'sell' | 'rent')}
               >
@@ -272,9 +272,9 @@ export function SellerManageListings() {
           ) : filteredListings.length === 0 ? (
             <p className="text-sm text-muted-foreground">{t('ui.no_listings_found_for_current_filters', 'No listings found for current filters.')}</p>
           ) : (
-            <div className="overflow-x-auto border rounded-lg">
+            <div className="overflow-x-auto border border-border rounded-lg">
               <table className="w-full text-sm">
-                <thead className="bg-muted/40">
+                <thead className="bg-muted text-muted-foreground">
                   <tr>
                     <th className="text-left p-3">{t('ui.title', 'Title')}</th>
                     <th className="text-left p-3">{t('ui.category', 'Category')}</th>
@@ -287,7 +287,7 @@ export function SellerManageListings() {
                 </thead>
                 <tbody>
                   {filteredListings.map((listing) => (
-                    <tr key={listing.id} className="border-t">
+                    <tr key={listing.id} className="border-t border-border">
                       <td className="p-3 font-medium min-w-[240px]">{listing.title || 'Listing'}</td>
                       <td className="p-3">{getCategoryLabel(listing.category)}</td>
                       <td className="p-3">{listing.type || '-'}</td>
@@ -302,9 +302,9 @@ export function SellerManageListings() {
                         <div className="flex flex-wrap gap-2">
                           <Button size="sm" variant="outline" onClick={() => navigate(`/item/${listing.id}`)}>View</Button>
                           <Button size="sm" variant="outline" onClick={() => navigate(`/seller/edit-listing/${listing.id}`)}>{t("common.edit", "Edit")}</Button>
-                          <Button size="sm" variant="outline" onClick={() => deleteListing(listing.id)}>{t("common.delete", "Delete")}</Button>
-                          <Button size="sm" variant="outline" onClick={() => updateStatus(listing.id, 'sold')}>{t('ui.mark_sold', 'Mark Sold')}</Button>
-                          <Button size="sm" variant="outline" onClick={() => updateStatus(listing.id, 'rented')}>{t('ui.mark_rented', 'Mark Rented')}</Button>
+                          <Button size="sm" variant="destructive" onClick={() => deleteListing(listing.id)}>{t("common.delete", "Delete")}</Button>
+                          <Button size="sm" variant="accent" onClick={() => updateStatus(listing.id, 'sold')}>{t('ui.mark_sold', 'Mark Sold')}</Button>
+                          <Button size="sm" variant="accent" onClick={() => updateStatus(listing.id, 'rented')}>{t('ui.mark_rented', 'Mark Rented')}</Button>
                         </div>
                       </td>
                     </tr>

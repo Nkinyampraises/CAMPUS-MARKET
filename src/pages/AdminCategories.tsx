@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/app/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
-import { Badge } from '@/app/components/ui/badge';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
@@ -208,13 +207,13 @@ export function AdminCategories() {
         <CardContent className="space-y-4">
           <div className="flex flex-col gap-2 sm:flex-row">
             <input
-              className="flex-1 border rounded-md h-10 px-3 text-sm"
-              placeholder="Add category name"
+              className="flex-1 rounded-md h-10 border border-border bg-input px-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              placeholder={t('ui.add_category_name', 'Add category name')}
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
             />
-            <Button className="w-full bg-[#05B43D] hover:bg-[#018F2D] sm:w-auto" onClick={addCategory} disabled={saving}>
-              Add
+            <Button className="w-full sm:w-auto" onClick={addCategory} disabled={saving}>
+              {t('ui.add', 'Add')}
             </Button>
           </div>
 
@@ -225,12 +224,16 @@ export function AdminCategories() {
           ) : (
             <div className="space-y-3">
               {categories.map((category) => (
-                <div key={category.id} className="flex flex-col gap-3 rounded-lg border p-3 md:flex-row md:items-center md:justify-between">
+                <div key={category.id} className="flex flex-col gap-3 rounded-xl border border-border bg-card p-3 shadow-card transition-colors hover:bg-accent md:flex-row md:items-center md:justify-between">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="font-medium">{category.name}</p>
-                    <Badge variant={category.isActive ? 'default' : 'secondary'}>
-                      {category.isActive ? 'active' : 'disabled'}
-                    </Badge>
+                    <p className="font-medium text-foreground">{category.name}</p>
+                    <span
+                      className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                        category.isActive ? 'bg-[#DCFCE7] text-[#16A34A]' : 'bg-secondary text-muted-foreground'
+                      }`}
+                    >
+                      {category.isActive ? t('ui.active', 'active') : t('ui.disabled', 'disabled')}
+                    </span>
                   </div>
                   <div className="grid w-full grid-cols-1 gap-2 sm:w-auto sm:grid-cols-none sm:flex sm:flex-wrap">
                     <Button
@@ -244,7 +247,7 @@ export function AdminCategories() {
                         updateCategory(category.id, { name: updatedName });
                       }}
                     >
-                      Edit
+                      {t('ui.edit', 'Edit')}
                     </Button>
                     <Button
                       size="sm"
@@ -253,9 +256,9 @@ export function AdminCategories() {
                       disabled={saving}
                       onClick={() => updateCategory(category.id, { isActive: !category.isActive })}
                     >
-                      {category.isActive ? 'Disable' : 'Enable'}
+                      {category.isActive ? t('ui.disable', 'Disable') : t('ui.enable', 'Enable')}
                     </Button>
-                    <Button size="sm" variant="outline" className="w-full sm:w-auto" disabled={saving} onClick={() => deleteCategory(category.id)}>
+                    <Button size="sm" variant="destructive" className="w-full sm:w-auto" disabled={saving} onClick={() => deleteCategory(category.id)}>
                       {t('ui.delete', 'Delete')}
                     </Button>
                   </div>

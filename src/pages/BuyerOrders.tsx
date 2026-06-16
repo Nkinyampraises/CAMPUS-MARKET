@@ -11,7 +11,7 @@ import { API_URL } from '@/lib/api';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 const formatMoney = (value: number) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value || 0);
+  `${Math.round(value || 0).toLocaleString('fr-FR')} FCFA`;
 
 const normalizePurchaseStatus = (status: string) => {
   if (status === 'delivered_released') return 'delivered';
@@ -80,10 +80,10 @@ export function BuyerOrders() {
                 const normalized = normalizePurchaseStatus(order.status);
                 const badgeVariant = normalized === 'delivered' ? 'default' : 'secondary';
                 return (
-                  <div key={order.id} className="border rounded-lg p-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+                  <div key={order.id} className="border border-border rounded-lg p-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 bg-card transition-shadow hover:shadow-card">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <p className="font-semibold">{order.listingTitle || 'Item'}</p>
+                        <p className="font-semibold text-foreground">{order.listingTitle || 'Item'}</p>
                         <Badge variant={badgeVariant}>{normalized}</Badge>
                       </div>
                       <p className="text-sm text-muted-foreground">
@@ -93,7 +93,7 @@ export function BuyerOrders() {
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-bold text-blue-600 min-w-[100px]">{formatMoney(order.amount || 0)}</p>
+                      <p className="font-bold text-primary min-w-[100px]">{formatMoney(order.amount || 0)}</p>
                       <Button variant="outline" size="sm" onClick={() => navigate(`/orders/${order.id}`)}>
                         <Eye className="h-4 w-4 mr-2" />
                         {t('ui.view_order', 'View Order')}

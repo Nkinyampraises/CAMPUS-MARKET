@@ -6,14 +6,14 @@ import { Badge } from '@/app/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/app/components/ui/avatar';
 import {
   MapPin,
-  Calendar,
-  Eye,
   Star,
   MessageSquare,
-  ShoppingCart,
   Heart,
   ChevronRight,
+  Clock,
+  ShieldCheck,
 } from 'lucide-react';
+import { cn } from '@/app/components/ui/utils';
 import {
   formatCurrency,
   getCategoryById,
@@ -22,6 +22,7 @@ import {
 } from '@/data/mockData';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { ProductCard } from '@/components/ProductCard';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
@@ -293,15 +294,6 @@ export function ItemDetails() {
     return 0;
   })();
 
-  const relatedFallbackImage = primaryImage || 'https://placehold.co/640x480?text=No+Image';
-  const getRelatedImage = (entry: any) => {
-    if (Array.isArray(entry?.images)) {
-      const valid = entry.images.find((img: any) => typeof img === 'string' && img.trim());
-      if (valid) return valid;
-    }
-    return relatedFallbackImage;
-  };
-
   const handleContactSeller = () => {
     if (!isAuthenticated) {
       toast.error(t('item.loginToContact', 'Please login to contact the seller'));
@@ -396,226 +388,252 @@ export function ItemDetails() {
     toggleFavorite();
   };
 
+  const sellerRatingValue = Number(item.seller?.rating || 0);
+
   return (
-    <div className="min-h-screen bg-[#FFFFFF] py-7">
-      <div className="w-full px-4 lg:px-8 xl:px-12">
-        <div className="mb-4 flex flex-wrap items-center gap-1.5 text-xs font-medium text-[#5d7b72]">
-          <button type="button" className="hover:text-[#018F2D]" onClick={() => navigate('/marketplace')}>
-            {t('ui.marketplace', 'Marketplace')}
+    <div className="min-h-screen bg-[var(--cream)] py-6">
+      <div className="mx-auto max-w-[1180px] px-4 lg:px-6">
+        {/* Breadcrumb */}
+        <div className="mb-4 flex flex-wrap items-center gap-1.5 text-xs font-medium text-muted-foreground">
+          <button type="button" className="hover:text-primary" onClick={() => navigate('/')}>
+            {t('ui.home', 'Home')}
           </button>
-          <ChevronRight className="h-3.5 w-3.5 text-[#92aba3]" />
-          <span>{categoryLabel}</span>
-          <ChevronRight className="h-3.5 w-3.5 text-[#92aba3]" />
-          <span className="max-w-[240px] truncate text-[#111111]">{item.title}</span>
+          <ChevronRight className="h-3.5 w-3.5" />
+          <button type="button" className="hover:text-primary" onClick={() => navigate('/marketplace')}>
+            {categoryLabel}
+          </button>
+          <ChevronRight className="h-3.5 w-3.5" />
+          <span className="max-w-[240px] truncate text-foreground">{item.title}</span>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1.42fr)_minmax(360px,1fr)]">
+        <div className="grid gap-6 lg:grid-cols-[1.05fr_1fr]">
+          {/* ── LEFT: gallery ── */}
           <div className="space-y-3">
-            <Card className="overflow-hidden rounded-2xl border border-[#d7e6de] bg-white shadow-sm">
-              <div className="relative h-[380px] sm:h-[460px] lg:h-[520px] bg-[#e9efec]">
+            <div className="relative overflow-hidden rounded-2xl border border-border bg-card shadow-card">
+              <div className="relative aspect-[4/3] bg-muted">
                 {primaryImage ? (
                   <img src={primaryImage} alt={item.title} className="h-full w-full object-cover" />
                 ) : (
-                  <div className="flex h-full items-center justify-center text-sm text-[#6f8d84]">{t('ui.no_image_available', 'No image available')}</div>
+                  <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                    {t('ui.no_image_available', 'No image available')}
+                  </div>
                 )}
-                <Badge className="absolute right-3 top-3 rounded-full bg-[#e8f8ef] px-3 py-1 text-[10px] uppercase tracking-wide text-[#018F2D] hover:bg-[#d9f3e5]">
-                  {item.type === 'sell' ? t('item.forSale', 'For Sale') : t('item.forRent', 'For Rent')}
-                </Badge>
+                <span className="absolute left-4 top-4 rounded-full bg-amber-400 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-amber-950 shadow-sm">
+                  {item.condition || t('item.used', 'Used')}
+                </span>
               </div>
-            </Card>
+            </div>
 
             {visibleThumbnails.length > 0 && (
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2.5">
                 {visibleThumbnails.map((image: string, index: number) => (
                   <button
                     key={`${item.id}-thumb-${index}`}
                     type="button"
                     onClick={() => setSelectedImageIndex(index)}
-                    className={`relative overflow-hidden rounded-lg border ${
-                      index === selectedImageIndex
-                        ? 'border-[#018F2D] ring-2 ring-[#018F2D]/20'
-                        : 'border-[#DDE3E2]'
-                    } h-20 w-20 sm:h-24 sm:w-24`}
+                    className={cn(
+                      'relative h-16 w-16 overflow-hidden rounded-xl border-2 transition-all sm:h-20 sm:w-20',
+                      index === selectedImageIndex ? 'border-primary' : 'border-border hover:border-primary/40',
+                    )}
                     aria-label={`View image ${index + 1}`}
                   >
-                    <div className="h-full w-full bg-[#ebf2ef]">
-                      <img src={image} alt={`${item.title} ${index + 1}`} className="h-full w-full object-cover" />
-                    </div>
+                    <img src={image} alt={`${item.title} ${index + 1}`} className="h-full w-full object-cover" />
+                    {index === visibleThumbnails.length - 1 && remainingThumbnailCount > 0 && (
+                      <span className="absolute inset-0 flex items-center justify-center bg-black/55 text-sm font-bold text-white">
+                        +{remainingThumbnailCount}
+                      </span>
+                    )}
                   </button>
                 ))}
-                {remainingThumbnailCount > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setSelectedImageIndex(4)}
-                    className="flex h-20 w-20 items-center justify-center rounded-lg border border-[#DDE3E2] bg-[#f0f5f2] text-sm font-semibold text-[#4c6d63] sm:h-24 sm:w-24"
-                  >
-                    +{remainingThumbnailCount}
-                  </button>
-                )}
               </div>
             )}
           </div>
 
+          {/* ── RIGHT: details + seller ── */}
           <div className="space-y-4">
-            <Card className="rounded-2xl border border-[#d7e6de] bg-white shadow-sm">
-              <CardContent className="space-y-5 p-5">
-                <div className="space-y-2">
-                  <Badge variant="secondary" className="rounded-full bg-[#ebf5f1] px-2.5 py-1 text-[10px] uppercase tracking-wide text-[#018F2D]">
-                    {categoryLabel}
-                  </Badge>
-                  <h1 className="text-3xl font-extrabold leading-tight text-[#111111]">{item.title}</h1>
-                  <div className="flex flex-wrap items-baseline gap-3">
-                    <p className="text-[2rem] font-black leading-none text-[#004f3f]">{formatCurrency(Number(item.price || 0))}</p>
-                    {comparePrice > 0 && (
-                      <p className="text-sm font-medium text-[#80988f] line-through">{formatCurrency(comparePrice)}</p>
-                    )}
-                  </div>
-                  <p className="text-sm leading-relaxed text-[#8A8A8A]">
-                    {item.description || 'No description available for this listing yet.'}
-                  </p>
-                </div>
+            <div className="rounded-2xl border border-border bg-card p-6 shadow-card">
+              {/* Status + posted */}
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="rounded-full bg-primary-soft px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-primary-strong">
+                  {item.type === 'sell' ? t('item.forSale', 'For Sale') : t('item.forRent', 'For Rent')}
+                </span>
+                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Clock className="h-3.5 w-3.5" />
+                  {t('ui.posted', 'Posted')} {postedLabel}
+                </span>
+              </div>
 
-                <div className="grid grid-cols-2 gap-2.5">
-                  <div className="rounded-xl border border-[#d5e5dd] bg-[#F3F5F4] p-3">
-                    <p className="text-[11px] uppercase tracking-wide text-[#7d968d]">{t('item.condition', 'Condition')}</p>
-                    <p className="mt-1 text-sm font-semibold capitalize text-[#123b32]">{item.condition || 'Used'}</p>
-                  </div>
-                  <div className="rounded-xl border border-[#d5e5dd] bg-[#F3F5F4] p-3">
-                    <p className="text-[11px] uppercase tracking-wide text-[#7d968d]">{t('ui.posted', 'Posted')}</p>
-                    <p className="mt-1 text-sm font-semibold text-[#123b32]">{postedLabel}</p>
-                  </div>
-                </div>
+              {/* Title */}
+              <h1 className="mt-3 text-2xl font-extrabold leading-tight text-foreground sm:text-[1.75rem]">
+                {item.title}
+              </h1>
 
-                <div className="flex flex-wrap items-center gap-4 text-sm text-[#55766c]">
-                  <div className="flex items-center gap-1.5">
-                    <MapPin className="h-4 w-4" />
-                    <span>{resolveUniversity(item.location || item.seller?.university) || 'Campus zone'}</span>
+              {/* Rating + verified */}
+              <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-0.5">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star
+                        key={i}
+                        className={cn(
+                          'h-3.5 w-3.5',
+                          i < Math.round(sellerRatingValue) ? 'fill-amber-400 text-amber-400' : 'fill-muted text-muted',
+                        )}
+                      />
+                    ))}
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <Calendar className="h-4 w-4" />
-                    <span>{new Date(item.createdAt).toLocaleDateString()}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <Eye className="h-4 w-4" />
-                    <span>{toMetricCount(item.views)} views</span>
-                  </div>
+                  <span className="text-sm font-bold text-foreground">{sellerRatingValue.toFixed(1)}</span>
+                  <span className="text-sm text-muted-foreground">
+                    ({item.seller?.reviewCount || 0} {t('ui.reviews', 'reviews')})
+                  </span>
                 </div>
-
-                {currentUser?.id !== item.sellerId ? (
-                  <div className="space-y-2.5">
-                    <Button className="h-11 w-full rounded-lg bg-[#018F2D] text-[15px] font-semibold text-white hover:bg-[#0a594c]" onClick={handleBuyNow}>
-                      <ShoppingCart className="mr-2 h-4 w-4" />
-                      {item.type === 'sell' ? t('item.buyNow', 'Buy Now') : t('item.rentNow', 'Rent Now')}
-                    </Button>
-                    <div className="grid grid-cols-2 gap-2.5">
-                      <Button
-                        variant="outline"
-                        className="h-10 rounded-lg border-[#c9ddd3] text-[#1a4a3f] hover:bg-[#f0f7f3]"
-                        onClick={item.type === 'rent' ? handleBuyNow : handleContactSeller}
-                      >
-                        {item.type === 'rent'
-                          ? `${t('item.rentNow', 'Rent')} (${String(item.rentalPeriod || 'weekly').replace(/^\w/, (value: string) => value.toUpperCase())})`
-                          : t('item.contactSeller', 'Contact Seller')}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className={`h-10 rounded-lg border-[#c9ddd3] ${isSaved ? 'bg-[#fff0f3] text-[#c3324b]' : 'text-[#1a4a3f] hover:bg-[#f0f7f3]'}`}
-                        onClick={handleSaveItem}
-                      >
-                        <Heart className={`mr-2 h-4 w-4 ${isSaved ? 'fill-current' : ''}`} />
-                        {isSaved ? t('item.saved', 'Saved') : t('item.saveItem', 'Save')}
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="rounded-xl border border-[#bfd8d0] bg-[#eef7f4] p-3 text-center text-sm font-medium text-[#215347]">
-                    {t('item.yourListing', 'This is your listing')}
-                  </div>
+                {item.seller?.isVerified && (
+                  <span className="flex items-center gap-1 text-xs font-bold text-primary">
+                    <ShieldCheck className="h-4 w-4" />
+                    {t('marketplace.verifiedStudent', 'Verified Student')}
+                  </span>
                 )}
+              </div>
 
-                <div className="rounded-xl border border-[#d4e4dc] bg-[#fbfdfc] p-3.5">
-                  <div className="mb-3 flex items-center gap-3">
-                    <Avatar className="h-10 w-10 border border-[#cfe1d8]">
-                      {item.seller?.profilePicture ? <AvatarImage src={item.seller.profilePicture} alt={item.seller?.name || 'Seller'} /> : null}
-                      <AvatarFallback className="bg-[#dff1e9] text-[#0f5a4b]">
-                        {item.seller?.name?.charAt(0) || 'S'}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="truncate text-sm font-bold text-[#143d33]">{item.seller?.name || 'Seller'}</p>
-                        {item.seller?.isVerified ? (
-                          <Badge className="rounded-full bg-[#fff0cd] px-2 py-0 text-[10px] font-semibold text-[#8a5b00]">{t('ui.verified', 'Verified')}</Badge>
-                        ) : null}
-                      </div>
-                      <p className="text-xs text-[#6c877f]">
-                        <Star className="mr-1 inline h-3.5 w-3.5 fill-[#f5b301] text-[#f5b301]" />
-                        {item.seller?.rating || '0.0'} ({item.seller?.reviewCount || 0} reviews)
-                      </p>
-                    </div>
-                  </div>
-                  <div className="mb-3 flex items-center gap-1.5 text-xs text-[#617f76]">
-                    <MapPin className="h-3.5 w-3.5" />
-                    {resolveUniversity(
-                      typeof item.seller?.university === 'string'
-                        ? item.seller.university
-                        : item.seller?.university?.name,
-                    ) || 'University not specified'}
-                  </div>
-                  {currentUser?.id !== item.sellerId && (
-                    <Button
-                      className="h-9 w-full rounded-lg bg-[#018F2D] text-sm font-semibold text-white hover:bg-[#0a594c]"
-                      onClick={handleContactSeller}
-                    >
-                      <MessageSquare className="mr-2 h-4 w-4" />
-                      {t('ui.contact_seller', 'Contact Seller')}
-                    </Button>
-                  )}
+              {/* Price */}
+              <p className="mt-3 text-[2rem] font-black leading-none text-primary">
+                {formatCurrency(Number(item.price || 0))}
+              </p>
+
+              <div className="my-4 border-t border-border" />
+
+              {/* Condition + Location */}
+              <div className="space-y-2.5">
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="font-bold text-foreground">{t('item.condition', 'Condition')}:</span>
+                  <span className="rounded-full border border-border px-2.5 py-0.5 text-xs font-medium capitalize text-foreground">
+                    {item.condition || t('item.used', 'Used')}
+                  </span>
                 </div>
-              </CardContent>
-            </Card>
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="font-bold text-foreground">{t('item.location', 'Location')}:</span>
+                  <span className="flex items-center gap-1 text-muted-foreground">
+                    <MapPin className="h-3.5 w-3.5 text-primary" />
+                    {resolveUniversity(item.location || item.seller?.university) || t('item.campusZone', 'Campus')}
+                  </span>
+                </div>
+              </div>
 
+              {/* Description */}
+              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                {item.description || t('item.noDescription', 'No description available for this listing yet.')}
+              </p>
+
+              {/* Actions */}
+              {currentUser?.id !== item.sellerId ? (
+                <div className="mt-5 space-y-3">
+                  <button
+                    type="button"
+                    onClick={handleBuyNow}
+                    className="w-full rounded-xl bg-forest py-3.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-forest-dark"
+                  >
+                    {item.type === 'sell' ? t('item.buyNow', 'Buy Now') : t('item.rentNow', 'Rent Now')}
+                  </button>
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={handleContactSeller}
+                      className="flex-1 rounded-xl border-2 border-primary py-3 text-sm font-bold text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
+                    >
+                      {t('item.messageSeller', 'Message Seller')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSaveItem}
+                      aria-label={isSaved ? 'Remove from favorites' : 'Save item'}
+                      className={cn(
+                        'flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border transition-colors',
+                        isSaved
+                          ? 'border-destructive bg-destructive/10 text-destructive'
+                          : 'border-border text-muted-foreground hover:border-primary hover:text-primary',
+                      )}
+                    >
+                      <Heart className={cn('h-5 w-5', isSaved && 'fill-current')} />
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-5 rounded-xl border border-border bg-accent p-3 text-center text-sm font-medium text-accent-foreground">
+                  {t('item.yourListing', 'This is your listing')}
+                </div>
+              )}
+            </div>
+
+            {/* Seller card */}
+            <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 shadow-card">
+              <Avatar className="h-12 w-12 border border-border">
+                {item.seller?.profilePicture ? (
+                  <AvatarImage src={item.seller.profilePicture} alt={item.seller?.name || 'Seller'} />
+                ) : null}
+                <AvatarFallback className="bg-primary-soft font-bold text-primary">
+                  {item.seller?.name?.charAt(0) || 'S'}
+                </AvatarFallback>
+              </Avatar>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <p className="truncate text-sm font-bold text-foreground">{item.seller?.name || t('item.seller', 'Seller')}</p>
+                  {item.seller?.isVerified && <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-primary" />}
+                </div>
+                <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                  <span className="font-semibold text-foreground">{sellerRatingValue.toFixed(1)}</span>
+                  <span>• {t('item.verifiedSeller', 'Verified seller')}</span>
+                </p>
+              </div>
+              {currentUser?.id !== item.sellerId && (
+                <button
+                  type="button"
+                  onClick={handleContactSeller}
+                  aria-label="Message seller"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--teal-light)]/30 text-forest transition-colors hover:bg-[var(--teal-light)]/50"
+                >
+                  <MessageSquare className="h-5 w-5" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
-        <section className="mt-10 rounded-2xl border border-[#d9e8e0] bg-white p-6">
-          <div className="mb-5 flex items-end justify-between gap-3">
-            <div>
-              <h2 className="text-2xl font-extrabold text-[#0e3d34]">{t('ui.related_deals', 'Related Deals')}</h2>
-              <p className="text-sm text-[#708a81]">Recommended for your search in {categoryLabel}.</p>
-            </div>
-            <Button variant="ghost" size="sm" className="text-[#018F2D] hover:bg-[#ebf6f1]" onClick={() => navigate('/marketplace')}>
+        {/* ── You May Also Like ── */}
+        <section className="mt-10">
+          <div className="mb-5 flex items-center justify-between gap-3">
+            <h2 className="text-2xl font-extrabold text-foreground">{t('item.youMayAlsoLike', 'You May Also Like')}</h2>
+            <button
+              type="button"
+              onClick={() => navigate('/marketplace')}
+              className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline"
+            >
               {t('ui.view_all', 'View All')}
-              <ChevronRight className="ml-1 h-4 w-4" />
-            </Button>
+              <ChevronRight className="h-4 w-4" />
+            </button>
           </div>
 
           {relatedLoading ? (
-            <div className="rounded-lg border border-[#e2eee8] bg-[#f9fcfb] p-6 text-sm text-[#658078]">
+            <div className="rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground">
               {t('item.loadingRelated', 'Loading related items...')}
             </div>
           ) : relatedItems.length > 0 ? (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
               {relatedItems.map((related) => (
-                <button
+                <ProductCard
                   key={related.id}
-                  type="button"
-                  onClick={() => navigate(`/item/${related.id}`)}
-                  className="overflow-hidden rounded-xl border border-[#d6e5dd] bg-white text-left shadow-sm transition-transform hover:-translate-y-0.5"
-                >
-                  <div className="aspect-[4/3] overflow-hidden bg-[#edf3f0]">
-                    <img src={getRelatedImage(related)} alt={related.title} className="h-full w-full object-cover" />
-                  </div>
-                  <div className="space-y-1 p-3">
-                    <h3 className="line-clamp-2 text-sm font-semibold text-[#183f35]">{related.title}</h3>
-                    <p className="text-xs uppercase text-[#88a097]">{getCategoryById(related.category)?.name || 'General'}</p>
-                    <p className="text-sm font-bold text-[#0a5f4f]">{formatCurrency(Number(related.price || 0))}</p>
-                  </div>
-                </button>
+                  item={related}
+                  isSaved={false}
+                  onSave={() => {}}
+                  onNavigate={() => navigate(`/item/${related.id}`)}
+                  t={t}
+                  formatCurrency={formatCurrency}
+                  resolveLocationLabel={(it) => resolveUniversity(it.location || it.seller?.university) || it.location || ''}
+                />
               ))}
             </div>
           ) : (
-            <div className="rounded-lg border border-[#e2eee8] bg-[#f9fcfb] p-6 text-sm text-[#658078]">
+            <div className="rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground">
               {t('item.noRelated', 'No related items available yet.')}
             </div>
           )}

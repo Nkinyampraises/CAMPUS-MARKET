@@ -1,11 +1,58 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/app/components/ui/button';
-import { ArrowRight, ChevronLeft, ChevronRight, MapPin, Sparkles } from 'lucide-react';
-import { getCategoryById } from '@/data/mockData';
+import {
+  ArrowRight,
+  Check,
+  ChevronRight,
+  MapPin,
+  Sparkles,
+  Star,
+  ShieldCheck,
+  CreditCard,
+  Users,
+  Utensils,
+  Home as HomeIcon,
+  Laptop,
+  Armchair,
+  BedDouble,
+  BookOpen,
+  Shirt,
+  Sofa,
+  Headphones,
+} from 'lucide-react';
+
+// ── Category icon + pastel tint mapping (matches reference design) ──
+const CATEGORY_STYLES = [
+  { bg: 'bg-emerald-50', fg: 'text-emerald-600' },
+  { bg: 'bg-sky-50', fg: 'text-sky-600' },
+  { bg: 'bg-teal-50', fg: 'text-teal-600' },
+  { bg: 'bg-amber-50', fg: 'text-amber-600' },
+  { bg: 'bg-indigo-50', fg: 'text-indigo-600' },
+  { bg: 'bg-rose-50', fg: 'text-rose-600' },
+];
+
+const categoryIcon = (name: string) => {
+  const n = (name || '').toLowerCase();
+  if (/kitchen|utensil|cook/.test(n)) return Utensils;
+  if (/home|decor|living/.test(n)) return HomeIcon;
+  if (/electronic|tech|phone|laptop|computer|audio|headphone/.test(n)) return Laptop;
+  if (/table|chair|desk/.test(n)) return Armchair;
+  if (/bed|mattress/.test(n)) return BedDouble;
+  if (/study|book|stationery/.test(n)) return BookOpen;
+  if (/fashion|cloth|wear|apparel/.test(n)) return Shirt;
+  if (/furniture|sofa|couch/.test(n)) return Sofa;
+  return Headphones;
+};
+
+const looksLikeId = (value?: string) =>
+  !value || /^(UNI|CAT|LOC|UB|UY)-[\d]+-[a-z0-9]+$/i.test(value) || /^\d+$/.test(value);
+import { getCategoryById, getUniversityById } from '@/data/mockData';
 import { API_URL } from '@/lib/api';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { ProductCard } from '@/components/ProductCard';
+import { cn } from '@/app/components/ui/utils';
 
 type MarketplaceRouteFilters = {
   category?: string;
@@ -63,6 +110,10 @@ const HOME_REFRESH_MS = 20000;
 const TILES_PER_PANEL = 4;
 const ITEMS_PER_RAIL = 6;
 const SHOWCASE_CATEGORY_COUNT = 7;
+// Portrait used on the "Become a verified student seller" card.
+// Swap this URL (or drop an image in src/assets) to use your own photo.
+const VERIFIED_SELLER_IMAGE =
+  'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?auto=format&fit=crop&w=640&q=80';
 const HOME_DECOR_FALLBACK_IMAGES = [
   'https://images.unsplash.com/photo-1595428774223-ef52624120d2?w=800',
   'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=800',
@@ -149,12 +200,51 @@ export function Home() {
   const { t } = useLanguage();
   const [listings, setListings] = useState<Listing[]>([]);
   const [categories, setCategories] = useState<CategoryEntry[]>([]);
+  const [universitiesById, setUniversitiesById] = useState<Record<string, string>>({});
   const [featureTick, setFeatureTick] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const openMarketplace = (filters: MarketplaceRouteFilters = {}) => {
     navigate(buildMarketplaceUrl(filters));
   };
+
+  // Resolve university id/name → readable university name (for product cards)
+  useEffect(() => {
+    let active = true;
+    fetch(`${API_URL}/universities`)
+      .then((r) => r.json())
+      .catch(() => ({}))
+      .then((data) => {
+        if (!active) return;
+        const map: Record<string, string> = {};
+        if (Array.isArray(data?.universities)) {
+          for (const u of data.universities) {
+            if (u?.id && u?.name) {
+              map[String(u.id).toLowerCase()] = u.name;
+              map[String(u.name).toLowerCase()] = u.name;
+            }
+          }
+        }
+        setUniversitiesById(map);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const resolveUniversityLabel = useCallback(
+    (value?: string) => {
+      const raw = String(value || '').trim();
+      if (!raw) return t('home.onCampus', 'On campus');
+      const fromDb = universitiesById[raw.toLowerCase()];
+      if (fromDb) return fromDb;
+      const fromMock = getUniversityById(raw);
+      if (fromMock) return fromMock.name;
+      if (looksLikeId(raw)) return t('home.onCampus', 'On campus');
+      return raw;
+    },
+    [universitiesById, t],
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -537,312 +627,559 @@ export function Home() {
 
   const spotlightPrice = spotlightListing?.price ? formatPrice(spotlightListing.price) : null;
 
+  const popularListings = useMemo(
+    () => recommendedForYou.slice(0, ITEMS_PER_RAIL),
+    [recommendedForYou],
+  );
+
+  const bestSellerRows = useMemo(
+    () => recommendedForYou.slice(0, 4),
+    [recommendedForYou],
+  );
+
+  const bestSellers = useMemo(() => {
+    const map = new Map<
+      string,
+      { name: string; university?: string; rating: number; reviewCount: number; avatar?: string; sales: number }
+    >();
+    for (const listing of availableListings) {
+      const s: any = (listing as any).seller;
+      if (!s?.name) continue;
+      const key = String(s.id || s.name);
+      const existing =
+        map.get(key) || {
+          name: String(s.name),
+          university: typeof s.university === 'string' ? s.university : s.university?.name,
+          rating: Number(s.rating) || 0,
+          reviewCount: Number(s.reviewCount) || 0,
+          avatar: s.profilePicture || s.avatar || '',
+          sales: 0,
+        };
+      existing.sales += 1;
+      map.set(key, existing);
+    }
+    return Array.from(map.values())
+      .sort((a, b) => (b.rating || 0) - (a.rating || 0) || b.sales - a.sales)
+      .slice(0, 4);
+  }, [availableListings]);
+
+  const categoryCount = useCallback(
+    (id: string) => (groupedByCategory.get(id) || []).length,
+    [groupedByCategory],
+  );
+
+  const collageImages = useMemo(() => {
+    const imgs = uniqueById(availableListings).map(getFirstImage).filter(Boolean);
+    return [...imgs, ...HOME_DECOR_FALLBACK_IMAGES].filter(Boolean).slice(0, 30);
+  }, [availableListings]);
+
   return (
-    <div className="bg-[#eaeded] text-[#0f1111]">
-      <div className="mx-auto max-w-[1500px]">
-        <section className="relative h-[330px] overflow-hidden bg-white sm:h-[430px] lg:h-[520px]">
-          {activeHeroSlide.image ? (
-            <img src={activeHeroSlide.image} alt={activeHeroSlide.title} className="h-full w-full object-cover" />
-          ) : (
-            <div className="h-full w-full bg-gradient-to-r from-[#1d3557] via-[#457b9d] to-[#a8dadc]" />
-          )}
-          <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(255,255,255,0)_45%,rgba(234,237,237,0.96)_100%)]" />
-
-          <div className="absolute inset-x-2 top-1/2 flex -translate-y-1/2 items-center justify-between sm:inset-x-4">
-            <button
-              type="button"
-              aria-label={t('home.previousSlide', 'Previous slide')}
-              onClick={() => setFeatureTick((value) => value - 1)}
-              className="inline-flex h-12 w-9 items-center justify-center rounded-md border border-[#f7fafa] bg-white/50 text-[#111111] shadow-md backdrop-blur hover:bg-white/70"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </button>
-            <button
-              type="button"
-              aria-label={t('home.nextSlide', 'Next slide')}
-              onClick={() => setFeatureTick((value) => value + 1)}
-              className="inline-flex h-12 w-9 items-center justify-center rounded-md border border-[#f7fafa] bg-white/50 text-[#111111] shadow-md backdrop-blur hover:bg-white/70"
-            >
-              <ChevronRight className="h-5 w-5" />
-            </button>
-          </div>
-
-          <div className="absolute left-4 top-6 max-w-xl rounded-md bg-white/82 p-4 text-[#111111] shadow-lg backdrop-blur sm:left-8 sm:top-10 sm:p-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#394149]">
-              {t('home.featuredToday', 'Featured Today')}
+    <div className="bg-background text-foreground">
+      <div className="mx-auto max-w-[1280px] space-y-10 px-4 py-6 sm:px-6 lg:py-10">
+        {/* ── Hero row ── */}
+        <section className="grid grid-cols-1 gap-4 lg:grid-cols-[1.2fr_1fr]">
+          {/* Left: mint marketing card */}
+          <article className="animate-fade-up sheen relative isolate flex flex-col justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-primary-soft via-primary-soft to-[#DDF0E4] p-6 sm:p-8">
+            {/* Decorative depth */}
+            <div className="pointer-events-none absolute -right-12 -top-12 -z-10 h-44 w-44 rounded-full bg-primary/10 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-16 right-1/4 -z-10 h-36 w-36 rounded-full bg-[var(--teal)]/10 blur-3xl" />
+            <span className="relative z-10 inline-flex w-fit items-center gap-1.5 rounded-full bg-card px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-primary shadow-sm">
+              <Sparkles className="h-3 w-3" />
+              {t('home.welcomeToUnitrade', 'Welcome to UNITRADE')}
+            </span>
+            <h1 className="mt-4 max-w-md text-2xl font-extrabold leading-[1.1] text-foreground sm:text-[2.1rem]">
+              {t('home.heroTitlePart1', 'Campus deals')}{' '}
+              <span className="text-primary">{t('home.heroTitlePart2', 'worth checking')}</span>{' '}
+              {t('home.heroTitlePart3', 'today')}
+            </h1>
+            <p className="mt-2.5 max-w-sm text-sm text-muted-foreground">
+              {t('home.heroSubtitle', 'Buy and sell safely with students from your university community.')}
             </p>
-            <h1 className="mt-2 text-2xl font-bold leading-tight sm:text-4xl">{activeHeroSlide.title}</h1>
-            <p className="mt-2 text-sm text-[#2d3741] sm:text-base">{activeHeroSlide.subtitle}</p>
-            <Button
-              onClick={() => openMarketplace(activeHeroSlide.filters)}
-              className="mt-4 h-9 rounded-full bg-[#ffd814] px-4 text-sm font-semibold text-[#0f1111] shadow-none hover:bg-[#f7ca00]"
-            >
-              {activeHeroSlide.cta}
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          </div>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <Button onClick={() => openMarketplace({ section: 'hero-student-deals', sort: 'recent' })}>
+                {t('home.shopNow', 'Shop now')}
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+              <Button variant="outline" className="bg-card" onClick={() => navigate('/add-listing')}>
+                {t('home.sellItem', 'Sell item')}
+              </Button>
+            </div>
+            <div className="mt-6 grid grid-cols-3 gap-3 border-t border-primary/10 pt-5">
+              {[
+                { icon: ShieldCheck, title: t('home.trustVerifiedTitle', 'Verified Students'), sub: t('home.trustVerifiedSub', '100% verified') },
+                { icon: CreditCard, title: t('home.trustSecureTitle', 'Secure Payments'), sub: t('home.trustSecureSub', 'Safe & protected') },
+                { icon: Users, title: t('home.trustCommunityTitle', 'University Community'), sub: t('home.trustCommunitySub', 'Trusted network') },
+              ].map(({ icon: Icon, title, sub }) => (
+                <div key={title} className="flex items-start gap-2">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-card text-primary shadow-sm">
+                    <Icon className="h-3.5 w-3.5" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate text-[11px] font-bold text-foreground">{title}</p>
+                    <p className="truncate text-[10px] text-muted-foreground">{sub}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </article>
+
+          {/* Right: lifestyle image card with overlay */}
+          <article
+            className="animate-fade-up group relative min-h-[230px] overflow-hidden rounded-2xl border border-border bg-card shadow-card"
+            style={{ animationDelay: '0.12s' }}
+          >
+            {activeHeroSlide.image ? (
+              <img
+                src={activeHeroSlide.image}
+                alt={activeHeroSlide.title}
+                className="absolute inset-0 h-full w-full object-cover transition-transform duration-[1.2s] ease-out group-hover:scale-105"
+              />
+            ) : (
+              <div className="absolute inset-0 bg-accent" />
+            )}
+            <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/25 to-transparent" />
+            <div className="relative flex h-full flex-col justify-center p-6 sm:p-8">
+              <h2 className="max-w-[210px] text-lg font-extrabold uppercase leading-tight tracking-wide text-white sm:text-xl">
+                {t('home.nextFavoriteTitle', 'Your next favorite item is here')}
+              </h2>
+              <p className="mt-2 max-w-[230px] text-xs text-white/85 sm:text-sm">
+                {t('home.nextFavoriteSub', 'From electronics to home essentials, find it all on UNITRADE.')}
+              </p>
+              <div className="mt-4">
+                <Button onClick={() => openMarketplace({ section: 'hero-explore', sort: 'recent' })}>
+                  {t('home.exploreMarketplace', 'Explore marketplace')}
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="mt-4 flex items-center gap-1.5">
+                {heroSlides.map((slide, index) => (
+                  <span
+                    key={slide.id}
+                    className={cn(
+                      'h-1.5 rounded-full transition-all duration-300',
+                      index === featureTick % heroSlides.length ? 'w-5 bg-primary' : 'w-1.5 bg-white/60',
+                    )}
+                  />
+                ))}
+              </div>
+            </div>
+          </article>
         </section>
 
-        <div className="relative -mt-20 space-y-5 px-3 pb-8 sm:px-5 lg:px-7">
-          <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {topShowcaseCards.map((card) => (
-              <article key={card.id} className="flex min-h-[370px] flex-col bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.14)]">
-                <h2 className="line-clamp-2 min-h-[3.2rem] text-[1.25rem] font-bold leading-6 text-[#0f1111]">{card.title}</h2>
-                <div className="mt-3 grid flex-1 grid-cols-2 gap-3">
-                  {card.items.slice(0, 4).map((tile, tileIndex) => {
-                    const tileImage = tile.image || getHomeDecorImage(tileIndex);
-                    return (
-                      <button
-                        key={tile.id}
-                        type="button"
-                        onClick={() => openMarketplace(tile.filters)}
-                        className="group text-left"
-                      >
-                        <div className="aspect-square overflow-hidden bg-[#f3f3f3]">
-                          {tileImage ? (
-                            <img src={tileImage} alt={tile.label} className="h-full w-full object-cover transition group-hover:scale-105" />
-                          ) : (
-                            <div className="h-full w-full bg-[#eceff1]" />
-                          )}
-                        </div>
-                        <p className="mt-1.5 line-clamp-2 text-xs leading-4 text-[#0f1111]">{tile.label}</p>
-                      </button>
-                    );
-                  })}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => openMarketplace({ category: card.categoryId, section: card.id })}
-                  className="mt-3 text-left text-sm font-medium text-[#007185] hover:text-[#c7511f] hover:underline"
-                >
-                  {t('home.seeMore', 'See more')}
-                </button>
-              </article>
-            ))}
-          </section>
-
-          <section className="bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.14)]">
-            <div className="flex flex-wrap items-end justify-between gap-2">
-              <div>
-                <h3 className="text-[1.35rem] font-bold text-[#0f1111]">{t('home.shopByCategory', 'Shop by category')}</h3>
-                <p className="text-sm text-[#4b5663]">
-                  {t('home.amazonCategorySub', 'Jump into departments with one click, just like a storefront aisle.')}
-                </p>
-              </div>
+        {/* ── Browse by category ── */}
+        {quickCategories.length > 0 && (
+          <section>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-xl font-bold text-foreground sm:text-2xl">
+                {t('home.browseByCategory', 'Browse by category')}
+              </h2>
               <button
                 type="button"
                 onClick={() => openMarketplace({ section: 'quick-categories' })}
-                className="text-sm text-[#007185] hover:text-[#c7511f] hover:underline"
+                className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary-strong hover:underline"
               >
-                {t('home.seeAll', 'See all')}
+                {t('home.seeAllCategories', 'See all categories')}
+                <ChevronRight className="h-4 w-4" />
               </button>
             </div>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {quickCategories.map((category) => (
-                <button
-                  key={category.id}
-                  type="button"
-                  onClick={() => openMarketplace({ section: 'quick-categories', category: category.id })}
-                  className="rounded-lg border border-[#d5d9d9] bg-white px-3 py-1.5 text-sm font-medium text-[#0f1111] transition hover:border-[#0f1111] hover:bg-[#f9fafb]"
-                >
-                  {category.name}
-                </button>
+            <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+              {quickCategories.map((category, index) => {
+                const Icon = categoryIcon(category.name);
+                const style = CATEGORY_STYLES[index % CATEGORY_STYLES.length];
+                const count = categoryCount(category.id);
+                return (
+                  <button
+                    key={category.id}
+                    type="button"
+                    onClick={() => openMarketplace({ section: 'quick-categories', category: category.id })}
+                    className="group flex flex-col items-center gap-2.5 rounded-2xl border border-border bg-card p-5 text-center shadow-card transition-all duration-200 hover:-translate-y-1 hover:border-primary/25 hover:shadow-elevated"
+                  >
+                    <span className={cn('flex h-14 w-14 items-center justify-center rounded-full transition-transform duration-300 group-hover:scale-110', style.bg, style.fg)}>
+                      <Icon className="h-6 w-6" />
+                    </span>
+                    <span className="line-clamp-1 text-sm font-bold text-foreground">{category.name}</span>
+                    <span className="text-xs font-medium text-primary">
+                      {count > 0 ? `${count}+ ${t('home.items', 'items')}` : t('home.browse', 'Browse')}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* ── Popular on campus (mint panel) ── */}
+        {popularListings.length > 0 && (
+          <section className="rounded-3xl bg-primary-soft p-5 sm:p-7">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-xl font-bold text-foreground sm:text-2xl">
+                {t('home.popularOnCampus', 'Popular on campus')}
+              </h2>
+              <button
+                type="button"
+                onClick={() => openMarketplace({ section: 'popular-on-campus', sort: 'recent' })}
+                className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline"
+              >
+                {t('home.seeAllDeals', 'See all deals')}
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+              {popularListings.map((item) => (
+                <ProductCard
+                  key={item.id}
+                  item={item}
+                  isSaved={false}
+                  onSave={() => {}}
+                  onNavigate={() =>
+                    openMarketplace({
+                      section: 'popular-on-campus',
+                      category: String(item.category || '').trim() || undefined,
+                    })
+                  }
+                  t={t}
+                  formatCurrency={(value: number) => formatPrice(value) || ''}
+                  resolveLocationLabel={(it) => resolveUniversityLabel(it?.seller?.university)}
+                />
               ))}
             </div>
           </section>
+        )}
 
-          {railTop && (
-            <section className="bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.14)]">
-              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <h3 className="text-[1.35rem] font-bold text-[#0f1111]">{railTop.title}</h3>
-                  <p className="text-sm text-[#4b5663]">{railTop.subtitle}</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => openMarketplace(railTop.filters)}
-                  className="text-sm text-[#007185] hover:text-[#c7511f] hover:underline"
-                >
-                  {t('home.seeAllDeals', 'See all deals')}
-                </button>
-              </div>
-              <div className="flex gap-4 overflow-x-auto pb-1">
-                {railTop.items.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => openMarketplace(item.filters)}
-                    className="min-w-[170px] max-w-[170px] text-left"
-                  >
-                    <div className="aspect-square overflow-hidden border border-[#edf0f1] bg-[#f6f8f8]">
-                      {item.image ? (
-                        <img src={item.image} alt={item.label} className="h-full w-full object-cover" />
-                      ) : (
-                        <div className="h-full w-full bg-[#eff2f2]" />
-                      )}
-                    </div>
-                    <p className="mt-2 line-clamp-2 text-sm font-medium text-[#0f1111]">{item.label}</p>
-                  </button>
-                ))}
-              </div>
-            </section>
-          )}
-
-          <section className="grid grid-cols-1 gap-4 lg:grid-cols-[2fr_1fr]">
-            <article className="relative overflow-hidden bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.14)]">
-              <div className="grid items-center gap-4 md:grid-cols-[1.3fr_1fr]">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#565d66]">
-                    {t('home.dealOfTheDay', 'Deal of the day')}
-                  </p>
-                  <h3 className="mt-2 text-2xl font-bold text-[#0f1111]">
-                    {spotlightListing?.title || t('home.freshCampusDeals', 'Fresh campus deals are live now')}
-                  </h3>
-                  <p className="mt-2 text-sm text-[#44505d]">
-                    {spotlightListing?.description ||
-                      t('home.dealOfTheDaySub', 'New listings are arriving constantly. Explore the latest highlights.')}
-                  </p>
-                  {spotlightPrice && <p className="mt-2 text-2xl font-bold text-[#b12704]">{spotlightPrice}</p>}
-                  <Button
-                    onClick={() =>
-                      openMarketplace({
-                        section: 'deal-of-the-day',
-                        category: spotlightListing?.category,
-                      })
-                    }
-                    className="mt-4 h-9 rounded-full bg-[#ffd814] px-4 text-sm font-semibold text-[#0f1111] shadow-none hover:bg-[#f7ca00]"
-                  >
-                    {t('home.grabDeal', 'Grab this deal')}
-                  </Button>
-                </div>
-                <div className="overflow-hidden border border-[#edf0f1] bg-[#f4f7f7]">
-                  {spotlightListing?.images?.[0] ? (
-                    <img src={spotlightListing.images[0]} alt={spotlightListing.title} className="h-full w-full object-cover" />
-                  ) : (
-                    <div className="aspect-[4/3] h-full w-full bg-gradient-to-br from-[#dfe7ed] to-[#f7fafb]" />
-                  )}
-                </div>
-              </div>
-            </article>
-
-            <article className="bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.14)]">
-              <p className="inline-flex items-center text-xs font-semibold uppercase tracking-[0.2em] text-[#565d66]">
-                <MapPin className="mr-1.5 h-3.5 w-3.5" />
-                {t('home.localFocus', 'Local Focus')}
-              </p>
-              <h3 className="mt-2 text-[1.35rem] font-bold text-[#0f1111]">
-                {t('home.moreItemsAroundUniversity', 'More items around your university')}
-              </h3>
-              <p className="mt-2 text-sm text-[#44505d]">
-                {t('home.keepBrowsing', 'Keep browsing to see fresh listings from students nearby.')}
-              </p>
-              <Button
-                onClick={() => openMarketplace({ section: 'local-focus', sort: 'recent' })}
-                className="mt-4 h-9 rounded-full bg-[#232f3e] px-4 text-sm font-semibold text-white shadow-none hover:bg-[#111a25]"
+        {/* ── Top categories (image tiles) ── */}
+        {topShowcaseCards.length > 0 && (
+          <section>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-xl font-bold text-foreground sm:text-2xl">
+                {t('home.topCategories', 'Top categories')}
+              </h2>
+              <button
+                type="button"
+                onClick={() => openMarketplace({ section: 'top-categories' })}
+                className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary-strong hover:underline"
               >
-                <Sparkles className="mr-2 h-4 w-4" />
-                {t('home.openMarketplaceFeed', 'Open marketplace feed')}
-              </Button>
-            </article>
+                {t('home.seeAll', 'See all')}
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+              {topShowcaseCards.slice(0, 6).map((card, cardIndex) => {
+                const tileImage = card.items[0]?.image || getHomeDecorImage(cardIndex);
+                const count = categoryCount(card.categoryId);
+                return (
+                  <button
+                    key={card.id}
+                    type="button"
+                    onClick={() => openMarketplace({ category: card.categoryId, section: card.id })}
+                    className="group relative aspect-[4/5] overflow-hidden rounded-2xl border border-border shadow-card"
+                  >
+                    {tileImage ? (
+                      <img
+                        src={tileImage}
+                        alt={card.title}
+                        className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 bg-accent" />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
+                    <div className="absolute inset-x-0 bottom-0 p-3 text-left">
+                      <p className="line-clamp-1 text-sm font-bold text-white">{card.title}</p>
+                      <p className="text-xs text-white/80">
+                        {count > 0 ? `${count}+ ${t('home.items', 'items')}` : t('home.explore', 'Explore')}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </section>
+        )}
 
-          {lowerShowcaseCards.length > 0 && (
-            <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-              {lowerShowcaseCards.map((card) => (
-                <article key={card.id} className="flex min-h-[370px] flex-col bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.14)]">
-                  {card.variant !== 'tiles-only' ? (
-                    <h2 className="line-clamp-2 min-h-[3.2rem] text-[1.25rem] font-bold leading-6 text-[#0f1111]">{card.title}</h2>
-                  ) : (
-                    <h2 className="line-clamp-2 min-h-[3.2rem] text-[1.25rem] font-bold leading-6 text-[#0f1111]">
-                      {t('home.discoverMore', 'Discover more')}
-                    </h2>
-                  )}
-                  <div className="mt-3 grid flex-1 grid-cols-2 gap-3">
-                    {card.items.slice(0, 4).map((tile, tileIndex) => {
-                      const tileImage = tile.image || getHomeDecorImage(tileIndex + 3);
-                      return (
-                        <button
-                          key={tile.id}
-                          type="button"
-                          onClick={() => openMarketplace(tile.filters)}
-                          className="group text-left"
-                        >
-                          <div className="aspect-square overflow-hidden bg-[#f3f3f3]">
-                            {tileImage ? (
-                              <img src={tileImage} alt={tile.label} className="h-full w-full object-cover transition group-hover:scale-105" />
-                            ) : (
-                              <div className="h-full w-full bg-[#eceff1]" />
-                            )}
-                          </div>
-                          <p className="mt-1.5 line-clamp-2 text-xs leading-4 text-[#0f1111]">{tile.label}</p>
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => openMarketplace({ category: card.categoryId || undefined, section: card.id })}
-                    className="mt-3 text-left text-sm font-medium text-[#007185] hover:text-[#c7511f] hover:underline"
-                  >
-                    {t('home.exploreThisCategory', 'Explore this category')}
-                  </button>
-                </article>
-              ))}
-            </section>
-          )}
-
-          {railBottom.map((rail) => (
-            <section key={rail.id} className="bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.14)]">
-              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <h3 className="text-[1.35rem] font-bold text-[#0f1111]">{rail.title}</h3>
-                  <p className="text-sm text-[#4b5663]">{rail.subtitle}</p>
-                </div>
+        {/* ── Wide promo banner (forest green + image collage) ── */}
+        <section className="overflow-hidden rounded-2xl border border-border shadow-card">
+          <div className="grid lg:grid-cols-[0.82fr_1.18fr]">
+            {/* Left: forest panel */}
+            <div className="relative isolate flex min-h-[250px] flex-col justify-center bg-gradient-to-br from-forest to-forest-dark p-7 text-white sm:min-h-[280px] sm:p-9">
+              <div className="pointer-events-none absolute -left-10 -top-10 -z-10 h-44 w-44 rounded-full bg-primary/20 blur-3xl" />
+              <div className="pointer-events-none absolute -bottom-12 left-1/3 -z-10 h-36 w-36 rounded-full bg-[var(--teal)]/15 blur-3xl" />
+              <h2 className="text-2xl font-extrabold leading-tight sm:text-[1.9rem]">
+                {t('home.promoBannerTitle', 'Shop your campus. Save more.')}
+              </h2>
+              <p className="mt-3 max-w-xs text-sm text-white/80">
+                {t('home.promoBannerSub', 'Discover great finds from verified students near you — no shipping, just campus pickup.')}
+              </p>
+              <div className="mt-6">
                 <button
                   type="button"
-                  onClick={() => openMarketplace(rail.filters)}
-                  className="text-sm text-[#007185] hover:text-[#c7511f] hover:underline"
+                  onClick={() => openMarketplace({ section: 'promo-banner', sort: 'recent' })}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-white px-5 py-2.5 text-sm font-bold text-forest shadow-sm transition-all hover:-translate-y-0.5 hover:bg-white/90"
                 >
-                  {t('home.seeAll', 'See all')}
+                  {t('home.shopNow', 'Shop now')}
+                  <ArrowRight className="h-4 w-4" />
                 </button>
               </div>
-              <div className="flex gap-4 overflow-x-auto pb-1">
-                {rail.items.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => openMarketplace(item.filters)}
-                    className="min-w-[170px] max-w-[170px] text-left"
+            </div>
+
+            {/* Right: image collage arranged exactly like the reference */}
+            <div className="bg-primary-soft p-4 sm:p-5">
+              {(() => {
+                const len = Math.max(1, collageImages.length);
+                // Rotate which photo each tile shows on every feature tick (~4.5s).
+                const pic = (i: number) => collageImages[(featureTick * 6 + i) % len] || '';
+                const tile = 'overflow-hidden rounded-xl border border-white/60 bg-card shadow-sm';
+                const Img = ({ i }: { i: number }) => {
+                  const src = pic(i);
+                  return (
+                    <img
+                      key={src}
+                      src={src}
+                      alt=""
+                      loading="lazy"
+                      className="img-fade h-full w-full object-cover"
+                    />
+                  );
+                };
+                return (
+                  <div className="flex h-full items-stretch gap-2.5 sm:gap-3">
+                    {/* Col 1: single, vertically centered */}
+                    <div className="flex flex-1 items-center">
+                      <div className={cn(tile, 'aspect-[4/5] w-full')}>
+                        <Img i={0} />
+                      </div>
+                    </div>
+                    {/* Col 2: two stacked (top & bottom) */}
+                    <div className="flex flex-1 flex-col justify-between gap-2.5 sm:gap-3">
+                      <div className={cn(tile, 'aspect-[5/4]')}>
+                        <Img i={1} />
+                      </div>
+                      <div className={cn(tile, 'aspect-square')}>
+                        <Img i={2} />
+                      </div>
+                    </div>
+                    {/* Col 3: single tall, full height */}
+                    <div className={cn(tile, 'flex-1')}>
+                      <Img i={3} />
+                    </div>
+                    {/* Col 4: two stacked (hidden on smallest screens) */}
+                    <div className="hidden flex-1 flex-col justify-between gap-2.5 sm:flex sm:gap-3">
+                      <div className={cn(tile, 'aspect-square')}>
+                        <Img i={4} />
+                      </div>
+                      <div className={cn(tile, 'aspect-[5/4]')}>
+                        <Img i={5} />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        </section>
+
+        {/* ── Deal of the day + Local focus ── */}
+        <section className="grid grid-cols-1 gap-4 lg:grid-cols-[1.7fr_1fr]">
+          {/* Deal of the day */}
+          <article className="grid grid-cols-1 overflow-hidden rounded-2xl border border-border bg-card shadow-card sm:grid-cols-2">
+            <div className="flex flex-col justify-center p-6 sm:p-8">
+              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                {t('home.dealOfTheDay', 'Deal of the day')}
+              </p>
+              <h3 className="mt-2 text-2xl font-extrabold capitalize leading-tight text-foreground">
+                {spotlightListing?.title || t('home.featuredDeal', 'Featured deal')}
+              </h3>
+              <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
+                {spotlightListing?.description || t('home.dealFallbackSub', 'A great pick from a verified student seller.')}
+              </p>
+              {spotlightPrice && (
+                <p className="mt-3 text-2xl font-black text-[#D9480F]">{spotlightPrice}</p>
+              )}
+              <div className="mt-5">
+                <button
+                  type="button"
+                  onClick={() =>
+                    spotlightListing?.id ? navigate(`/item/${spotlightListing.id}`) : openMarketplace()
+                  }
+                  className="inline-flex w-fit items-center gap-1.5 rounded-full bg-amber-400 px-5 py-2.5 text-sm font-bold text-amber-950 shadow-sm transition-all hover:-translate-y-0.5 hover:bg-amber-300"
+                >
+                  {t('home.grabThisDeal', 'Grab this deal')}
+                </button>
+              </div>
+            </div>
+            <div className="relative min-h-[180px] bg-muted">
+              {spotlightListing && getFirstImage(spotlightListing) ? (
+                <img
+                  src={getFirstImage(spotlightListing)}
+                  alt={spotlightListing.title}
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+              ) : (
+                <div className="absolute inset-0 bg-accent" />
+              )}
+            </div>
+          </article>
+
+          {/* Local focus */}
+          <article className="flex flex-col justify-center rounded-2xl border border-border bg-card p-6 shadow-card sm:p-8">
+            <p className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+              <MapPin className="h-3.5 w-3.5 text-primary" />
+              {t('home.localFocus', 'Local focus')}
+            </p>
+            <h3 className="mt-2 text-xl font-extrabold leading-tight text-foreground">
+              {t('home.localFocusTitle', 'More items around your university')}
+            </h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {t('home.localFocusSub', 'Keep browsing to see fresh listings from students nearby.')}
+            </p>
+            <div className="mt-5">
+              <button
+                type="button"
+                onClick={() => openMarketplace({ section: 'local-focus', sort: 'recent' })}
+                className="inline-flex w-fit items-center gap-2 rounded-full bg-forest px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-forest-dark"
+              >
+                <Sparkles className="h-4 w-4" />
+                {t('home.openMarketplaceFeed', 'Open marketplace feed')}
+              </button>
+            </div>
+          </article>
+        </section>
+
+        {/* ── Best sellers (people) + verified seller CTA ── */}
+        <section className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+          <article className="rounded-2xl border border-border bg-card p-6 shadow-card">
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-xl font-bold text-foreground">
+                {t('home.bestSellersInCampus', 'Best sellers in campus')}
+              </h2>
+              <button
+                type="button"
+                onClick={() => navigate('/marketplace')}
+                className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline"
+              >
+                {t('home.seeAll', 'See all')}
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+            <ul className="mt-4 space-y-1">
+              {bestSellers.length > 0 ? (
+                bestSellers.map((s, i) => (
+                  <li
+                    key={`${s.name}-${i}`}
+                    className="flex items-center gap-3 rounded-xl px-2 py-2.5 transition-colors hover:bg-accent/50"
                   >
-                    <div className="aspect-square overflow-hidden border border-[#edf0f1] bg-[#f6f8f8]">
-                      {item.image ? (
-                        <img src={item.image} alt={item.label} className="h-full w-full object-cover" />
+                    <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full bg-primary-soft">
+                      {s.avatar ? (
+                        <img src={s.avatar} alt={s.name} className="h-full w-full object-cover" />
                       ) : (
-                        <div className="h-full w-full bg-[#eff2f2]" />
+                        <span className="flex h-full w-full items-center justify-center text-sm font-bold text-primary">
+                          {s.name.charAt(0).toUpperCase()}
+                        </span>
                       )}
                     </div>
-                    <p className="mt-2 line-clamp-2 text-sm font-medium text-[#0f1111]">{item.label}</p>
-                  </button>
-                ))}
-              </div>
-            </section>
-          ))}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-bold text-foreground">{s.name}</p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {(() => {
+                          const uni = resolveUniversityLabel(s.university);
+                          return uni === t('home.onCampus', 'On campus')
+                            ? t('home.verifiedSellerLabel', 'Verified seller')
+                            : uni;
+                        })()}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 flex-col items-end gap-0.5">
+                      {s.rating > 0 && (
+                        <span className="inline-flex items-center gap-1 text-xs font-bold text-foreground">
+                          <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                          {s.rating.toFixed(1)}
+                        </span>
+                      )}
+                      <span className="text-[11px] text-muted-foreground">
+                        {s.sales}+ {t('home.sales', 'sales')}
+                      </span>
+                    </div>
+                  </li>
+                ))
+              ) : (
+                <li className="py-6 text-center text-sm text-muted-foreground">
+                  {t('home.noSellersYet', 'Sellers will appear here as listings are added.')}
+                </li>
+              )}
+            </ul>
+          </article>
 
-          {!loading && availableListings.length === 0 && (
-            <section className="border border-dashed border-[#a6b0b7] bg-white p-8 text-center shadow-[0_1px_3px_rgba(0,0,0,0.1)]">
-              <h3 className="text-xl font-semibold text-[#0f1111]">{t('home.noListings', 'No listings available')}</h3>
-              <p className="mt-2 text-sm text-[#44505d]">
-                {t('home.noListingsSub', 'Add listings and this home layout will populate automatically with live data.')}
-              </p>
-              <Button
-                className="mt-4 h-10 rounded-full bg-[#ffd814] px-5 text-sm font-semibold text-[#0f1111] shadow-none hover:bg-[#f7ca00]"
-                onClick={() => openMarketplace()}
-              >
-                {t('home.exploreMarketplace', 'Explore marketplace')}
+          <article className="relative isolate flex flex-col justify-center overflow-hidden rounded-2xl border border-[#EADFCB] bg-gradient-to-br from-[#F8F1E4] via-[var(--cream)] to-[#F3E6D2] p-7 sm:p-8 md:pr-44">
+            <div className="pointer-events-none absolute -right-10 -top-10 -z-10 h-40 w-40 rounded-full bg-[var(--cream-warm)]/60 blur-3xl" />
+            <img
+              src={VERIFIED_SELLER_IMAGE}
+              alt={t('home.verifiedSellerImageAlt', 'Verified student seller')}
+              loading="lazy"
+              className="pointer-events-none absolute bottom-0 right-0 hidden h-[96%] w-auto max-w-[44%] object-contain object-bottom drop-shadow-xl [mask-image:linear-gradient(to_right,transparent,black_20%)] md:block"
+            />
+            <span className="relative z-10 mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+              <ShieldCheck className="h-5 w-5" />
+            </span>
+            <h2 className="max-w-xs text-2xl font-extrabold leading-tight text-foreground">
+              {t('home.becomeVerifiedSeller', 'Become a verified student seller')}
+            </h2>
+            <p className="mt-2 max-w-xs text-sm text-muted-foreground">
+              {t('home.becomeVerifiedSellerSub', 'Verify your student status to build trust and unlock more features.')}
+            </p>
+            <ul className="mt-5 space-y-2.5 text-sm">
+              {[
+                t('home.sellerBenefit1', 'Higher visibility'),
+                t('home.sellerBenefit2', 'Build credibility'),
+                t('home.sellerBenefit3', 'Sell with confidence'),
+              ].map((benefit, index) => (
+                <li key={index} className="flex items-center gap-2">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                    <Check className="h-3 w-3" />
+                  </span>
+                  <span className="font-medium text-foreground">{benefit}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-6">
+              <Button onClick={() => navigate('/register')}>
+                {t('home.verifyNow', 'Verify now')}
+                <ArrowRight className="h-4 w-4" />
               </Button>
-            </section>
-          )}
-        </div>
+            </div>
+          </article>
+        </section>
+
+        {/* ── "Don't miss out" banner (light) ── */}
+        <section className="flex flex-col items-start justify-between gap-4 rounded-2xl border border-border bg-card p-6 shadow-card sm:flex-row sm:items-center sm:p-7">
+          <div className="flex items-start gap-3">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary">
+              <Sparkles className="h-5 w-5" />
+            </span>
+            <div>
+              <h2 className="text-lg font-bold text-foreground sm:text-xl">
+                {t('home.dontMissDeals', "Don't miss out on amazing deals")}
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {t('home.dontMissDealsSub', 'Join thousands of students finding great deals every day.')}
+              </p>
+            </div>
+          </div>
+          <Button size="lg" className="shrink-0" onClick={() => openMarketplace()}>
+            {t('home.exploreMarketplace', 'Explore marketplace')}
+            <ArrowRight className="h-4 w-4" />
+          </Button>
+        </section>
+
+        {!loading && availableListings.length === 0 && (
+          <section className="rounded-2xl border border-dashed border-border bg-card p-8 text-center shadow-card">
+            <h3 className="text-xl font-semibold text-foreground">{t('home.noListings', 'No listings available')}</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {t('home.noListingsSub', 'Add listings and this home layout will populate automatically with live data.')}
+            </p>
+            <Button className="mt-4" onClick={() => openMarketplace()}>
+              {t('home.exploreMarketplace', 'Explore marketplace')}
+            </Button>
+          </section>
+        )}
       </div>
     </div>
   );

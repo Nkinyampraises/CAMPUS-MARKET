@@ -263,7 +263,7 @@ export function SellerEditListing() {
   }
 
   return (
-    <div className="bg-gray-50 min-h-screen py-8">
+    <div className="bg-background min-h-screen py-8">
       <div className="container mx-auto px-4 max-w-4xl">
         <Button variant="ghost" className="mb-4" onClick={() => navigate('/seller/manage-listings')}>
           <ArrowLeft className="h-4 w-4 mr-2" />
@@ -419,8 +419,8 @@ export function SellerEditListing() {
                 {formData.images.length > 0 ? (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                     {formData.images.map((image) => (
-                      <div key={image} className="border rounded p-2 space-y-2">
-                        <img src={image} alt="Listing" className="w-full h-20 object-cover rounded" />
+                      <div key={image} className="border border-border bg-muted rounded-lg p-2 space-y-2">
+                        <img src={image} alt="Listing" className="w-full h-20 object-cover rounded-md" />
                         <Button size="sm" variant="outline" className="w-full" type="button" onClick={() => removeImage(image)}>
                           <Trash2 className="h-4 w-4 mr-2" />
                           {t('ui.remove', 'Remove')}
@@ -431,13 +431,13 @@ export function SellerEditListing() {
                 ) : null}
               </div>
 
-              <div className="flex gap-3">
+              <div className="sticky bottom-0 -mx-6 -mb-6 mt-2 flex gap-3 border-t border-border bg-card px-6 py-4">
                 <Button type="button" variant="outline" className="flex-1" onClick={() => navigate('/seller/manage-listings')} disabled={saving}>
                   {t('ui.cancel', 'Cancel')}
                 </Button>
-                <Button type="submit" className="flex-1 bg-[#05B43D] hover:bg-[#018F2D]" disabled={saving}>
+                <Button type="submit" className="flex-1" disabled={saving}>
                   {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                  {saving ? 'Saving...' : 'Update Listing'}
+                  {saving ? t('ui.saving', 'Saving...') : t('ui.update_listing', 'Update Listing')}
                 </Button>
               </div>
             </form>

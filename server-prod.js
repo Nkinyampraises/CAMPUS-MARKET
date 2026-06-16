@@ -134,7 +134,7 @@ app.use(cors({
     }
   },
   credentials: true,
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-ai-guest-id'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-ai-guest-id', 'x-refresh-token'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   maxAge: 600,
 }));
@@ -376,7 +376,7 @@ server.listen(PORT, () => {
   console.log('\n🚀 SERVER RUNNING');
   console.log(`   HTTP:      http://localhost:${PORT}`);
   console.log(`   WebSocket: ws://localhost:${PORT}`);
-  console.log('\n📝 TEST ENDPOINTS (Development only):`);
+  console.log('\n📝 TEST ENDPOINTS (Development only):');
   console.log(`   Health:    GET http://localhost:${PORT}/health`);
   console.log(`   Database:  GET http://localhost:${PORT}/api/test/database`);
   console.log(`   CORS:      GET http://localhost:${PORT}/api/test/cors`);

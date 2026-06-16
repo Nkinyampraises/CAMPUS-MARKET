@@ -14,7 +14,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 const RETURNED_KEY = 'buyerReturnedRentals';
 
 const formatMoney = (value: number) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value || 0);
+  `${Math.round(value || 0).toLocaleString('fr-FR')} FCFA`;
 
 const toDate = (value: string | null | undefined) => {
   if (!value) return null;
@@ -202,7 +202,7 @@ export function RentalDetails() {
               placeholder="Why do you need a rental extension?"
             />
           </div>
-          <Button className="bg-[#05B43D] hover:bg-[#018F2D]" disabled={submitting || loading || !order} onClick={requestExtension}>
+          <Button disabled={submitting || loading || !order} onClick={requestExtension}>
             {submitting ? 'Submitting...' : 'Request Extension'}
           </Button>
         </CardContent>

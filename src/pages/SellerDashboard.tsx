@@ -268,7 +268,7 @@ export function SellerDashboard() {
       <div className="container mx-auto px-4">
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-4xl font-extrabold text-[#111111]"><span className="text-[#05B43D]">{t('ui.seller', 'Seller')}</span> {t('ui.dashboard', 'Dashboard')}</h1>
+            <h1 className="text-3xl font-bold text-foreground"><span className="text-primary">{t('ui.seller', 'Seller')}</span> {t('ui.dashboard', 'Dashboard')}</h1>
             <p className="text-muted-foreground">{t('ui.manage_listings_delivery_proofs_and_escrow_releas', 'Manage listings, delivery proofs, and escrow releases.')}</p>
           </div>
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
@@ -276,14 +276,14 @@ export function SellerDashboard() {
               <Wallet className="mr-2 h-4 w-4" />
               {t('ui.withdraw_funds', 'Withdraw Funds')}
             </Button>
-            <Button className="w-full bg-[#05B43D] hover:bg-[#018F2D] sm:w-auto" onClick={() => navigate('/add-listing')}>
+            <Button className="w-full sm:w-auto" onClick={() => navigate('/add-listing')}>
               <Plus className="mr-2 h-4 w-4" />
               {t('ui.add_new_listing', 'Add New Listing')}
             </Button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">{t("seller.totalListings", "Listings")}</CardTitle>
@@ -323,7 +323,7 @@ export function SellerDashboard() {
               <Wallet className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-orange-600">{formatMoney(wallet.pendingBalance || 0)}</div>
+              <div className="text-2xl font-bold text-[#D97706]">{formatMoney(wallet.pendingBalance || 0)}</div>
               <p className="text-xs text-muted-foreground">{t('ui.locked_in_escrow', 'Locked in escrow')}</p>
             </CardContent>
           </Card>
@@ -334,8 +334,8 @@ export function SellerDashboard() {
               <Heart className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">{formatMoney(wallet.availableBalance || 0)}</div>
-              <p className="text-xs text-muted-foreground">Prêt pour retrait</p>
+              <div className="text-2xl font-bold text-primary">{formatMoney(wallet.availableBalance || 0)}</div>
+              <p className="text-xs text-muted-foreground">{t('ui.ready_for_withdrawal', 'Prêt pour retrait')}</p>
             </CardContent>
           </Card>
         </div>
@@ -356,7 +356,7 @@ export function SellerDashboard() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {orders.map((order) => (
-                    <div key={order.id} className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 border rounded-lg p-4">
+                    <div key={order.id} className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 border border-border rounded-lg p-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <p className="font-medium">{order.listingTitle || order.itemTitle || 'Order Item'}</p>
@@ -372,7 +372,7 @@ export function SellerDashboard() {
                         </p>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-bold text-green-600">{formatMoney(order.amount || 0)}</p>
+                        <p className="font-bold text-primary">{formatMoney(order.amount || 0)}</p>
                         <Button variant="outline" size="sm" onClick={() => navigate(`/seller/order-details/${order.id}`)}>
                           {t('ui.open_order', 'Open Order')}
                         </Button>
@@ -386,7 +386,7 @@ export function SellerDashboard() {
                 <CardContent className="p-12 text-center">
                   <ShoppingBag className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-semibold mb-2">{t('ui.aucune_vente_pour_l_instant', 'Aucune vente pour l\'instant')}</h3>
-                  <p className="text-muted-foreground">Vos commandes acheteurs apparaîtront ici.</p>
+                  <p className="text-muted-foreground">{t('ui.buyer_orders_appear_here', 'Vos commandes acheteurs apparaîtront ici.')}</p>
                 </CardContent>
               </Card>
             )}
@@ -405,7 +405,7 @@ export function SellerDashboard() {
                     </div>
                     <CardContent className="p-4">
                       <h3 className="font-semibold mb-2 line-clamp-2">{item.title}</h3>
-                      <p className="text-lg font-bold text-green-600 mb-3">{formatMoney(item.price || 0)}</p>
+                      <p className="text-lg font-bold text-primary mb-3">{formatMoney(item.price || 0)}</p>
                       <div className="flex gap-2">
                         <Button variant="outline" size="sm" className="flex-1" onClick={() => navigate(`/item/${item.id}`)}>
                           View
@@ -423,7 +423,7 @@ export function SellerDashboard() {
                 <CardContent className="p-12 text-center">
                   <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-semibold mb-2">{t('ui.no_listings_yet', 'No listings yet')}</h3>
-                  <Button className="bg-[#05B43D] hover:bg-[#018F2D]" onClick={() => navigate('/add-listing')}>
+                  <Button onClick={() => navigate('/add-listing')}>
                     <Plus className="mr-2 h-4 w-4" />
                     {t('ui.add_listing', 'Add Listing')}
                   </Button>
@@ -439,7 +439,7 @@ export function SellerDashboard() {
                 <CardDescription>{t('ui.chat_with_buyers', 'Chat with buyers.')}</CardDescription>
               </CardHeader>
               <CardContent>
-                <Button className="bg-[#05B43D] hover:bg-[#018F2D] w-full" onClick={() => navigate('/messages')}>
+                <Button className="w-full" onClick={() => navigate('/messages')}>
                   <MessageSquare className="mr-2 h-4 w-4" />
                   {t('ui.open_messages', 'Open Messages')}
                 </Button>
@@ -457,13 +457,13 @@ export function SellerDashboard() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="border rounded-lg p-3">
+              <div className="border border-border rounded-lg bg-card p-3">
                 <p className="text-sm text-muted-foreground">{t("payment.summary", "Pending Balance")}</p>
-                <p className="text-xl font-semibold text-orange-600">{formatMoney(wallet.pendingBalance || 0)}</p>
+                <p className="text-xl font-semibold text-[#D97706]">{formatMoney(wallet.pendingBalance || 0)}</p>
               </div>
-              <div className="border rounded-lg p-3">
+              <div className="border border-border rounded-lg bg-card p-3">
                 <p className="text-sm text-muted-foreground">{t("seller.totalEarnings", "Available Balance")}</p>
-                <p className="text-xl font-semibold text-green-600">{formatMoney(wallet.availableBalance || 0)}</p>
+                <p className="text-xl font-semibold text-primary">{formatMoney(wallet.availableBalance || 0)}</p>
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -478,7 +478,7 @@ export function SellerDashboard() {
               <div className="space-y-2">
                 <Label>{t('ui.provider', 'Provider')}</Label>
                 <select
-                  className="w-full border rounded-md h-10 px-3 text-sm"
+                  className="w-full bg-input border border-border rounded-md h-10 px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   value={withdrawProvider}
                   onChange={(e) => setWithdrawProvider(e.target.value as 'mtn-momo' | 'orange-money')}
                 >
@@ -491,7 +491,7 @@ export function SellerDashboard() {
               <Button variant="outline" onClick={() => setShowWithdrawDialog(false)}>
                 {t('ui.cancel', 'Cancel')}
               </Button>
-              <Button className="bg-[#05B43D] hover:bg-[#018F2D]" disabled={withdrawing} onClick={handleWithdraw}>
+              <Button disabled={withdrawing} onClick={handleWithdraw}>
                 {withdrawing ? 'Processing...' : 'Withdraw to Mobile Money'}
               </Button>
             </div>

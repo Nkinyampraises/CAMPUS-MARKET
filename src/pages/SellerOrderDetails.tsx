@@ -13,7 +13,7 @@ import { API_URL } from '@/lib/api';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 const formatMoney = (value: number) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value || 0);
+  `${Math.round(value || 0).toLocaleString('fr-FR')} FCFA`;
 
 const paymentMethodLabel = (method: string) => {
   if (method === 'mtn-momo') return 'MTN MoMo';
@@ -27,6 +27,14 @@ const mapStatus = (status: string) => {
   if (status === 'refunded') return 'cancelled';
   if (status === 'paid_pending_delivery') return 'paid';
   return 'pending';
+};
+
+const statusBadgeClass = (status: string) => {
+  const mapped = mapStatus(status);
+  if (mapped === 'delivered') return 'bg-[#DCFCE7] text-[#16A34A]';
+  if (mapped === 'paid') return 'bg-[#CCFBF1] text-[#0D9488]';
+  if (mapped === 'cancelled') return 'bg-[#FEE2E2] text-[#DC2626]';
+  return 'bg-[#FEF3C7] text-[#D97706]';
 };
 
 export function SellerOrderDetails() {
@@ -228,7 +236,7 @@ export function SellerOrderDetails() {
               <p><span className="text-muted-foreground">{t('ui.amount', 'Amount:')}</span> {formatMoney(order.amount || 0)}</p>
               <div className="flex items-center gap-2">
                 <span className="text-muted-foreground">{t('ui.status', 'Status:')}</span>
-                <Badge variant={order.status === 'delivered_released' ? 'default' : 'secondary'}>
+                <Badge className={statusBadgeClass(order.status)}>
                   {mapStatus(order.status)}
                 </Badge>
               </div>
@@ -287,13 +295,13 @@ export function SellerOrderDetails() {
               <CardTitle>{t('ui.seller_actions', 'Seller Actions')}</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-wrap gap-2">
-              <Button variant="outline" disabled={!canMutate || updating} onClick={() => applyDecision('accepted')}>
+              <Button disabled={!canMutate || updating} onClick={() => applyDecision('accepted')}>
                 {t('ui.accept_order', 'Accept Order')}
               </Button>
-              <Button variant="outline" disabled={!canMutate || updating} onClick={() => applyDecision('rejected')}>
+              <Button variant="destructive" disabled={!canMutate || updating} onClick={() => applyDecision('rejected')}>
                 {t('ui.reject_order', 'Reject Order')}
               </Button>
-              <Button variant="outline" disabled={!canMutate || updating} onClick={() => setProofModalOpen(true)}>
+              <Button variant="accent" disabled={!canMutate || updating} onClick={() => setProofModalOpen(true)}>
                 {t('ui.mark_delivered', 'Mark Delivered')}
               </Button>
             </CardContent>

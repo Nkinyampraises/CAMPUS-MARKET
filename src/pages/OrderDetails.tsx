@@ -17,7 +17,7 @@ import { API_URL } from '@/lib/api';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 const formatMoney = (value: number) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value || 0);
+  `${Math.round(value || 0).toLocaleString('fr-FR')} FCFA`;
 
 export function OrderDetails() {
   const { id } = useParams<{ id: string }>();
@@ -225,25 +225,25 @@ export function OrderDetails() {
 
   const orderStatusClass = (() => {
     const value = String(order.status || '').toLowerCase();
-    if (value.includes('released') || value.includes('delivered')) return 'bg-[#e8f8ef] text-[#0b7a56]';
-    if (value.includes('refund')) return 'bg-[#ffedf2] text-[#bf2e4a]';
-    return 'bg-[#fff5de] text-[#8b6113]';
+    if (value.includes('released') || value.includes('delivered')) return 'bg-[#DCFCE7] text-[#16A34A]';
+    if (value.includes('refund')) return 'bg-[#FEE2E2] text-[#DC2626]';
+    return 'bg-[#FEF3C7] text-[#D97706]';
   })();
 
   const escrowStatusClass = (() => {
     const value = String(escrow?.status || '').toLowerCase();
-    if (value.includes('released')) return 'bg-[#e8f8ef] text-[#0b7a56]';
-    if (value.includes('refund')) return 'bg-[#ffedf2] text-[#bf2e4a]';
-    return 'bg-[#edf6ff] text-[#215ea6]';
+    if (value.includes('released')) return 'bg-[#DCFCE7] text-[#16A34A]';
+    if (value.includes('refund')) return 'bg-[#FEE2E2] text-[#DC2626]';
+    return 'bg-[#CCFBF1] text-[#0D9488]';
   })();
 
   return (
-    <div className="min-h-screen bg-[#FFFFFF] py-8">
+    <div className="min-h-screen bg-background py-8">
       <div className="w-full px-4 lg:px-8 xl:px-12">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-4xl font-extrabold tracking-tight text-[#111111]">{t('ui.order', 'Order')}<span className="text-[#05B43D]">{t('ui.details', 'Details')}</span></h1>
-            <p className="mt-1 text-sm text-[#8A8A8A]">{t("order.trackDesc", "Track escrow status, delivery proof, and confirmation steps.")}</p>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">{t('ui.order', 'Order')} <span className="text-primary">{t('ui.details', 'Details')}</span></h1>
+            <p className="mt-1 text-sm text-muted-foreground">{t("order.trackDesc", "Track escrow status, delivery proof, and confirmation steps.")}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Badge className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${orderStatusClass}`}>
@@ -257,10 +257,10 @@ export function OrderDetails() {
 
         <div className="grid gap-6 lg:grid-cols-[1.35fr_0.95fr]">
           <div className="space-y-6">
-            <Card className="rounded-2xl border border-[#DDE3E2] bg-white shadow-sm">
+            <Card className="rounded-2xl border border-border bg-card shadow-card">
               <CardContent className="p-5 sm:p-6">
                 <div className="grid gap-5 sm:grid-cols-[220px_minmax(0,1fr)]">
-                  <div className="overflow-hidden rounded-2xl border border-[#dae7e1] bg-[#edf3f0]">
+                  <div className="overflow-hidden rounded-2xl border border-border bg-muted">
                     {listingImage ? (
                       <img
                         src={listingImage}
@@ -268,7 +268,7 @@ export function OrderDetails() {
                         className="aspect-[4/3] h-full w-full object-cover"
                       />
                     ) : (
-                      <div className="flex aspect-[4/3] items-center justify-center text-sm text-[#6b897f]">
+                      <div className="flex aspect-[4/3] items-center justify-center text-sm text-muted-foreground">
                         {t('ui.no_image_available', 'No image available')}
                       </div>
                     )}
@@ -276,21 +276,21 @@ export function OrderDetails() {
 
                   <div className="space-y-4">
                     <div>
-                      <p className="text-xs uppercase tracking-wide text-[#729087]">Order #{order.id}</p>
-                      <h2 className="mt-1 text-2xl font-extrabold leading-tight text-[#103a31]">
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">Order #{order.id}</p>
+                      <h2 className="mt-1 text-2xl font-bold leading-tight text-foreground">
                         {listing?.title || 'Listing'}
                       </h2>
-                      <p className="mt-2 text-sm text-[#68867d]">{listing?.description || 'Escrow protected marketplace transaction.'}</p>
+                      <p className="mt-2 text-sm text-muted-foreground">{listing?.description || 'Escrow protected marketplace transaction.'}</p>
                     </div>
 
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      <div className="rounded-xl border border-[#d8e6df] bg-[#F3F5F4] p-3">
-                        <p className="text-[11px] uppercase tracking-wide text-[#7f988f]">{t('ui.amount', 'Amount')}</p>
-                        <p className="mt-1 text-lg font-black text-[#0b5d4c]">{formatMoney(order.amount)}</p>
+                      <div className="rounded-xl border border-border bg-muted p-3">
+                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{t('ui.amount', 'Amount')}</p>
+                        <p className="mt-1 text-lg font-bold text-primary">{formatMoney(order.amount)}</p>
                       </div>
-                      <div className="rounded-xl border border-[#d8e6df] bg-[#F3F5F4] p-3">
-                        <p className="text-[11px] uppercase tracking-wide text-[#7f988f]">{t('ui.created', 'Created')}</p>
-                        <p className="mt-1 text-sm font-semibold text-[#1b4a3f]">
+                      <div className="rounded-xl border border-border bg-muted p-3">
+                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{t('ui.created', 'Created')}</p>
+                        <p className="mt-1 text-sm font-semibold text-foreground">
                           {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : '-'}
                         </p>
                       </div>
@@ -300,37 +300,37 @@ export function OrderDetails() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-2xl border border-[#DDE3E2] bg-white shadow-sm">
+            <Card className="rounded-2xl border border-border bg-card shadow-card">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-xl text-[#103a31]">
-                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-[#fff4de]">
-                    <CalendarClock className="h-4 w-4 text-[#8b5a00]" />
+                <CardTitle className="flex items-center gap-2 text-xl text-foreground">
+                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-accent text-accent-foreground">
+                    <CalendarClock className="h-4 w-4" />
                   </span>
                   {t('ui.pickup_details', 'Pickup Details')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div className="rounded-xl border border-[#d8e6df] bg-[#F3F5F4] p-3">
-                    <p className="text-[11px] uppercase tracking-wide text-[#7f988f]">{t('ui.pickup_date', 'Pickup Date')}</p>
-                    <p className="mt-1 text-sm font-semibold text-[#1b4a3f]">{order.pickupDate || '-'}</p>
+                  <div className="rounded-xl border border-border bg-muted p-3">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{t('ui.pickup_date', 'Pickup Date')}</p>
+                    <p className="mt-1 text-sm font-semibold text-foreground">{order.pickupDate || '-'}</p>
                   </div>
-                  <div className="rounded-xl border border-[#d8e6df] bg-[#F3F5F4] p-3">
-                    <p className="text-[11px] uppercase tracking-wide text-[#7f988f]">{t('ui.pickup_time', 'Pickup Time')}</p>
-                    <p className="mt-1 text-sm font-semibold text-[#1b4a3f]">{order.pickupTime || '-'}</p>
+                  <div className="rounded-xl border border-border bg-muted p-3">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{t('ui.pickup_time', 'Pickup Time')}</p>
+                    <p className="mt-1 text-sm font-semibold text-foreground">{order.pickupTime || '-'}</p>
                   </div>
                 </div>
-                <div className="rounded-xl border border-[#d8e6df] bg-[#F3F5F4] p-3">
-                  <p className="inline-flex items-center gap-1 text-[11px] uppercase tracking-wide text-[#7f988f]">
+                <div className="rounded-xl border border-border bg-muted p-3">
+                  <p className="inline-flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
                     <MapPin className="h-3.5 w-3.5" />
                     {t('ui.pickup_point', 'Pickup Point')}
                   </p>
-                  <p className="mt-1 text-sm font-semibold text-[#1b4a3f]">{order.pickupLocation || '-'}</p>
+                  <p className="mt-1 text-sm font-semibold text-foreground">{order.pickupLocation || '-'}</p>
                 </div>
 
                 {order.pickupLocation ? (
                   <div className="space-y-2">
-                    <Label className="text-sm text-[#355f55]">{t("order.pickupMap", "Pickup Location Map")}</Label>
+                    <Label className="text-sm text-foreground">{t("order.pickupMap", "Pickup Location Map")}</Label>
                     <MeetupMap
                       compact
                       locationName={order.pickupLocation}
@@ -343,19 +343,19 @@ export function OrderDetails() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-2xl border border-[#DDE3E2] bg-white shadow-sm">
+            <Card className="rounded-2xl border border-border bg-card shadow-card">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-xl text-[#103a31]">
-                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-[#e9f5ef]">
-                    <CreditCard className="h-4 w-4 text-[#018F2D]" />
+                <CardTitle className="flex items-center gap-2 text-xl text-foreground">
+                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-primary-soft text-primary">
+                    <CreditCard className="h-4 w-4" />
                   </span>
                   {t('ui.delivery_escrow_confirmation', 'Delivery & Escrow Confirmation')}
                 </CardTitle>
                 <CardDescription>{t('ui.seller_uploads_proof_then_buyer_confirms_to_releas', 'Seller uploads proof, then buyer confirms to release escrow.')}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Alert className="border-[#c7dfd3] bg-[#f5fcf8] text-[#224f44]">
-                  <ShieldCheck className="h-4 w-4 text-[#0f8057]" />
+                <Alert className="border-border bg-primary-soft text-foreground">
+                  <ShieldCheck className="h-4 w-4 text-primary" />
                   <AlertDescription>
                     Buyer confirms receipt only after seller uploads delivery proof. Pending escrow funds cannot be withdrawn.
                   </AlertDescription>
@@ -363,23 +363,23 @@ export function OrderDetails() {
 
                 {proofImageUrl ? (
                   <div className="space-y-2">
-                    <Label className="text-sm text-[#355f55]">{t('ui.delivery_proof', 'Delivery Proof')}</Label>
+                    <Label className="text-sm text-foreground">{t('ui.delivery_proof', 'Delivery Proof')}</Label>
                     <img
                       src={proofImageUrl}
                       alt="Delivery proof"
-                      className="w-full max-w-md rounded-xl border border-[#DDE3E2] object-cover"
+                      className="w-full max-w-md rounded-xl border border-border object-cover"
                     />
                   </div>
                 ) : (
-                  <div className="rounded-xl border border-dashed border-[#c9dcd3] bg-[#F3F5F4] p-4 text-sm text-[#66837a]">
+                  <div className="rounded-xl border border-dashed border-border bg-muted p-4 text-sm text-muted-foreground">
                     {t('ui.no_delivery_proof_uploaded_yet', 'No delivery proof uploaded yet.')}
                   </div>
                 )}
 
                 {permissions?.canSellerUploadProof ? (
-                  <Card className="rounded-xl border border-[#DDE3E2] bg-[#fcfefd] shadow-none">
+                  <Card className="rounded-xl border border-border bg-card shadow-none">
                     <CardHeader>
-                      <CardTitle className="text-base text-[#134037]">{t('ui.seller_delivery_confirmation', 'Seller Delivery Confirmation')}</CardTitle>
+                      <CardTitle className="text-base text-foreground">{t('ui.seller_delivery_confirmation', 'Seller Delivery Confirmation')}</CardTitle>
                       <CardDescription>{t('ui.upload_buyer_handover_proof_to_enable_buyer_confir', 'Upload buyer handover proof to enable buyer confirmation.')}</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-3">
@@ -392,7 +392,6 @@ export function OrderDetails() {
                       <Button
                         onClick={handleSellerSubmitProof}
                         disabled={!proofUrl || saving || proofUploading}
-                        className="h-10 rounded-lg bg-[#05B43D] text-white hover:bg-[#018F2D]"
                       >
                         {proofUploading || saving ? (
                           <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -406,9 +405,9 @@ export function OrderDetails() {
                 ) : null}
 
                 {permissions?.isBuyer && order.status === 'paid_pending_delivery' ? (
-                  <Card className="rounded-xl border border-[#DDE3E2] bg-[#fcfefd] shadow-none">
+                  <Card className="rounded-xl border border-border bg-card shadow-none">
                     <CardHeader>
-                      <CardTitle className="text-base text-[#134037]">{t('ui.buyer_confirmation', 'Buyer Confirmation')}</CardTitle>
+                      <CardTitle className="text-base text-foreground">{t('ui.buyer_confirmation', 'Buyer Confirmation')}</CardTitle>
                       <CardDescription>{t('ui.confirm_only_if_you_have_received_the_item_and_are', 'Confirm only if you have received the item and are satisfied.')}</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-3">
@@ -439,7 +438,6 @@ export function OrderDetails() {
                       </div>
                       <div className="flex flex-wrap gap-2">
                         <Button
-                          className="h-10 rounded-lg bg-[#05B43D] text-white hover:bg-[#018F2D]"
                           onClick={handleBuyerConfirm}
                           disabled={saving || !receivedConfirmed}
                         >
@@ -448,7 +446,6 @@ export function OrderDetails() {
                         </Button>
                         <Button
                           variant="destructive"
-                          className="h-10 rounded-lg"
                           onClick={handleDirectRefund}
                           disabled={saving}
                         >
@@ -463,10 +460,10 @@ export function OrderDetails() {
           </div>
 
           <div className="space-y-6">
-            <Card className="rounded-2xl border border-[#DDE3E2] bg-white shadow-sm">
+            <Card className="rounded-2xl border border-border bg-card shadow-card">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base text-[#103a31]">
-                  <UserRound className="h-4 w-4 text-[#018F2D]" />
+                <CardTitle className="flex items-center gap-2 text-base text-foreground">
+                  <UserRound className="h-4 w-4 text-primary" />
                   {t('ui.buyer_information', 'Buyer Information')}
                 </CardTitle>
               </CardHeader>
@@ -476,51 +473,51 @@ export function OrderDetails() {
                     <img
                       src={order.buyerProfilePicture || buyer?.profilePicture}
                       alt={buyer?.name || order.buyerName || 'Buyer'}
-                      className="h-12 w-12 rounded-full border border-[#cadcd3] object-cover"
+                      className="h-12 w-12 rounded-full border border-border object-cover"
                     />
                   ) : (
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#e6f9ee] text-[#0f6a5a]">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-soft text-primary">
                       <UserRound className="h-5 w-5" />
                     </div>
                   )}
                   <div className="min-w-0">
-                    <p className="font-semibold text-[#123e34]">{buyer?.name || order.buyerName || '-'}</p>
-                    <p className="text-xs text-[#67847a]">{order.buyerPhoneNumber || buyer?.phone || '-'}</p>
+                    <p className="font-semibold text-foreground">{buyer?.name || order.buyerName || '-'}</p>
+                    <p className="text-xs text-muted-foreground">{order.buyerPhoneNumber || buyer?.phone || '-'}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="rounded-2xl border border-[#DDE3E2] bg-white shadow-sm">
+            <Card className="rounded-2xl border border-border bg-card shadow-card">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base text-[#103a31]">
-                  <UserRound className="h-4 w-4 text-[#018F2D]" />
+                <CardTitle className="flex items-center gap-2 text-base text-foreground">
+                  <UserRound className="h-4 w-4 text-primary" />
                   {t('ui.seller_information', 'Seller Information')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
-                <p><span className="text-[#6a857d]">{t('ui.name', 'Name:')}</span> <span className="font-medium text-[#143f35]">{seller?.name || '-'}</span></p>
-                <p><span className="text-[#6a857d]">{t('ui.phone', 'Phone:')}</span> <span className="font-medium text-[#143f35]">{seller?.phone || '-'}</span></p>
+                <p><span className="text-muted-foreground">{t('ui.name', 'Name:')}</span> <span className="font-medium text-foreground">{seller?.name || '-'}</span></p>
+                <p><span className="text-muted-foreground">{t('ui.phone', 'Phone:')}</span> <span className="font-medium text-foreground">{seller?.phone || '-'}</span></p>
               </CardContent>
             </Card>
 
             {permissions?.isSeller ? (
-              <Card className="rounded-2xl border border-[#DDE3E2] bg-white shadow-sm">
+              <Card className="rounded-2xl border border-border bg-card shadow-card">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-base text-[#103a31]">
-                    <Wallet className="h-4 w-4 text-[#018F2D]" />
+                  <CardTitle className="flex items-center gap-2 text-base text-foreground">
+                    <Wallet className="h-4 w-4 text-primary" />
                     {t('ui.seller_wallet', 'Seller Wallet')}
                   </CardTitle>
                   <CardDescription>{t('ui.pending_funds_cannot_be_withdrawn', 'Pending funds cannot be withdrawn.')}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm">
-                  <div className="rounded-xl border border-[#d8e6df] bg-[#F3F5F4] p-3">
-                    <p className="text-[11px] uppercase tracking-wide text-[#7f988f]">{t('ui.pending_balance', 'Pending Balance')}</p>
-                    <p className="mt-1 font-semibold text-[#133f35]">{formatMoney(sellerWallet?.pendingBalance || 0)}</p>
+                  <div className="rounded-xl border border-border bg-muted p-3">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{t('ui.pending_balance', 'Pending Balance')}</p>
+                    <p className="mt-1 font-semibold text-foreground">{formatMoney(sellerWallet?.pendingBalance || 0)}</p>
                   </div>
-                  <div className="rounded-xl border border-[#d8e6df] bg-[#F3F5F4] p-3">
-                    <p className="text-[11px] uppercase tracking-wide text-[#7f988f]">{t('ui.available_balance', 'Available Balance')}</p>
-                    <p className="mt-1 font-semibold text-[#133f35]">{formatMoney(sellerWallet?.availableBalance || 0)}</p>
+                  <div className="rounded-xl border border-border bg-muted p-3">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{t('ui.available_balance', 'Available Balance')}</p>
+                    <p className="mt-1 font-semibold text-foreground">{formatMoney(sellerWallet?.availableBalance || 0)}</p>
                   </div>
                 </CardContent>
               </Card>
