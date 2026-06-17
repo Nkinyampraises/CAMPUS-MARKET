@@ -117,6 +117,12 @@ const TWO_FACTOR_MAX_RESENDS = Math.max(1, readEnvNumber("TWO_FACTOR_MAX_RESENDS
 const requireTwoFactorByDefault = !/^(0|false|no|off)$/i.test(
   (Deno.env.get("AUTH_REQUIRE_TWO_FACTOR") || "true").trim(),
 );
+// When true, the 6-digit 2FA code is also returned in the API response (and shown
+// on the login screen) so sign-in never depends on email delivery. Intended for
+// local/demo use only — keep it OFF (false) in any real deployment.
+const twoFactorDevReveal = /^(1|true|yes|on)$/i.test(
+  (Deno.env.get("TWO_FACTOR_DEV_REVEAL") || "").trim(),
+);
 
 // ── JWT helpers ─────────────────────────────────────────────────────────────
 // Access tokens are self-contained JWTs signed with JWT_SECRET.
@@ -572,6 +578,7 @@ async function createTwoFactorSession(userId: string, email: string) {
       return {
         token,
         deliveryMethod: "email",
+        code,
       } as const;
     }
 
@@ -579,6 +586,7 @@ async function createTwoFactorSession(userId: string, email: string) {
       token,
       deliveryMethod: "fallback",
       fallbackCode: code,
+      code,
     } as const;
   } catch (error) {
     await clearTwoFactorSession(tokenHash, userId);
@@ -630,13 +638,14 @@ async function resendTwoFactorSessionCode(token: string) {
 
   if (isEmailDeliveryConfigured) {
     await sendTwoFactorCodeEmail(nextSession.email, code);
-    return { success: true, deliveryMethod: "email" } as const;
+    return { success: true, deliveryMethod: "email", code } as const;
   }
 
   return {
     success: true,
     deliveryMethod: "fallback",
     fallbackCode: code,
+    code,
   } as const;
 }
 
@@ -3886,10 +3895,33 @@ app.post("/make-server-50b25a4f/signin", async (c) => {
       return c.json({ error: 'Your account has been suspended. Contact support.' }, 403);
     }
 
+    // Two-factor authentication: required for normal users, but admins sign in
+    // directly (no email code) for quick dashboard access.
+    if (profile.role !== "admin" && isTwoFactorEnabled(authRecord)) {
+      try {
+        const challenge = await createTwoFactorSession(profile.id, profile.email);
+        return c.json({
+          success: false,
+          requiresTwoFactor: true,
+          twoFactorToken: challenge.token,
+          message:
+            challenge.deliveryMethod === "email"
+              ? "We sent a 6-digit verification code to your email."
+              : "Enter the verification code to continue.",
+          ...((twoFactorDevReveal || challenge.deliveryMethod === "fallback") && challenge.code
+            ? { verificationCode: challenge.code }
+            : {}),
+        });
+      } catch (error) {
+        console.error("Failed to start two-factor challenge:", error);
+        return c.json({ error: "Could not send your verification code. Please try again." }, 500);
+      }
+    }
+
     const { accessToken, refreshToken } = await createSessionPair(profile.id, profile.email);
 
-    return c.json({ 
-      success: true, 
+    return c.json({
+      success: true,
       accessToken,
       refreshToken,
       user: profile,
@@ -3992,8 +4024,8 @@ app.post("/make-server-50b25a4f/auth/resend-2fa", async (c) => {
         result.deliveryMethod === "email"
           ? "A new 6-digit verification code has been sent to your email."
           : "A new verification code was generated for this environment.",
-      ...(result.deliveryMethod === "fallback" && result.fallbackCode
-        ? { verificationCode: result.fallbackCode }
+      ...((twoFactorDevReveal || result.deliveryMethod === "fallback") && result.code
+        ? { verificationCode: result.code }
         : {}),
     });
   } catch (error) {

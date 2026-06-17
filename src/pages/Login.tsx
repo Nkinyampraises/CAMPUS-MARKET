@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { API_URL } from '@/lib/api';
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
 import { PasswordInput } from '@/app/components/ui/password-input';
@@ -17,7 +18,7 @@ const loginHeroImage =
 
 export function Login() {
   const navigate = useNavigate();
-  const { login, resendConfirmationEmail } = useAuth();
+  const { login, resendConfirmationEmail, verifyTwoFactorCode, resendTwoFactorCode } = useAuth();
   const { t } = useLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -27,6 +28,46 @@ export function Login() {
   const [resendingConfirmation, setResendingConfirmation] = useState(false);
   const [confirmationMessage, setConfirmationMessage] = useState('');
   const [confirmationLink, setConfirmationLink] = useState('');
+  // Two-factor (OTP) step — shown after a correct password when 2FA is enabled.
+  const [twoFactorToken, setTwoFactorToken] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [verifying, setVerifying] = useState(false);
+  const [otpInfo, setOtpInfo] = useState('');
+  const [resendingOtp, setResendingOtp] = useState(false);
+  // Real platform numbers for the stats panel (fetched from the public endpoints).
+  const [studentCount, setStudentCount] = useState<number | null>(null);
+  const [universityCount, setUniversityCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const [statsRes, uniRes] = await Promise.all([
+          fetch(`${API_URL}/public-stats`),
+          fetch(`${API_URL}/universities`),
+        ]);
+        if (statsRes.ok) {
+          const data = await statsRes.json();
+          if (active && typeof data?.students === 'number') setStudentCount(data.students);
+        }
+        if (uniRes.ok) {
+          const data = await uniRes.json();
+          if (active && Array.isArray(data?.universities)) setUniversityCount(data.universities.length);
+        }
+      } catch {
+        /* leave as null and show a dash if the API is unreachable */
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const formatStat = (value: number | null) => {
+    if (value === null) return '—';
+    if (value >= 1000) return `${(value / 1000).toFixed(value % 1000 === 0 ? 0 : 1)}k+`;
+    return String(value);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,6 +81,16 @@ export function Login() {
       if (result.success) {
         toast.success('Login successful!');
         navigate('/dashboard');
+      } else if (result.requiresTwoFactor && result.twoFactorToken) {
+        // Password was correct — now require the one-time code to finish signing in.
+        setTwoFactorToken(result.twoFactorToken);
+        setOtpCode('');
+        // If email delivery isn't configured, the server returns the code for testing.
+        setOtpInfo(
+          result.verificationCode
+            ? `Your verification code is ${result.verificationCode}`
+            : (result.message || 'Enter the 6-digit code we sent to your email.'),
+        );
       } else {
         setError(result.error || 'Invalid email or password');
       }
@@ -48,6 +99,59 @@ export function Login() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    if (otpCode.trim().length !== 6) {
+      setError('Enter the 6-digit verification code.');
+      return;
+    }
+    setVerifying(true);
+    try {
+      const result = await verifyTwoFactorCode(twoFactorToken, otpCode.trim());
+      if (result.success) {
+        toast.success('Login successful!');
+        navigate('/dashboard');
+      } else {
+        setError(result.error || 'Invalid verification code.');
+      }
+    } catch (_err) {
+      setError('An error occurred. Please try again.');
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (!twoFactorToken) return;
+    setError('');
+    setResendingOtp(true);
+    try {
+      const result = await resendTwoFactorCode(twoFactorToken);
+      if (!result.success) {
+        setError(result.error || 'Failed to resend code.');
+        return;
+      }
+      setOtpInfo(
+        result.verificationCode
+          ? `Your new verification code is ${result.verificationCode}`
+          : (result.message || 'A new code has been sent to your email.'),
+      );
+      toast.success('Verification code sent.');
+    } catch (_err) {
+      setError('Failed to resend code.');
+    } finally {
+      setResendingOtp(false);
+    }
+  };
+
+  const handleBackToCredentials = () => {
+    setTwoFactorToken('');
+    setOtpCode('');
+    setOtpInfo('');
+    setError('');
   };
 
   const handleResendConfirmation = async () => {
@@ -113,6 +217,67 @@ export function Login() {
             <span className="text-xl font-extrabold text-primary">UNITRADE</span>
           </div>
 
+          {twoFactorToken ? (
+            <>
+              <h1 className="text-3xl font-extrabold text-foreground">{t('ui.two_factor_title', 'Verify it’s you')}</h1>
+              <p className="mt-2 text-base text-muted-foreground">
+                {otpInfo || t('ui.two_factor_subtitle', 'Enter the 6-digit code we sent to your email to finish signing in.')}
+              </p>
+
+              <form onSubmit={handleVerifyOtp} className="mt-8 space-y-5">
+                {error && (
+                  <Alert variant="destructive" className="rounded-xl">
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="otp" className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                    {t('ui.verification_code', 'Verification Code')}
+                  </Label>
+                  <Input
+                    id="otp"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    maxLength={6}
+                    placeholder="000000"
+                    value={otpCode}
+                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    className="h-14 rounded-xl border-border bg-secondary text-center text-2xl font-bold tracking-[0.5em] text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring"
+                    required
+                    autoFocus
+                  />
+                </div>
+
+                <Button type="submit" size="lg" className="h-12 w-full text-base font-bold" disabled={verifying}>
+                  {verifying ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t('ui.verifying', 'Verifying...')}</>
+                  ) : (
+                    <span className="flex items-center gap-2">{t('ui.verify_continue', 'Verify & Continue')} <ArrowRight className="h-4 w-4" /></span>
+                  )}
+                </Button>
+
+                <div className="flex items-center justify-between text-sm">
+                  <button
+                    type="button"
+                    onClick={handleBackToCredentials}
+                    className="font-semibold text-muted-foreground hover:text-foreground"
+                  >
+                    {t('ui.back', 'Back')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleResendOtp}
+                    disabled={resendingOtp}
+                    className="font-bold text-primary hover:underline disabled:opacity-50"
+                  >
+                    {resendingOtp ? t('ui.sending', 'Sending...') : t('ui.resend_code', 'Resend Code')}
+                  </button>
+                </div>
+              </form>
+            </>
+          ) : (
+          <>
           <h1 className="text-3xl font-extrabold text-foreground">{t('ui.welcome_back', 'Welcome Back')}</h1>
           <p className="mt-2 text-base text-muted-foreground">
             {t('ui.securely_access_your_campus_marketplace', 'Securely access your campus marketplace.')}
@@ -228,6 +393,8 @@ export function Login() {
               </button>
             </p>
           </form>
+          </>
+          )}
 
           <p className="mt-8 text-center text-xs text-muted-foreground">
             © 2026 UNITRADE Cameroon &nbsp;·&nbsp;
@@ -260,11 +427,11 @@ export function Login() {
           {/* Stats */}
           <div className="mt-8 grid grid-cols-2 gap-4">
             <div className="rounded-2xl border border-white/15 bg-white/10 p-4 text-center">
-              <p className="text-3xl font-extrabold text-[var(--teal-light)]">15k+</p>
+              <p className="text-3xl font-extrabold text-[var(--teal-light)]">{formatStat(studentCount)}</p>
               <p className="mt-1 text-xs font-semibold uppercase tracking-widest text-primary-foreground/75">{t('ui.active_students', 'Active Students')}</p>
             </div>
             <div className="rounded-2xl border border-white/15 bg-white/10 p-4 text-center">
-              <p className="text-3xl font-extrabold text-[var(--teal-light)]">24+</p>
+              <p className="text-3xl font-extrabold text-[var(--teal-light)]">{formatStat(universityCount)}</p>
               <p className="mt-1 text-xs font-semibold uppercase tracking-widest text-primary-foreground/75">{t('ui.universities', 'Universities')}</p>
             </div>
           </div>
