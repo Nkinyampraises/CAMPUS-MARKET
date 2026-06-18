@@ -398,9 +398,9 @@ export function Login() {
 
           <p className="mt-8 text-center text-xs text-muted-foreground">
             © 2026 UNITRADE Cameroon &nbsp;·&nbsp;
-            <a href="#" className="hover:text-primary">{t('ui.privacy', 'Privacy')}</a>
+            <Link to="/privacy" className="hover:text-primary">{t('ui.privacy', 'Privacy')}</Link>
             &nbsp;·&nbsp;
-            <a href="#" className="hover:text-primary">{t('ui.terms', 'Terms')}</a>
+            <Link to="/terms" className="hover:text-primary">{t('ui.terms', 'Terms')}</Link>
           </p>
         </div>
 

@@ -1162,12 +1162,14 @@ export function Home() {
               loading="lazy"
               className="pointer-events-none absolute bottom-0 right-0 hidden h-[96%] w-auto max-w-[44%] object-contain object-bottom drop-shadow-xl [mask-image:linear-gradient(to_right,transparent,black_20%)] md:block"
             />
-            <span className="relative z-10 mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
-              <ShieldCheck className="h-5 w-5" />
-            </span>
-            <h2 className="max-w-xs text-2xl font-extrabold leading-tight text-foreground">
-              {t('home.becomeVerifiedSeller', 'Become a verified student seller')}
-            </h2>
+            <div className="relative z-10 flex items-center gap-3">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+                <ShieldCheck className="h-5 w-5" />
+              </span>
+              <h2 className="max-w-xs text-2xl font-extrabold leading-tight text-foreground">
+                {t('home.becomeVerifiedSeller', 'Become a verified student seller')}
+              </h2>
+            </div>
             <p className="mt-2 max-w-xs text-sm text-muted-foreground">
               {t('home.becomeVerifiedSellerSub', 'Verify your student status to build trust and unlock more features.')}
             </p>

@@ -51,6 +51,8 @@ import { SellerHelp } from '@/pages/SellerHelp';
 import { SellerReports } from '@/pages/SellerReports';
 import { SellerDisputes } from '@/pages/SellerDisputes';
 import { AiAssistant } from '@/pages/AiAssistant';
+import { PrivacyPolicy } from '@/pages/PrivacyPolicy';
+import { TermsOfService } from '@/pages/TermsOfService';
 import { Toaster } from '@/app/components/ui/sonner';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { LanguageProvider } from '@/contexts/LanguageContext';
@@ -64,6 +66,8 @@ function AppLayout() {
   const showFooter =
     location.pathname === '/' ||
     location.pathname === '/marketplace' ||
+    location.pathname === '/privacy' ||
+    location.pathname === '/terms' ||
     location.pathname.startsWith('/item/');
 
   return (
@@ -79,6 +83,8 @@ function AppLayout() {
           <Route path="/register" element={<Register />} />
           <Route path="/marketplace" element={<Marketplace />} />
           <Route path="/ai-assistant" element={<AiAssistant />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsOfService />} />
           <Route path="/item/:id" element={<ItemDetails />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/add-listing" element={<AddListing />} />

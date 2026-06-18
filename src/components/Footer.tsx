@@ -113,11 +113,15 @@ export function Footer() {
             Made with <Heart className="h-3 w-3 fill-white text-white" /> in Cameroon
           </p>
           <div className="flex gap-5">
-            {['Privacy Policy', 'Terms of Service', 'FAQ'].map((link) => (
-              <a key={link} href="#" className="transition-colors hover:text-white duration-200">
-                {link}
-              </a>
-            ))}
+            <Link to="/privacy" className="transition-colors duration-200 hover:text-white">
+              Privacy Policy
+            </Link>
+            <Link to="/terms" className="transition-colors duration-200 hover:text-white">
+              Terms of Service
+            </Link>
+            <Link to="/ai-assistant" className="transition-colors duration-200 hover:text-white">
+              FAQ
+            </Link>
           </div>
         </div>
       </div>
