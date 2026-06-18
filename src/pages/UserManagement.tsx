@@ -313,7 +313,7 @@ export function UserManagement() {
           columns={columns}
           rowKey="id"
           loading={loading}
-          pagination={{ pageSize: 10 }}
+          pagination={{ pageSize: 10, align: 'center', hideOnSinglePage: true }}
           tableLayout="fixed"
           size="middle"
         />
