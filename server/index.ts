@@ -5436,6 +5436,60 @@ app.get("/make-server-50b25a4f/public-stats", async (c) => {
   }
 });
 
+// ── Public top sellers (real completed-sales leaderboard for the home page) ───
+app.get("/make-server-50b25a4f/top-sellers", async (c) => {
+  try {
+    const [orders, users] = await Promise.all([
+      kv.getByPrefix("order:"),
+      kv.getByPrefix("user:"),
+    ]);
+
+    const usersById = new Map<string, any>();
+    for (const u of users || []) {
+      if (u?.id) usersById.set(String(u.id), u);
+    }
+
+    // Count only orders whose escrow has been released / delivered — i.e. real sales.
+    const statsBySeller = new Map<string, { sellerId: string; sales: number; amount: number }>();
+    for (const order of orders || []) {
+      if (!order?.sellerId) continue;
+      const status = String(order?.status || "").toLowerCase();
+      const isCompleted = status.includes("delivered") || status.includes("released") || status.includes("completed");
+      if (!isCompleted) continue;
+      const sellerId = String(order.sellerId);
+      const current = statsBySeller.get(sellerId) || { sellerId, sales: 0, amount: 0 };
+      current.sales += 1;
+      current.amount += toSafeNumber(order?.sellerNetAmount ?? order?.amount, 0);
+      statsBySeller.set(sellerId, current);
+    }
+
+    const sellers = Array.from(statsBySeller.values())
+      .map((entry) => {
+        const profile = usersById.get(entry.sellerId);
+        if (!profile || profile.role === "admin" || profile.isBanned) return null;
+        return {
+          id: entry.sellerId,
+          name: profile.name || "",
+          university: profile.university || "",
+          rating: toSafeNumber(profile.rating, 0),
+          reviewCount: toSafeNumber(profile.reviewCount, 0),
+          profilePicture: profile.profilePicture || "",
+          isVerified: Boolean(profile.isVerified),
+          sales: entry.sales,
+          amount: entry.amount,
+        };
+      })
+      .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry && entry.name))
+      .sort((a, b) => b.sales - a.sales || b.rating - a.rating || b.amount - a.amount)
+      .slice(0, 8);
+
+    return c.json({ sellers });
+  } catch (error) {
+    console.error("Get top sellers error:", error);
+    return c.json({ sellers: [] });
+  }
+});
+
 // ── NotchPay Mobile Money Push Payment ───────────────────────────────────────
 // Sends a payment push request directly to the user's phone.
 // On MTN MoMo / Orange Money the user gets a popup asking for their PIN only.

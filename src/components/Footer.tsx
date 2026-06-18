@@ -80,7 +80,7 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* AI + Universities */}
+          {/* AI Assistant */}
           <div>
             <h4 className="mb-5 text-xs font-bold uppercase tracking-[0.2em] text-white">
               AI Assistant
@@ -100,11 +100,6 @@ export function Footer() {
                 Chat with Sasha →
               </Link>
             </div>
-
-            <h4 className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-white">Universities</h4>
-            <p className="text-xs leading-relaxed text-white/80">
-              Serving UB, UYI, UYII, IUT, IRIC, ESSEC, UBa, UDs, and all major institutions across Cameroon.
-            </p>
           </div>
         </div>
 

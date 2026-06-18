@@ -48,7 +48,8 @@ const categoryIcon = (name: string) => {
 const looksLikeId = (value?: string) =>
   !value || /^(UNI|CAT|LOC|UB|UY)-[\d]+-[a-z0-9]+$/i.test(value) || /^\d+$/.test(value);
 import { getCategoryById, getUniversityById } from '@/data/mockData';
-import { API_URL } from '@/lib/api';
+import { API_URL, resolveClientAssetUrl } from '@/lib/api';
+import verifiedSellerPhoto from '@/assets/image/studentpic.jpeg';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { ProductCard } from '@/components/ProductCard';
@@ -81,6 +82,16 @@ type CategoryEntry = {
   name: string;
 };
 
+type TopSeller = {
+  id: string;
+  name: string;
+  university?: string;
+  rating: number;
+  reviewCount: number;
+  profilePicture?: string;
+  sales: number;
+};
+
 type GridTile = {
   id: string;
   image: string;
@@ -111,9 +122,8 @@ const TILES_PER_PANEL = 4;
 const ITEMS_PER_RAIL = 6;
 const SHOWCASE_CATEGORY_COUNT = 7;
 // Portrait used on the "Become a verified student seller" card.
-// Swap this URL (or drop an image in src/assets) to use your own photo.
-const VERIFIED_SELLER_IMAGE =
-  'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?auto=format&fit=crop&w=640&q=80';
+// Sourced from src/assets/image/studentpic.jpeg — swap that file to change it.
+const VERIFIED_SELLER_IMAGE = verifiedSellerPhoto;
 const HOME_DECOR_FALLBACK_IMAGES = [
   'https://images.unsplash.com/photo-1595428774223-ef52624120d2?w=800',
   'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=800',
@@ -200,6 +210,7 @@ export function Home() {
   const { t } = useLanguage();
   const [listings, setListings] = useState<Listing[]>([]);
   const [categories, setCategories] = useState<CategoryEntry[]>([]);
+  const [topSellersData, setTopSellersData] = useState<TopSeller[]>([]);
   const [universitiesById, setUniversitiesById] = useState<Record<string, string>>({});
   const [featureTick, setFeatureTick] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -235,12 +246,12 @@ export function Home() {
   const resolveUniversityLabel = useCallback(
     (value?: string) => {
       const raw = String(value || '').trim();
-      if (!raw) return t('home.onCampus', 'On campus');
+      if (!raw) return t('home.onCampus', 'UNITRADE');
       const fromDb = universitiesById[raw.toLowerCase()];
       if (fromDb) return fromDb;
       const fromMock = getUniversityById(raw);
       if (fromMock) return fromMock.name;
-      if (looksLikeId(raw)) return t('home.onCampus', 'On campus');
+      if (looksLikeId(raw)) return t('home.onCampus', 'UNITRADE');
       return raw;
     },
     [universitiesById, t],
@@ -255,9 +266,10 @@ export function Home() {
       }
 
       try {
-        const [listingsResult, categoriesResult] = await Promise.allSettled([
+        const [listingsResult, categoriesResult, topSellersResult] = await Promise.allSettled([
           fetch(`${API_URL}/listings`),
           fetch(`${API_URL}/categories`),
+          fetch(`${API_URL}/top-sellers`),
         ]);
 
         if (listingsResult.status === 'fulfilled') {
@@ -285,6 +297,25 @@ export function Home() {
               }))
               .filter((entry: CategoryEntry) => entry.id && entry.name);
             if (isMounted) setCategories(normalized);
+          }
+        }
+
+        if (topSellersResult.status === 'fulfilled') {
+          const response = topSellersResult.value;
+          const data = await response.json().catch(() => ({}));
+          if (response.ok && Array.isArray(data.sellers)) {
+            const normalized: TopSeller[] = data.sellers
+              .map((entry: any) => ({
+                id: String(entry?.id || '').trim(),
+                name: String(entry?.name || '').trim(),
+                university: typeof entry?.university === 'string' ? entry.university : entry?.university?.name,
+                rating: Number(entry?.rating) || 0,
+                reviewCount: Number(entry?.reviewCount) || 0,
+                profilePicture: entry?.profilePicture || '',
+                sales: Number(entry?.sales) || 0,
+              }))
+              .filter((entry: TopSeller) => entry.name);
+            if (isMounted) setTopSellersData(normalized);
           }
         }
       } catch {
@@ -545,7 +576,7 @@ export function Home() {
     () => [
       {
         id: 'best-sellers-campus-electronics',
-        title: t('home.bestSellersCampusElectronics', 'Best Sellers in Campus Electronics'),
+        title: t('home.bestSellersCampusElectronics', 'Best Sellers in UNITRADE Electronics'),
         subtitle: t('home.bestSellersCampusElectronicsSub', 'Most viewed electronics from nearby universities.'),
         filters: { section: 'best-sellers-campus-electronics' },
         items: electronicsRail.map((listing) => toRailTile(listing, 'best-sellers-campus-electronics')),
@@ -577,7 +608,7 @@ export function Home() {
     () => [
       {
         id: 'hero-student-deals',
-        title: t('home.amazonHero1Title', 'Campus deals worth checking today'),
+        title: t('home.amazonHero1Title', 'UNITRADE deals worth checking today'),
         subtitle: t(
           'home.amazonHero1Subtitle',
           'Shop the most saved listings from students around your university community.',
@@ -602,7 +633,7 @@ export function Home() {
         title: t('home.amazonHero3Title', 'Upgrade your room with trusted picks'),
         subtitle: t(
           'home.amazonHero3Subtitle',
-          'Find electronics, decor, and study essentials from verified campus sellers.',
+          'Find electronics, decor, and study essentials from verified UNITRADE sellers.',
         ),
         image: getHomeDecorImage(2),
         filters: { section: 'hero-dorm-upgrades' } as MarketplaceRouteFilters,
@@ -638,6 +669,21 @@ export function Home() {
   );
 
   const bestSellers = useMemo(() => {
+    // Prefer real completed-sales data from the backend leaderboard.
+    if (topSellersData.length > 0) {
+      return topSellersData
+        .slice(0, 4)
+        .map((s) => ({
+          name: s.name,
+          university: s.university,
+          rating: s.rating,
+          reviewCount: s.reviewCount,
+          avatar: s.profilePicture || '',
+          sales: s.sales,
+        }));
+    }
+
+    // Fallback (before sales data exists): rank sellers by their live listing count.
     const map = new Map<
       string,
       { name: string; university?: string; rating: number; reviewCount: number; avatar?: string; sales: number }
@@ -661,7 +707,7 @@ export function Home() {
     return Array.from(map.values())
       .sort((a, b) => (b.rating || 0) - (a.rating || 0) || b.sales - a.sales)
       .slice(0, 4);
-  }, [availableListings]);
+  }, [topSellersData, availableListings]);
 
   const categoryCount = useCallback(
     (id: string) => (groupedByCategory.get(id) || []).length,
@@ -688,7 +734,7 @@ export function Home() {
               {t('home.welcomeToUnitrade', 'Welcome to UNITRADE')}
             </span>
             <h1 className="mt-4 max-w-md text-2xl font-extrabold leading-[1.1] text-foreground sm:text-[2.1rem]">
-              {t('home.heroTitlePart1', 'Campus deals')}{' '}
+              {t('home.heroTitlePart1', 'UNITRADE deals')}{' '}
               <span className="text-primary">{t('home.heroTitlePart2', 'worth checking')}</span>{' '}
               {t('home.heroTitlePart3', 'today')}
             </h1>
@@ -813,7 +859,7 @@ export function Home() {
           <section className="rounded-3xl bg-primary-soft p-5 sm:p-7">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-xl font-bold text-foreground sm:text-2xl">
-                {t('home.popularOnCampus', 'Popular on campus')}
+                {t('home.popularOnCampus', 'Popular on UNITRADE')}
               </h2>
               <button
                 type="button"
@@ -904,10 +950,10 @@ export function Home() {
               <div className="pointer-events-none absolute -left-10 -top-10 -z-10 h-44 w-44 rounded-full bg-primary/20 blur-3xl" />
               <div className="pointer-events-none absolute -bottom-12 left-1/3 -z-10 h-36 w-36 rounded-full bg-[var(--teal)]/15 blur-3xl" />
               <h2 className="text-2xl font-extrabold leading-tight sm:text-[1.9rem]">
-                {t('home.promoBannerTitle', 'Shop your campus. Save more.')}
+                {t('home.promoBannerTitle', 'Shop your UNITRADE. Save more.')}
               </h2>
               <p className="mt-3 max-w-xs text-sm text-white/80">
-                {t('home.promoBannerSub', 'Discover great finds from verified students near you — no shipping, just campus pickup.')}
+                {t('home.promoBannerSub', 'Discover great finds from verified students near you — no shipping, just UNITRADE pickup.')}
               </p>
               <div className="mt-6">
                 <button
@@ -1049,7 +1095,7 @@ export function Home() {
           <article className="rounded-2xl border border-border bg-card p-6 shadow-card">
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-xl font-bold text-foreground">
-                {t('home.bestSellersInCampus', 'Best sellers in campus')}
+                {t('home.bestSellersInCampus', 'Best sellers in UNITRADE')}
               </h2>
               <button
                 type="button"
@@ -1069,7 +1115,7 @@ export function Home() {
                   >
                     <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full bg-primary-soft">
                       {s.avatar ? (
-                        <img src={s.avatar} alt={s.name} className="h-full w-full object-cover" />
+                        <img src={resolveClientAssetUrl(s.avatar)} alt={s.name} className="h-full w-full object-cover" />
                       ) : (
                         <span className="flex h-full w-full items-center justify-center text-sm font-bold text-primary">
                           {s.name.charAt(0).toUpperCase()}
@@ -1081,7 +1127,7 @@ export function Home() {
                       <p className="truncate text-xs text-muted-foreground">
                         {(() => {
                           const uni = resolveUniversityLabel(s.university);
-                          return uni === t('home.onCampus', 'On campus')
+                          return uni === t('home.onCampus', 'UNITRADE')
                             ? t('home.verifiedSellerLabel', 'Verified seller')
                             : uni;
                         })()}
