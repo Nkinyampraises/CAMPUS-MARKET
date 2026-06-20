@@ -98,6 +98,28 @@ export async function sendPasswordResetEmail(email: string, resetLink: string) {
   return await sendEmail(email, subject, text, html);
 }
 
+export async function sendEmailVerificationCodeEmail(email: string, code: string) {
+  const subject = `Verify your ${APP_NAME} email`;
+  const text = [
+    `Welcome to ${APP_NAME}.`,
+    "",
+    "Use this one-time code to verify your email address and activate your account:",
+    code,
+    "",
+    "The code expires in 15 minutes.",
+    "If you did not create this account, you can ignore this email.",
+  ].join("\n");
+  const html = `
+    <p>Welcome to <strong>${APP_NAME}</strong>.</p>
+    <p>Use this one-time code to verify your email address and activate your account:</p>
+    <p style="font-size:24px;font-weight:700;letter-spacing:0.2em;margin:16px 0;">${code}</p>
+    <p>The code expires in 15 minutes.</p>
+    <p>If you did not create this account, you can ignore this email.</p>
+  `;
+
+  return await sendEmail(email, subject, text, html);
+}
+
 export async function sendTwoFactorCodeEmail(email: string, code: string) {
   const subject = `${APP_NAME} sign-in verification code`;
   const text = [

@@ -22,7 +22,7 @@ const registerHeroImage =
 
 export function Register() {
   const navigate = useNavigate();
-  const { register } = useAuth();
+  const { register, verifyEmailCode, resendConfirmationEmail } = useAuth();
   const { t } = useLanguage();
 
   const [platformStats, setPlatformStats] = useState({ students: 0, listings: 0, deals: 0, rating: '4.8' });
@@ -50,6 +50,12 @@ export function Register() {
   const [uploadingProfilePicture, setUploadingProfilePicture] = useState(false);
   const [error, setError] = useState('');
   const [confirmationLink, setConfirmationLink] = useState('');
+  // Email-verification code step shown after a successful signup.
+  const [verifyEmail, setVerifyEmail] = useState('');
+  const [verifyCode, setVerifyCode] = useState('');
+  const [verifying, setVerifying] = useState(false);
+  const [verifyInfo, setVerifyInfo] = useState('');
+  const [resendingCode, setResendingCode] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,9 +93,20 @@ export function Register() {
       });
 
       if (result.success) {
-        toast.success(
-          result.message || 'Account created successfully. Check your email to confirm your account before logging in.',
-        );
+        toast.success(result.message || 'Account created successfully.');
+
+        // Preferred path: 6-digit code entry on this screen.
+        if (result.verificationMethod === 'code') {
+          setVerifyEmail(result.email || formData.email.trim().toLowerCase());
+          setVerifyInfo(
+            result.verificationCode
+              ? `Your verification code is ${result.verificationCode}`
+              : (result.message || 'Enter the 6-digit code we emailed you to activate your account.'),
+          );
+          return;
+        }
+
+        // Legacy path: confirmation link.
         if (result.confirmationLink) {
           setConfirmationLink(result.confirmationLink);
         } else {
@@ -104,6 +121,52 @@ export function Register() {
       setError('An error occurred. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleVerifyCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    if (verifyCode.trim().length !== 6) {
+      setError('Enter the 6-digit verification code.');
+      return;
+    }
+    setVerifying(true);
+    try {
+      const result = await verifyEmailCode(verifyEmail, verifyCode.trim());
+      if (result.success) {
+        toast.success(result.message || 'Email verified! You can now sign in.');
+        navigate('/login', { replace: true });
+      } else {
+        setError(result.error || 'Invalid verification code.');
+      }
+    } catch (_err) {
+      setError('An error occurred. Please try again.');
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const handleResendCode = async () => {
+    if (!verifyEmail) return;
+    setError('');
+    setResendingCode(true);
+    try {
+      const result = await resendConfirmationEmail(verifyEmail);
+      if (!result.success) {
+        setError(result.error || 'Failed to resend code.');
+        return;
+      }
+      setVerifyInfo(
+        result.verificationCode
+          ? `Your new verification code is ${result.verificationCode}`
+          : (result.message || 'A new verification code has been sent to your email.'),
+      );
+      toast.success('Verification code sent.');
+    } catch (_err) {
+      setError('Failed to resend code.');
+    } finally {
+      setResendingCode(false);
     }
   };
 
@@ -176,6 +239,49 @@ export function Register() {
             {t('ui.fill_in_your_details_to_create_a_verified_student_', 'Fill in your details to create a verified student marketplace account.')}
           </p>
 
+          {verifyEmail ? (
+            <form onSubmit={handleVerifyCode} className="mt-6 space-y-5">
+              {error && <Alert variant="destructive" className="rounded-xl"><AlertDescription>{error}</AlertDescription></Alert>}
+              <Alert className="rounded-xl border-primary/30 bg-primary-soft text-primary-strong">
+                <AlertDescription>{verifyInfo}</AlertDescription>
+              </Alert>
+              <div className="space-y-1.5">
+                <Label htmlFor="verify-code" className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                  {t('ui.verification_code', 'Verification Code')}
+                </Label>
+                <Input
+                  id="verify-code"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={6}
+                  placeholder="000000"
+                  value={verifyCode}
+                  onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  className="h-14 rounded-xl border-border bg-secondary text-center text-2xl font-bold tracking-[0.5em] focus-visible:border-ring focus-visible:ring-ring"
+                  required
+                  autoFocus
+                />
+              </div>
+              <Button type="submit" size="lg" className="h-12 w-full text-base font-bold" disabled={verifying}>
+                {verifying ? (
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t('ui.verifying', 'Verifying...')}</>
+                ) : (
+                  <span className="flex items-center gap-2">{t('ui.verify_continue', 'Verify & Continue')} <ArrowRight className="h-4 w-4" /></span>
+                )}
+              </Button>
+              <p className="text-center text-sm text-muted-foreground">
+                {t('ui.didnt_receive_code', "Didn't get the code?")}{' '}
+                <button
+                  type="button"
+                  onClick={handleResendCode}
+                  disabled={resendingCode}
+                  className="font-bold text-primary hover:underline disabled:opacity-50"
+                >
+                  {resendingCode ? t('ui.sending', 'Sending...') : t('ui.resend_code', 'Resend Code')}
+                </button>
+              </p>
+            </form>
+          ) : (
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
             {error && <Alert variant="destructive" className="rounded-xl"><AlertDescription>{error}</AlertDescription></Alert>}
             {confirmationLink && (
@@ -296,6 +402,7 @@ export function Register() {
               <Link to="/login" className="font-bold text-primary hover:text-primary-strong hover:underline">{t('ui.sign_in', 'Sign In')}</Link>
             </p>
           </form>
+          )}
         </div>
 
         {/* ── Right: Stats Panel ──────────────────────────── */}

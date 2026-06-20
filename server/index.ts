@@ -7,6 +7,7 @@ import * as kv from "./kv_store.js";
 import {
   isEmailDeliveryConfigured,
   sendAccountConfirmationEmail,
+  sendEmailVerificationCodeEmail,
   sendPasswordResetEmail,
   sendTwoFactorCodeEmail,
 } from "./mail.js";
@@ -64,7 +65,7 @@ app.use(
   "/*",
   cors({
     origin: "*",
-    allowHeaders: ["Content-Type", "Authorization", "x-ai-guest-id", "x-refresh-token"],
+    allowHeaders: ["Content-Type", "Authorization", "x-ai-guest-id", "x-refresh-token", "x-device-id"],
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     exposeHeaders: ["Content-Length"],
     maxAge: 600,
@@ -114,8 +115,24 @@ const TWO_FACTOR_TTL_MS = Math.max(120_000, readEnvNumber("TWO_FACTOR_TTL_MS", 1
 const TWO_FACTOR_RESEND_COOLDOWN_MS = Math.max(15_000, readEnvNumber("TWO_FACTOR_RESEND_COOLDOWN_MS", 1000 * 60));
 const TWO_FACTOR_MAX_ATTEMPTS = Math.max(3, readEnvNumber("TWO_FACTOR_MAX_ATTEMPTS", 5));
 const TWO_FACTOR_MAX_RESENDS = Math.max(1, readEnvNumber("TWO_FACTOR_MAX_RESENDS", 5));
-const requireTwoFactorByDefault = !/^(0|false|no|off)$/i.test(
-  (Deno.env.get("AUTH_REQUIRE_TWO_FACTOR") || "true").trim(),
+// 6-digit signup email verification code TTL (default 15 min) and how long a
+// "remember this device" trust lasts before a new-device challenge is required again.
+const EMAIL_VERIFICATION_CODE_TTL_MS = Math.max(120_000, readEnvNumber("EMAIL_VERIFICATION_CODE_TTL_MS", 1000 * 60 * 15));
+const TRUSTED_DEVICE_TTL_MS = Math.max(60_000, readEnvNumber("TRUSTED_DEVICE_TTL_MS", 1000 * 60 * 60 * 24 * 30));
+// Email verification method for new signups: "code" (6-digit, default) or "link".
+const EMAIL_VERIFICATION_METHOD = (
+  (Deno.env.get("AUTH_EMAIL_VERIFICATION_METHOD") || "code").trim().toLowerCase() === "link" ? "link" : "code"
+);
+// Two-factor is OPT-IN: disabled by default, enabled per-user from Settings.
+// Set AUTH_REQUIRE_TWO_FACTOR=true to force an email-code challenge for everyone.
+const requireTwoFactorByDefault = /^(1|true|yes|on)$/i.test(
+  (Deno.env.get("AUTH_REQUIRE_TWO_FACTOR") || "false").trim(),
+);
+// New-device email challenge is OFF by default so normal login is just
+// email + password. Set AUTH_CHALLENGE_NEW_DEVICE=true to require an emailed
+// code the first time an account signs in from an unrecognized device/browser.
+const challengeNewDevices = /^(1|true|yes|on)$/i.test(
+  (Deno.env.get("AUTH_CHALLENGE_NEW_DEVICE") || "false").trim(),
 );
 // When true, the 6-digit 2FA code is also returned in the API response (and shown
 // on the login screen) so sign-in never depends on email delivery. Intended for
@@ -168,10 +185,12 @@ async function verifyJwtToken(token: string): Promise<{ userId: string; email: s
   }
 }
 // ────────────────────────────────────────────────────────────────────────────
-// Default OFF — campus marketplace doesn't need email gating.
-// Set AUTH_REQUIRE_EMAIL_CONFIRMATION=true in env to enable.
-const requireEmailConfirmation = /^(1|true|yes|on)$/i.test(
-  (Deno.env.get("AUTH_REQUIRE_EMAIL_CONFIRMATION") || "false").trim(),
+// Default ON — new signups must verify their email before they can sign in.
+// Existing accounts created before this flag was on were auto-verified
+// (emailVerified: true) and are unaffected. Set AUTH_REQUIRE_EMAIL_CONFIRMATION=false
+// to disable email gating entirely (e.g. local/demo).
+const requireEmailConfirmation = !/^(0|false|no|off)$/i.test(
+  (Deno.env.get("AUTH_REQUIRE_EMAIL_CONFIRMATION") || "true").trim(),
 );
 const MAX_UPLOAD_SIZE_BYTES = 5 * 1024 * 1024;
 const NOTCHPAY_PUBLIC_KEY = (Deno.env.get("NOTCHPAY_PUBLIC_KEY") || "").trim();
@@ -256,6 +275,9 @@ const authPasswordResetKey = (tokenHash: string) => `auth:password-reset:${token
 const authEmailConfirmationKey = (tokenHash: string) => `auth:email-confirm:${tokenHash}`;
 const authTwoFactorSessionKey = (tokenHash: string) => `auth:two-factor:${tokenHash}`;
 const authUserTwoFactorSessionKey = (userId: string) => `auth:user:${userId}:two-factor`;
+const authEmailVerifyCodeKey = (userId: string) => `auth:email-verify-code:${userId}`;
+const authTrustedDevicesKey = (userId: string) => `auth:user:${userId}:trusted-devices`;
+const authStepUpKey = (tokenHash: string) => `auth:step-up:${tokenHash}`;
 const storedFileKey = (fileId: string) => `file:${fileId}`;
 const aiChatHistoryKey = (userId: string) => `user:${userId}:ai-chat-history`;
 const aiChatConversationsKey = (userId: string) => `user:${userId}:ai-chat-conversations`;
@@ -281,6 +303,189 @@ const buildStoredFileUrl = (req: Request, fileId: string) =>
 async function sha256Hex(value: string) {
   const digest = await crypto.subtle.digest("SHA-256", textEncoder.encode(value));
   return bytesToHex(new Uint8Array(digest));
+}
+
+// ── TOTP (RFC 6238) — dependency-free, built on WebCrypto HMAC-SHA1 ──────────
+// Authenticator apps (Google Authenticator, Authy, Microsoft Authenticator) use
+// 6-digit, 30-second, SHA-1 TOTP. We implement it directly to avoid adding an
+// npm dependency, matching the project's existing hand-rolled crypto style.
+const BASE32_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+const TOTP_STEP_SECONDS = 30;
+
+const base32Encode = (bytes: Uint8Array) => {
+  let bits = 0;
+  let value = 0;
+  let output = "";
+  for (let index = 0; index < bytes.length; index += 1) {
+    value = (value << 8) | bytes[index];
+    bits += 8;
+    while (bits >= 5) {
+      output += BASE32_ALPHABET[(value >>> (bits - 5)) & 31];
+      bits -= 5;
+    }
+  }
+  if (bits > 0) {
+    output += BASE32_ALPHABET[(value << (5 - bits)) & 31];
+  }
+  return output;
+};
+
+const base32Decode = (input: string) => {
+  const cleaned = String(input || "").replace(/=+$/, "").replace(/\s+/g, "").toUpperCase();
+  let bits = 0;
+  let value = 0;
+  const out: number[] = [];
+  for (const char of cleaned) {
+    const idx = BASE32_ALPHABET.indexOf(char);
+    if (idx === -1) {
+      continue;
+    }
+    value = (value << 5) | idx;
+    bits += 5;
+    if (bits >= 8) {
+      out.push((value >>> (bits - 8)) & 0xff);
+      bits -= 8;
+    }
+  }
+  return new Uint8Array(out);
+};
+
+const generateTotpSecret = () => base32Encode(crypto.getRandomValues(new Uint8Array(20)));
+
+async function hotpCode(secretBytes: Uint8Array<ArrayBuffer>, counter: number, digits = 6) {
+  const counterBytes = new Uint8Array(8);
+  let remaining = counter;
+  for (let index = 7; index >= 0; index -= 1) {
+    counterBytes[index] = remaining & 0xff;
+    remaining = Math.floor(remaining / 256);
+  }
+
+  const key = await crypto.subtle.importKey(
+    "raw",
+    secretBytes,
+    { name: "HMAC", hash: "SHA-1" },
+    false,
+    ["sign"],
+  );
+  const signature = new Uint8Array(await crypto.subtle.sign("HMAC", key, counterBytes));
+  const offset = signature[signature.length - 1] & 0x0f;
+  const binary =
+    ((signature[offset] & 0x7f) << 24) |
+    ((signature[offset + 1] & 0xff) << 16) |
+    ((signature[offset + 2] & 0xff) << 8) |
+    (signature[offset + 3] & 0xff);
+
+  return (binary % 10 ** digits).toString().padStart(digits, "0");
+}
+
+async function verifyTotpCode(secretBase32: string, code: string, window = 1) {
+  const normalized = String(code || "").replace(/\s+/g, "");
+  if (!/^\d{6}$/.test(normalized)) {
+    return false;
+  }
+
+  const secretBytes = base32Decode(secretBase32);
+  if (!secretBytes.length) {
+    return false;
+  }
+
+  const counter = Math.floor(Date.now() / 1000 / TOTP_STEP_SECONDS);
+  for (let errorWindow = -window; errorWindow <= window; errorWindow += 1) {
+    const candidate = await hotpCode(secretBytes, counter + errorWindow);
+    if (timingSafeEqual(candidate, normalized)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+const buildOtpauthUri = (secretBase32: string, accountEmail: string, issuer: string) => {
+  const safeIssuer = issuer || "Campus Market";
+  const label = encodeURIComponent(`${safeIssuer}:${accountEmail}`);
+  const params = new URLSearchParams({
+    secret: secretBase32,
+    issuer: safeIssuer,
+    algorithm: "SHA1",
+    digits: "6",
+    period: String(TOTP_STEP_SECONDS),
+  });
+  return `otpauth://totp/${label}?${params.toString()}`;
+};
+
+// ── AES-GCM encryption for TOTP secrets at rest ──────────────────────────────
+// The shared key is derived (SHA-256) from TWO_FACTOR_ENC_KEY, falling back to
+// JWT_SECRET / AUTH_SECRET so existing deployments keep working.
+const TWO_FACTOR_ENC_SECRET = (
+  Deno.env.get("TWO_FACTOR_ENC_KEY") ||
+  JWT_SECRET ||
+  Deno.env.get("AUTH_SECRET") ||
+  ""
+).trim();
+let twoFactorEncKeyPromise: Promise<CryptoKey> | null = null;
+
+async function getTwoFactorEncKey() {
+  if (!TWO_FACTOR_ENC_SECRET) {
+    throw new Error("Missing TWO_FACTOR_ENC_KEY/JWT_SECRET for 2FA secret encryption");
+  }
+  if (!twoFactorEncKeyPromise) {
+    twoFactorEncKeyPromise = (async () => {
+      const digest = await crypto.subtle.digest(
+        "SHA-256",
+        textEncoder.encode(`2fa:${TWO_FACTOR_ENC_SECRET}`),
+      );
+      return crypto.subtle.importKey("raw", digest, { name: "AES-GCM" }, false, ["encrypt", "decrypt"]);
+    })();
+  }
+  return twoFactorEncKeyPromise;
+}
+
+async function encryptSecret(plaintext: string) {
+  const key = await getTwoFactorEncKey();
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const cipher = new Uint8Array(
+    await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, textEncoder.encode(plaintext)),
+  );
+  return `v1:${bytesToHex(iv)}:${bytesToHex(cipher)}`;
+}
+
+async function decryptSecret(payload: string) {
+  if (typeof payload !== "string") {
+    return "";
+  }
+  const parts = payload.split(":");
+  if (parts.length !== 3 || parts[0] !== "v1") {
+    return "";
+  }
+  try {
+    const key = await getTwoFactorEncKey();
+    const plain = await crypto.subtle.decrypt(
+      { name: "AES-GCM", iv: hexToBytes(parts[1]) },
+      key,
+      hexToBytes(parts[2]),
+    );
+    return new TextDecoder().decode(plain);
+  } catch {
+    return "";
+  }
+}
+
+// ── Backup recovery codes — stored only as SHA-256 hashes, single-use ────────
+const BACKUP_CODE_COUNT = 10;
+const normalizeBackupCode = (code: string) =>
+  String(code || "").replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+const hashBackupCode = (code: string) => sha256Hex(`backup:${normalizeBackupCode(code)}`);
+
+const generateBackupCodes = (count = BACKUP_CODE_COUNT) => {
+  const codes: string[] = [];
+  for (let index = 0; index < count; index += 1) {
+    const raw = bytesToHex(crypto.getRandomValues(new Uint8Array(5))).toUpperCase();
+    codes.push(`${raw.slice(0, 5)}-${raw.slice(5)}`);
+  }
+  return codes;
+};
+
+async function hashBackupCodes(codes: string[]) {
+  return await Promise.all(codes.map((code) => hashBackupCode(code)));
 }
 
 async function derivePasswordHash(password: string, saltHex: string, iterations: number) {
@@ -510,6 +715,42 @@ async function createEmailConfirmationSession(userId: string, email: string) {
   return confirmationToken;
 }
 
+// Create (and store the hash of) a 6-digit signup email-verification code.
+// Returns the plaintext code so the caller can email it (or reveal it as a
+// fallback when SMTP is not configured).
+async function createEmailVerificationCode(userId: string, email: string) {
+  const code = generateTwoFactorCode();
+  const now = Date.now();
+
+  await kv.set(authEmailVerifyCodeKey(userId), {
+    userId,
+    email: normalizeEmail(email),
+    codeHash: await sha256Hex(code),
+    attempts: 0,
+    createdAt: new Date(now).toISOString(),
+    expiresAt: new Date(now + EMAIL_VERIFICATION_CODE_TTL_MS).toISOString(),
+  });
+
+  return code;
+}
+
+// Deliver the signup verification code. Mirrors the two-factor delivery contract:
+// returns { deliveryMethod, code } where the code is surfaced for the "fallback"
+// method so verification never hard-depends on email delivery in dev/preview.
+async function sendEmailVerificationChallenge(userId: string, email: string) {
+  const code = await createEmailVerificationCode(userId, email);
+  if (isEmailDeliveryConfigured) {
+    try {
+      await sendEmailVerificationCodeEmail(email, code);
+      return { deliveryMethod: "email", code } as const;
+    } catch (error) {
+      console.error("Verification code email error:", error);
+      return { deliveryMethod: "fallback", code } as const;
+    }
+  }
+  return { deliveryMethod: "fallback", code } as const;
+}
+
 const toFiniteNumber = (value: any, fallback = 0) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
@@ -527,6 +768,205 @@ const isTwoFactorEnabled = (authRecord: any) => {
   return requireTwoFactorByDefault;
 };
 
+// True only when the user has a real authenticator (TOTP) secret enrolled.
+const hasTotpEnrolled = (authRecord: any) =>
+  Boolean(authRecord?.twoFactorEnabled && typeof authRecord?.totpSecretEnc === "string" && authRecord.totpSecretEnc);
+
+// ── Trusted-device recognition (risk-based challenges) ───────────────────────
+// A device is identified by a stable client id (x-device-id) combined with the
+// user agent + language. New/unrecognized devices must pass a challenge.
+async function computeDeviceHash(req: Request) {
+  const deviceId = (req.headers.get("x-device-id") || "").trim();
+  const userAgent = (req.headers.get("user-agent") || "").trim();
+  const acceptLanguage = (req.headers.get("accept-language") || "").trim();
+  if (!deviceId && !userAgent) {
+    return "";
+  }
+  return await sha256Hex(`${deviceId}|${userAgent}|${acceptLanguage}`);
+}
+
+const summarizeUserAgent = (userAgent: string) => {
+  const ua = String(userAgent || "").trim();
+  if (!ua) return "Unknown device";
+  return ua.length > 80 ? `${ua.slice(0, 77)}…` : ua;
+};
+
+async function getTrustedDevices(userId: string) {
+  const list = await kv.get(authTrustedDevicesKey(userId));
+  if (!Array.isArray(list)) {
+    return [] as Array<{ deviceHash: string; label?: string; lastSeenAt?: string; expiresAt?: string }>;
+  }
+  const now = Date.now();
+  return list.filter(
+    (entry) =>
+      entry &&
+      typeof entry.deviceHash === "string" &&
+      (!entry.expiresAt || Date.parse(entry.expiresAt) > now),
+  );
+}
+
+async function isTrustedDevice(userId: string, deviceHash: string) {
+  if (!deviceHash) {
+    return false;
+  }
+  const devices = await getTrustedDevices(userId);
+  return devices.some((entry) => timingSafeEqual(String(entry.deviceHash), deviceHash));
+}
+
+async function rememberTrustedDevice(userId: string, deviceHash: string, userAgent?: string) {
+  if (!deviceHash) {
+    return;
+  }
+  const devices = await getTrustedDevices(userId);
+  const now = Date.now();
+  const expiresAt = new Date(now + TRUSTED_DEVICE_TTL_MS).toISOString();
+  const existing = devices.find((entry) => entry.deviceHash === deviceHash);
+
+  if (existing) {
+    existing.lastSeenAt = new Date(now).toISOString();
+    existing.expiresAt = expiresAt;
+  } else {
+    devices.push({
+      deviceHash,
+      label: summarizeUserAgent(userAgent || ""),
+      lastSeenAt: new Date(now).toISOString(),
+      expiresAt,
+    });
+  }
+
+  // Keep the most recent 20 devices to bound the record size.
+  await kv.set(authTrustedDevicesKey(userId), devices.slice(-20));
+}
+
+// ── 2FA credential verification (TOTP code or single-use backup code) ────────
+async function consumeBackupCode(authRecord: any, submitted: string) {
+  const codes = Array.isArray(authRecord?.backupCodes) ? authRecord.backupCodes : [];
+  if (!codes.length) {
+    return false;
+  }
+  const submittedHash = await hashBackupCode(submitted);
+  const index = codes.findIndex((hash: any) => timingSafeEqual(String(hash), submittedHash));
+  if (index === -1) {
+    return false;
+  }
+  codes.splice(index, 1);
+  authRecord.backupCodes = codes;
+  await persistLocalAuthRecord(authRecord);
+  return true;
+}
+
+// Verify an authenticator code or a backup code against the user's enrolled secret.
+async function verifyTwoFactorCredential(authRecord: any, submitted: string) {
+  const code = String(submitted || "").trim();
+  if (!code) {
+    return false;
+  }
+  if (typeof authRecord?.totpSecretEnc === "string" && authRecord.totpSecretEnc) {
+    const secret = await decryptSecret(authRecord.totpSecretEnc);
+    if (secret && (await verifyTotpCode(secret, code))) {
+      return true;
+    }
+  }
+  return await consumeBackupCode(authRecord, code);
+}
+
+// ── Step-up challenge for sensitive actions (password/email change, disable 2FA)
+// TOTP users confirm with their authenticator; everyone else gets an emailed code.
+async function createStepUpEmailCode(authRecord: any) {
+  const code = generateTwoFactorCode();
+  const now = Date.now();
+  await kv.set(authStepUpKey(authRecord.userId), {
+    userId: authRecord.userId,
+    email: normalizeEmail(authRecord.email),
+    codeHash: await sha256Hex(code),
+    attempts: 0,
+    createdAt: new Date(now).toISOString(),
+    expiresAt: new Date(now + TWO_FACTOR_TTL_MS).toISOString(),
+  });
+
+  if (isEmailDeliveryConfigured) {
+    try {
+      await sendTwoFactorCodeEmail(authRecord.email, code);
+      return { deliveryMethod: "email", code } as const;
+    } catch (error) {
+      console.error("Step-up code email error:", error);
+      return { deliveryMethod: "fallback", code } as const;
+    }
+  }
+  return { deliveryMethod: "fallback", code } as const;
+}
+
+async function verifyStepUpEmailCode(authRecord: any, submitted: string) {
+  const code = String(submitted || "").trim();
+  if (!TWO_FACTOR_CODE_PATTERN.test(code)) {
+    return false;
+  }
+  const session = await kv.get(authStepUpKey(authRecord.userId));
+  if (!session?.codeHash) {
+    return false;
+  }
+  const expiresAt = typeof session.expiresAt === "string" ? Date.parse(session.expiresAt) : Number.NaN;
+  if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
+    await kv.del(authStepUpKey(authRecord.userId));
+    return false;
+  }
+  const attempts = toFiniteNumber(session.attempts, 0);
+  if (attempts >= TWO_FACTOR_MAX_ATTEMPTS) {
+    await kv.del(authStepUpKey(authRecord.userId));
+    return false;
+  }
+  const submittedHash = await sha256Hex(code);
+  if (!timingSafeEqual(submittedHash, String(session.codeHash))) {
+    await kv.set(authStepUpKey(authRecord.userId), { ...session, attempts: attempts + 1 });
+    return false;
+  }
+  await kv.del(authStepUpKey(authRecord.userId));
+  return true;
+}
+
+// Unified gate: returns { ok: true } when the step-up is satisfied, otherwise a
+// descriptor the caller returns to the client to drive the challenge prompt.
+// When no code is supplied and the user relies on an emailed code, one is sent.
+async function evaluateStepUp(authRecord: any, challengeCode?: string) {
+  const usesTotp = hasTotpEnrolled(authRecord);
+  const challengeType: "totp" | "email" = usesTotp ? "totp" : "email";
+  const code = String(challengeCode || "").trim();
+
+  if (!code) {
+    let delivery: { deliveryMethod: string; code: string } | null = null;
+    if (!usesTotp) {
+      delivery = await createStepUpEmailCode(authRecord);
+    }
+    return {
+      ok: false as const,
+      requiresChallenge: true,
+      challengeType,
+      message:
+        challengeType === "totp"
+          ? "Enter the code from your authenticator app to continue."
+          : delivery?.deliveryMethod === "email"
+            ? "We sent a 6-digit confirmation code to your email."
+            : "Enter the confirmation code to continue.",
+      ...(delivery && delivery.deliveryMethod === "fallback" ? { verificationCode: delivery.code } : {}),
+    };
+  }
+
+  const verified = usesTotp
+    ? await verifyTwoFactorCredential(authRecord, code)
+    : await verifyStepUpEmailCode(authRecord, code);
+
+  if (!verified) {
+    return {
+      ok: false as const,
+      requiresChallenge: true,
+      challengeType,
+      error: "Invalid confirmation code. Please try again.",
+    };
+  }
+
+  return { ok: true as const };
+}
+
 async function clearTwoFactorSession(tokenHash: string, fallbackUserId?: string) {
   if (!tokenHash) {
     return;
@@ -543,7 +983,21 @@ async function clearTwoFactorSession(tokenHash: string, fallbackUserId?: string)
   await kv.mdel(keys);
 }
 
-async function createTwoFactorSession(userId: string, email: string) {
+type TwoFactorChallengeOptions = {
+  // "email" sends a 6-digit code; "totp" expects an authenticator/backup code
+  // (no email is sent — the secret already lives in the user's app).
+  challengeType?: "email" | "totp";
+  deviceHash?: string;
+  rememberDevice?: boolean;
+  purpose?: string;
+};
+
+async function createTwoFactorSession(
+  userId: string,
+  email: string,
+  options: TwoFactorChallengeOptions = {},
+) {
+  const challengeType = options.challengeType === "totp" ? "totp" : "email";
   const token = createRandomToken(32);
   const tokenHash = await sha256Hex(token);
   const previousTokenHash = await kv.get(authUserTwoFactorSessionKey(userId));
@@ -551,15 +1005,18 @@ async function createTwoFactorSession(userId: string, email: string) {
     await kv.del(authTwoFactorSessionKey(previousTokenHash));
   }
 
-  const code = generateTwoFactorCode();
-  const codeHash = await sha256Hex(code);
   const now = Date.now();
   const nowIso = new Date(now).toISOString();
+  const code = challengeType === "email" ? generateTwoFactorCode() : "";
 
   const session = {
     userId,
     email: normalizeEmail(email),
-    codeHash,
+    challengeType,
+    codeHash: code ? await sha256Hex(code) : "",
+    deviceHash: options.deviceHash || "",
+    rememberDevice: options.rememberDevice === true,
+    purpose: options.purpose || "login",
     attempts: 0,
     resendCount: 0,
     lastSentAt: nowIso,
@@ -572,12 +1029,18 @@ async function createTwoFactorSession(userId: string, email: string) {
     [session, tokenHash],
   );
 
+  // Authenticator-app challenge: nothing to deliver.
+  if (challengeType === "totp") {
+    return { token, deliveryMethod: "totp", challengeType } as const;
+  }
+
   try {
     if (isEmailDeliveryConfigured) {
       await sendTwoFactorCodeEmail(session.email, code);
       return {
         token,
         deliveryMethod: "email",
+        challengeType,
         code,
       } as const;
     }
@@ -585,6 +1048,7 @@ async function createTwoFactorSession(userId: string, email: string) {
     return {
       token,
       deliveryMethod: "fallback",
+      challengeType,
       fallbackCode: code,
       code,
     } as const;
@@ -599,6 +1063,11 @@ async function resendTwoFactorSessionCode(token: string) {
   const session = await kv.get(authTwoFactorSessionKey(tokenHash));
   if (!session?.userId) {
     return { error: "Invalid or expired verification session.", status: 401 } as const;
+  }
+
+  // Authenticator-app challenges have no emailed code to resend.
+  if (session.challengeType === "totp") {
+    return { error: "Open your authenticator app for the current code.", status: 400 } as const;
   }
 
   const now = Date.now();
@@ -3599,6 +4068,27 @@ app.post("/make-server-50b25a4f/signup", async (c) => {
     );
 
     if (requireEmailConfirmation) {
+      // Preferred path: 6-digit verification code entered in-app.
+      if (EMAIL_VERIFICATION_METHOD === "code") {
+        const delivery = await sendEmailVerificationChallenge(userId, normalizedEmail);
+        const responseMessage =
+          delivery.deliveryMethod === "email"
+            ? "Account created. We sent a 6-digit verification code to your email — enter it to activate your account."
+            : "Account created. Email delivery is not configured here, so use the verification code below.";
+
+        return c.json({
+          success: true,
+          message: responseMessage,
+          userId,
+          email: normalizedEmail,
+          requiresEmailConfirmation: true,
+          verificationMethod: "code",
+          // Surface the code only when it could not be emailed (dev/preview).
+          ...(delivery.deliveryMethod === "fallback" ? { verificationCode: delivery.code } : {}),
+        });
+      }
+
+      // Legacy path: clickable confirmation link.
       const confirmationToken = await createEmailConfirmationSession(userId, normalizedEmail);
       const confirmationLink = await createEmailConfirmationLink(c.req.raw, confirmationToken);
       let responseMessage = 'Account created successfully. Check your email to confirm your account before logging in.';
@@ -3622,6 +4112,7 @@ app.post("/make-server-50b25a4f/signup", async (c) => {
         message: responseMessage,
         userId,
         requiresEmailConfirmation: true,
+        verificationMethod: "link",
         ...(fallbackConfirmationLink ? { confirmationLink: fallbackConfirmationLink } : {}),
       });
     }
@@ -3798,6 +4289,73 @@ app.post("/make-server-50b25a4f/auth/confirm-email", async (c) => {
   }
 });
 
+// Verify a 6-digit signup email-verification code.
+app.post("/make-server-50b25a4f/auth/verify-email-code", async (c) => {
+  try {
+    const body = await c.req.json().catch(() => ({}));
+    const email = normalizeEmail(body?.email);
+    const code = typeof body?.code === "string" ? body.code.trim() : "";
+
+    if (!email || !code) {
+      return c.json({ error: "Email and verification code are required." }, 400);
+    }
+    if (!TWO_FACTOR_CODE_PATTERN.test(code)) {
+      return c.json({ error: "Verification code must be 6 digits." }, 400);
+    }
+
+    const authRecord = await getLocalAuthRecordByEmail(email);
+    if (!authRecord?.userId) {
+      return c.json({ error: "Invalid or expired verification code." }, 401);
+    }
+
+    if (authRecord.emailVerified !== false) {
+      return c.json({ success: true, message: "Email already verified. You can sign in." });
+    }
+
+    const session = await kv.get(authEmailVerifyCodeKey(authRecord.userId));
+    if (!session?.codeHash) {
+      return c.json({ error: "Invalid or expired verification code. Request a new one." }, 401);
+    }
+
+    const expiresAt = typeof session.expiresAt === "string" ? Date.parse(session.expiresAt) : Number.NaN;
+    if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
+      await kv.del(authEmailVerifyCodeKey(authRecord.userId));
+      return c.json({ error: "Verification code expired. Request a new one." }, 401);
+    }
+
+    const attempts = toFiniteNumber(session.attempts, 0);
+    if (attempts >= TWO_FACTOR_MAX_ATTEMPTS) {
+      await kv.del(authEmailVerifyCodeKey(authRecord.userId));
+      return c.json({ error: "Too many failed attempts. Request a new code." }, 401);
+    }
+
+    const submittedHash = await sha256Hex(code);
+    if (!timingSafeEqual(submittedHash, String(session.codeHash))) {
+      const nextAttempts = attempts + 1;
+      if (nextAttempts >= TWO_FACTOR_MAX_ATTEMPTS) {
+        await kv.del(authEmailVerifyCodeKey(authRecord.userId));
+        return c.json({ error: "Too many failed attempts. Request a new code." }, 401);
+      }
+      await kv.set(authEmailVerifyCodeKey(authRecord.userId), { ...session, attempts: nextAttempts });
+      const remaining = TWO_FACTOR_MAX_ATTEMPTS - nextAttempts;
+      return c.json({
+        error: `Invalid verification code. ${remaining} attempt${remaining === 1 ? "" : "s"} remaining.`,
+      }, 400);
+    }
+
+    authRecord.emailVerified = true;
+    authRecord.emailConfirmedAt = new Date().toISOString();
+    await persistLocalAuthRecord(authRecord);
+    await kv.del(authEmailVerifyCodeKey(authRecord.userId));
+
+    return c.json({ success: true, message: "Email verified successfully. You can now sign in." });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to verify email code";
+    console.error("Verify email code error:", message);
+    return c.json({ error: message }, 500);
+  }
+});
+
 app.post("/make-server-50b25a4f/auth/resend-confirmation", async (c) => {
   try {
     const body = await c.req.json().catch(() => ({}));
@@ -3811,7 +4369,7 @@ app.post("/make-server-50b25a4f/auth/resend-confirmation", async (c) => {
     if (!authRecord?.userId) {
       return c.json({
         success: true,
-        message: "If an account exists for that email, a new confirmation link has been sent.",
+        message: "If an account exists for that email, a new verification message has been sent.",
       });
     }
 
@@ -3819,6 +4377,20 @@ app.post("/make-server-50b25a4f/auth/resend-confirmation", async (c) => {
       return c.json({
         success: true,
         message: "This email is already confirmed. You can log in now.",
+      });
+    }
+
+    // Code-based verification: re-issue and deliver a fresh 6-digit code.
+    if (EMAIL_VERIFICATION_METHOD === "code") {
+      const delivery = await sendEmailVerificationChallenge(authRecord.userId, authRecord.email);
+      return c.json({
+        success: true,
+        verificationMethod: "code",
+        message:
+          delivery.deliveryMethod === "email"
+            ? "A new 6-digit verification code has been sent to your email."
+            : "Email delivery is not configured here. Use the verification code below.",
+        ...(delivery.deliveryMethod === "fallback" ? { verificationCode: delivery.code } : {}),
       });
     }
 
@@ -3895,27 +4467,56 @@ app.post("/make-server-50b25a4f/signin", async (c) => {
       return c.json({ error: 'Your account has been suspended. Contact support.' }, 403);
     }
 
-    // Two-factor authentication: required for normal users, but admins sign in
-    // directly (no email code) for quick dashboard access.
-    if (profile.role !== "admin" && isTwoFactorEnabled(authRecord)) {
+    // Challenge decision. Admins sign in directly. For everyone else:
+    //   • If the user has enabled 2FA, always require their 2FA challenge.
+    //   • Otherwise, normal login is just email + password (NO code).
+    // The optional new-device email challenge is OFF by default and only kicks
+    // in when AUTH_CHALLENGE_NEW_DEVICE=true is set.
+    const deviceHash = await computeDeviceHash(c.req.raw);
+    const rememberDevice = body?.rememberDevice === true;
+    const twoFactorOn = isTwoFactorEnabled(authRecord);
+    const trustedDevice = await isTrustedDevice(profile.id, deviceHash);
+    const newDeviceChallenge = challengeNewDevices && !trustedDevice;
+
+    if (profile.role !== "admin" && (twoFactorOn || newDeviceChallenge)) {
       try {
-        const challenge = await createTwoFactorSession(profile.id, profile.email);
+        // Use the authenticator when enrolled; otherwise fall back to an email code.
+        const challengeType = hasTotpEnrolled(authRecord) ? "totp" : "email";
+        const challenge = await createTwoFactorSession(profile.id, profile.email, {
+          challengeType,
+          deviceHash,
+          rememberDevice,
+          purpose: twoFactorOn ? "login" : "new-device",
+        });
+
+        const newDeviceOnly = !twoFactorOn && newDeviceChallenge;
         return c.json({
           success: false,
           requiresTwoFactor: true,
           twoFactorToken: challenge.token,
+          challengeType,
+          newDevice: newDeviceOnly,
           message:
-            challenge.deliveryMethod === "email"
-              ? "We sent a 6-digit verification code to your email."
-              : "Enter the verification code to continue.",
+            challengeType === "totp"
+              ? "Enter the code from your authenticator app to continue."
+              : newDeviceOnly
+                ? "We noticed a sign-in from a new device. Enter the 6-digit code we emailed you to continue."
+                : challenge.deliveryMethod === "email"
+                  ? "We sent a 6-digit verification code to your email."
+                  : "Enter the verification code to continue.",
           ...((twoFactorDevReveal || challenge.deliveryMethod === "fallback") && challenge.code
             ? { verificationCode: challenge.code }
             : {}),
         });
       } catch (error) {
-        console.error("Failed to start two-factor challenge:", error);
+        console.error("Failed to start sign-in challenge:", error);
         return c.json({ error: "Could not send your verification code. Please try again." }, 500);
       }
+    }
+
+    // Trusted device + 2FA off: refresh the trust window and issue a session.
+    if (deviceHash) {
+      await rememberTrustedDevice(profile.id, deviceHash, c.req.header("user-agent"));
     }
 
     const { accessToken, refreshToken } = await createSessionPair(profile.id, profile.email);
@@ -3942,10 +4543,6 @@ app.post("/make-server-50b25a4f/auth/verify-2fa", async (c) => {
       return c.json({ error: "Verification token and code are required." }, 400);
     }
 
-    if (!TWO_FACTOR_CODE_PATTERN.test(code)) {
-      return c.json({ error: "Verification code must be 6 digits." }, 400);
-    }
-
     const tokenHash = await sha256Hex(token);
     const session = await kv.get(authTwoFactorSessionKey(tokenHash));
     if (!session?.userId) {
@@ -3964,8 +4561,25 @@ app.post("/make-server-50b25a4f/auth/verify-2fa", async (c) => {
       return c.json({ error: "Too many failed attempts. Please sign in again." }, 401);
     }
 
-    const submittedCodeHash = await sha256Hex(code);
-    if (!timingSafeEqual(submittedCodeHash, String(session.codeHash || ""))) {
+    // TOTP challenges accept an authenticator code or a single-use backup code;
+    // email challenges compare against the emailed 6-digit code.
+    let verified = false;
+    if (session.challengeType === "totp") {
+      const authRecord = await getLocalAuthRecordByUserId(session.userId);
+      if (!authRecord) {
+        await clearTwoFactorSession(tokenHash, session.userId);
+        return c.json({ error: "Unauthorized" }, 401);
+      }
+      verified = await verifyTwoFactorCredential(authRecord, code);
+    } else {
+      if (!TWO_FACTOR_CODE_PATTERN.test(code)) {
+        return c.json({ error: "Verification code must be 6 digits." }, 400);
+      }
+      const submittedCodeHash = await sha256Hex(code);
+      verified = timingSafeEqual(submittedCodeHash, String(session.codeHash || ""));
+    }
+
+    if (!verified) {
       const nextAttempts = attempts + 1;
       if (nextAttempts >= TWO_FACTOR_MAX_ATTEMPTS) {
         await clearTwoFactorSession(tokenHash, session.userId);
@@ -3989,6 +4603,12 @@ app.post("/make-server-50b25a4f/auth/verify-2fa", async (c) => {
     }
 
     await clearTwoFactorSession(tokenHash, session.userId);
+
+    // Honor "remember this device" so future logins from it skip the challenge.
+    if (session.rememberDevice && session.deviceHash) {
+      await rememberTrustedDevice(session.userId, session.deviceHash, c.req.header("user-agent"));
+    }
+
     const { accessToken, refreshToken } = await createSessionPair(profile.id, profile.email || session.email);
 
     return c.json({
@@ -4188,6 +4808,14 @@ app.post("/make-server-50b25a4f/auth/change-password", async (c) => {
       return c.json({ error: "Current password is incorrect" }, 400);
     }
 
+    // Sensitive action: require a step-up challenge (authenticator code for TOTP
+    // users, otherwise an emailed confirmation code).
+    const challengeCode = typeof body?.challengeCode === "string" ? body.challengeCode : "";
+    const stepUp = await evaluateStepUp(authRecord, challengeCode);
+    if (!stepUp.ok) {
+      return c.json({ success: false, ...stepUp }, 200);
+    }
+
     Object.assign(authRecord, await createPasswordRecord(newPassword));
     await persistLocalAuthRecord(authRecord);
 
@@ -4195,6 +4823,259 @@ app.post("/make-server-50b25a4f/auth/change-password", async (c) => {
   } catch (error) {
     console.error("Change password error:", error);
     return c.json({ error: "Failed to update password" }, 500);
+  }
+});
+
+// ── Two-factor management & sensitive-action endpoints ───────────────────────
+
+// Current security status for the signed-in user (keeps /auth/me unchanged).
+app.get("/make-server-50b25a4f/auth/2fa/status", async (c) => {
+  const user = await verifyAuth(c.req.header("Authorization"));
+  if (!user) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
+  const authRecord = await getLocalAuthRecordByUserId(user.id);
+  if (!authRecord) {
+    return c.json({ error: "Account not found" }, 404);
+  }
+
+  const backupCodesRemaining = Array.isArray(authRecord.backupCodes) ? authRecord.backupCodes.length : 0;
+  return c.json({
+    emailVerified: authRecord.emailVerified !== false,
+    twoFactorEnabled: isTwoFactorEnabled(authRecord),
+    twoFactorMethod: hasTotpEnrolled(authRecord) ? "totp" : isTwoFactorEnabled(authRecord) ? "email" : "none",
+    hasTotp: hasTotpEnrolled(authRecord),
+    backupCodesRemaining,
+  });
+});
+
+// Begin TOTP enrollment: generate a secret (stored pending until verified).
+app.post("/make-server-50b25a4f/auth/2fa/setup", async (c) => {
+  const user = await verifyAuth(c.req.header("Authorization"));
+  if (!user) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
+  try {
+    const authRecord = await getLocalAuthRecordByUserId(user.id);
+    if (!authRecord) {
+      return c.json({ error: "Account not found" }, 404);
+    }
+
+    const secret = generateTotpSecret();
+    authRecord.totpPendingEnc = await encryptSecret(secret);
+    await persistLocalAuthRecord(authRecord);
+
+    const issuer = (Deno.env.get("APP_NAME") || "Campus Market").trim() || "Campus Market";
+    return c.json({
+      success: true,
+      secret,
+      otpauthUri: buildOtpauthUri(secret, authRecord.email, issuer),
+      issuer,
+      account: authRecord.email,
+    });
+  } catch (error) {
+    console.error("2FA setup error:", error);
+    return c.json({ error: "Could not start two-factor setup. Please try again." }, 500);
+  }
+});
+
+// Confirm TOTP enrollment with a code, enable 2FA, and return backup codes once.
+app.post("/make-server-50b25a4f/auth/2fa/enable", async (c) => {
+  const user = await verifyAuth(c.req.header("Authorization"));
+  if (!user) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
+  try {
+    const body = await c.req.json().catch(() => ({}));
+    const code = typeof body?.code === "string" ? body.code.trim() : "";
+    if (!TWO_FACTOR_CODE_PATTERN.test(code)) {
+      return c.json({ error: "Enter the 6-digit code from your authenticator app." }, 400);
+    }
+
+    const authRecord = await getLocalAuthRecordByUserId(user.id);
+    if (!authRecord) {
+      return c.json({ error: "Account not found" }, 404);
+    }
+    if (!authRecord.totpPendingEnc) {
+      return c.json({ error: "Start two-factor setup first." }, 400);
+    }
+
+    const pendingSecret = await decryptSecret(authRecord.totpPendingEnc);
+    if (!pendingSecret || !(await verifyTotpCode(pendingSecret, code))) {
+      return c.json({ error: "That code did not match. Check your authenticator app and try again." }, 400);
+    }
+
+    const backupCodes = generateBackupCodes();
+    authRecord.totpSecretEnc = authRecord.totpPendingEnc;
+    delete authRecord.totpPendingEnc;
+    authRecord.twoFactorEnabled = true;
+    authRecord.twoFactorMethod = "totp";
+    authRecord.backupCodes = await hashBackupCodes(backupCodes);
+    authRecord.twoFactorEnabledAt = new Date().toISOString();
+    await persistLocalAuthRecord(authRecord);
+
+    return c.json({
+      success: true,
+      message: "Two-factor authentication is now enabled.",
+      backupCodes,
+    });
+  } catch (error) {
+    console.error("2FA enable error:", error);
+    return c.json({ error: "Could not enable two-factor authentication. Please try again." }, 500);
+  }
+});
+
+// Disable 2FA — gated by a fresh challenge (authenticator/backup or email code).
+app.post("/make-server-50b25a4f/auth/2fa/disable", async (c) => {
+  const user = await verifyAuth(c.req.header("Authorization"));
+  if (!user) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
+  try {
+    const body = await c.req.json().catch(() => ({}));
+    const authRecord = await getLocalAuthRecordByUserId(user.id);
+    if (!authRecord) {
+      return c.json({ error: "Account not found" }, 404);
+    }
+
+    if (!isTwoFactorEnabled(authRecord)) {
+      return c.json({ success: true, message: "Two-factor authentication is already disabled." });
+    }
+
+    const challengeCode = typeof body?.challengeCode === "string" ? body.challengeCode : "";
+    const stepUp = await evaluateStepUp(authRecord, challengeCode);
+    if (!stepUp.ok) {
+      return c.json({ success: false, ...stepUp }, 200);
+    }
+
+    authRecord.twoFactorEnabled = false;
+    authRecord.twoFactorMethod = "none";
+    delete authRecord.totpSecretEnc;
+    delete authRecord.totpPendingEnc;
+    authRecord.backupCodes = [];
+    authRecord.twoFactorDisabledAt = new Date().toISOString();
+    await persistLocalAuthRecord(authRecord);
+
+    return c.json({ success: true, message: "Two-factor authentication has been disabled." });
+  } catch (error) {
+    console.error("2FA disable error:", error);
+    return c.json({ error: "Could not disable two-factor authentication. Please try again." }, 500);
+  }
+});
+
+// Regenerate backup codes — gated by a fresh challenge; invalidates old codes.
+app.post("/make-server-50b25a4f/auth/2fa/backup-codes/regenerate", async (c) => {
+  const user = await verifyAuth(c.req.header("Authorization"));
+  if (!user) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
+  try {
+    const body = await c.req.json().catch(() => ({}));
+    const authRecord = await getLocalAuthRecordByUserId(user.id);
+    if (!authRecord) {
+      return c.json({ error: "Account not found" }, 404);
+    }
+    if (!hasTotpEnrolled(authRecord)) {
+      return c.json({ error: "Enable an authenticator app before generating backup codes." }, 400);
+    }
+
+    const challengeCode = typeof body?.challengeCode === "string" ? body.challengeCode : "";
+    const stepUp = await evaluateStepUp(authRecord, challengeCode);
+    if (!stepUp.ok) {
+      return c.json({ success: false, ...stepUp }, 200);
+    }
+
+    const backupCodes = generateBackupCodes();
+    authRecord.backupCodes = await hashBackupCodes(backupCodes);
+    await persistLocalAuthRecord(authRecord);
+
+    return c.json({ success: true, message: "New backup codes generated.", backupCodes });
+  } catch (error) {
+    console.error("Backup code regenerate error:", error);
+    return c.json({ error: "Could not regenerate backup codes. Please try again." }, 500);
+  }
+});
+
+// Change email — gated by a step-up challenge; new address must be re-verified.
+app.post("/make-server-50b25a4f/auth/change-email", async (c) => {
+  const user = await verifyAuth(c.req.header("Authorization"));
+  if (!user) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
+  try {
+    const body = await c.req.json().catch(() => ({}));
+    const newEmail = normalizeEmail(body?.newEmail);
+    const currentPassword = typeof body?.currentPassword === "string" ? body.currentPassword : "";
+
+    if (!newEmail || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(newEmail)) {
+      return c.json({ error: "Enter a valid new email address." }, 400);
+    }
+
+    const authRecord = await getLocalAuthRecordByUserId(user.id);
+    if (!authRecord) {
+      return c.json({ error: "Account not found" }, 404);
+    }
+
+    if (normalizeEmail(authRecord.email) === newEmail) {
+      return c.json({ error: "That is already your email address." }, 400);
+    }
+
+    // Confirm identity with the current password first.
+    if (!(await verifyPassword(currentPassword, authRecord))) {
+      return c.json({ error: "Current password is incorrect." }, 400);
+    }
+
+    // The new address must not already belong to someone else.
+    const conflict = await getLocalAuthRecordByEmail(newEmail);
+    const conflictProfile = await findUserProfileByEmail(newEmail);
+    if ((conflict && conflict.userId !== authRecord.userId) || (conflictProfile && conflictProfile.id !== authRecord.userId)) {
+      return c.json({ error: "An account with that email already exists." }, 409);
+    }
+
+    const challengeCode = typeof body?.challengeCode === "string" ? body.challengeCode : "";
+    const stepUp = await evaluateStepUp(authRecord, challengeCode);
+    if (!stepUp.ok) {
+      return c.json({ success: false, ...stepUp }, 200);
+    }
+
+    const previousEmail = normalizeEmail(authRecord.email);
+    authRecord.email = newEmail;
+    authRecord.emailVerified = false;
+    authRecord.emailConfirmedAt = "";
+    await persistLocalAuthRecord(authRecord);
+    // Drop the stale email→userId index pointing at the old address.
+    if (previousEmail && previousEmail !== newEmail) {
+      await kv.del(authEmailKey(previousEmail));
+    }
+
+    // Keep the user profile's email in sync.
+    const profile = await getUserProfile(authRecord.userId);
+    if (profile) {
+      profile.email = newEmail;
+      await kv.set(`user:${authRecord.userId}`, profile);
+    }
+
+    // Send a verification code to the new address.
+    const delivery = await sendEmailVerificationChallenge(authRecord.userId, newEmail);
+    return c.json({
+      success: true,
+      email: newEmail,
+      requiresEmailVerification: true,
+      message:
+        delivery.deliveryMethod === "email"
+          ? "Email updated. We sent a verification code to your new address — verify it to keep full access."
+          : "Email updated. Use the verification code below to confirm your new address.",
+      ...(delivery.deliveryMethod === "fallback" ? { verificationCode: delivery.code } : {}),
+    });
+  } catch (error) {
+    console.error("Change email error:", error);
+    return c.json({ error: "Could not change email. Please try again." }, 500);
   }
 });
 

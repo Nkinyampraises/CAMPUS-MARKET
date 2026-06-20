@@ -37,10 +37,17 @@ interface AuthContextType {
   accessToken: string | null;
   refreshAuthToken: (tokenOverride?: string | null) => Promise<string | null>;
   login: (email: string, password: string, options?: { rememberDevice?: boolean }) => Promise<LoginResult>;
-  verifyTwoFactorCode: (token: string, code: string) => Promise<{ success: boolean; error?: string }>;
+  verifyTwoFactorCode: (token: string, code: string) => Promise<{ success: boolean; error?: string; user?: User }>;
   resendTwoFactorCode: (token: string) => Promise<{ success: boolean; error?: string; message?: string; verificationCode?: string }>;
-  resendConfirmationEmail: (email: string) => Promise<{ success: boolean; error?: string; message?: string; confirmationLink?: string }>;
-  register: (userData: RegisterData) => Promise<{ success: boolean; error?: string; message?: string; confirmationLink?: string; requiresEmailConfirmation?: boolean }>;
+  resendConfirmationEmail: (email: string) => Promise<{ success: boolean; error?: string; message?: string; confirmationLink?: string; verificationCode?: string }>;
+  register: (userData: RegisterData) => Promise<{ success: boolean; error?: string; message?: string; confirmationLink?: string; requiresEmailConfirmation?: boolean; verificationMethod?: 'code' | 'link'; email?: string; verificationCode?: string }>;
+  verifyEmailCode: (email: string, code: string) => Promise<{ success: boolean; error?: string; message?: string }>;
+  getSecurityStatus: () => Promise<SecurityStatus | null>;
+  setupTotp: () => Promise<{ success: boolean; error?: string; secret?: string; otpauthUri?: string }>;
+  enableTotp: (code: string) => Promise<{ success: boolean; error?: string; backupCodes?: string[] }>;
+  disableTotp: (challengeCode?: string) => Promise<ChallengeResult>;
+  regenerateBackupCodes: (challengeCode?: string) => Promise<ChallengeResult & { backupCodes?: string[] }>;
+  changeEmail: (newEmail: string, currentPassword: string, challengeCode?: string) => Promise<ChallengeResult & { email?: string }>;
   logout: () => void;
   isAuthenticated: boolean;
   updateProfile: (data: Partial<User>) => Promise<{ success: boolean; error?: string }>;
@@ -53,8 +60,30 @@ interface LoginResult {
   error?: string;
   requiresTwoFactor?: boolean;
   twoFactorToken?: string;
+  challengeType?: 'totp' | 'email';
+  newDevice?: boolean;
   message?: string;
   verificationCode?: string;
+  user?: User;
+}
+
+interface SecurityStatus {
+  emailVerified: boolean;
+  twoFactorEnabled: boolean;
+  twoFactorMethod: 'totp' | 'email' | 'none';
+  hasTotp: boolean;
+  backupCodesRemaining: number;
+}
+
+// Shape returned by step-up gated endpoints (change password/email, disable 2FA).
+interface ChallengeResult {
+  success: boolean;
+  error?: string;
+  message?: string;
+  requiresChallenge?: boolean;
+  challengeType?: 'totp' | 'email';
+  verificationCode?: string;
+  [key: string]: unknown;
 }
 
 interface RegisterData {
@@ -71,6 +100,37 @@ interface RegisterData {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 import { API_URL, resolveClientAssetUrl } from '@/lib/api';
+
+// Stable per-browser identifier used by the server for new-device detection.
+// Persisted in localStorage so the same browser is recognized across sessions.
+const DEVICE_ID_KEY = 'cm_device_id';
+const getDeviceId = (): string => {
+  try {
+    let id = localStorage.getItem(DEVICE_ID_KEY);
+    if (!id) {
+      id =
+        typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+          ? crypto.randomUUID()
+          : `dev_${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
+      localStorage.setItem(DEVICE_ID_KEY, id);
+    }
+    return id;
+  } catch {
+    return '';
+  }
+};
+
+// Common JSON headers including the device id (and optional bearer token).
+const buildAuthHeaders = (token?: string | null): Record<string, string> => {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'x-device-id': getDeviceId(),
+  };
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  return headers;
+};
 
 const normalizeUser = (user: any): User => {
   const userType = user?.userType === 'seller' ? 'seller' : 'buyer';
@@ -438,10 +498,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const response = await fetch(`${API_URL}/signin`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
+        headers: buildAuthHeaders(),
+        body: JSON.stringify({ email, password, rememberDevice: options?.rememberDevice === true }),
       });
 
       const data = await response.json();
@@ -456,6 +514,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           success: false,
           requiresTwoFactor: true,
           twoFactorToken: data.twoFactorToken,
+          challengeType: data?.challengeType === 'totp' ? 'totp' : 'email',
+          newDevice: data?.newDevice === true,
           message: typeof data?.message === 'string' ? data.message : 'Enter the verification code to continue.',
           verificationCode: typeof data?.verificationCode === 'string' ? data.verificationCode : undefined,
         };
@@ -468,8 +528,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!applied) {
         return { success: false, error: 'Login response was incomplete. Please try again.' };
       }
-      
-      return { success: true };
+
+      return { success: true, user: normalizeUser(data.user) };
     } catch (error) {
       pendingRememberDeviceRef.current = false;
       console.error('Login error:', error);
@@ -477,13 +537,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const verifyTwoFactorCode = async (token: string, code: string): Promise<{ success: boolean; error?: string }> => {
+  const verifyTwoFactorCode = async (token: string, code: string): Promise<{ success: boolean; error?: string; user?: User }> => {
     try {
       const response = await fetch(`${API_URL}/auth/verify-2fa`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: buildAuthHeaders(),
         body: JSON.stringify({ token, code }),
       });
       const data = await response.json().catch(() => ({}));
@@ -500,7 +558,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { success: false, error: 'Could not complete sign in. Please try again.' };
       }
 
-      return { success: true };
+      return { success: true, user: normalizeUser(data.user) };
     } catch (error) {
       pendingRememberDeviceRef.current = false;
       console.error('Two-factor verification error:', error);
@@ -544,13 +602,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const resendConfirmationEmail = async (
     email: string,
-  ): Promise<{ success: boolean; error?: string; message?: string; confirmationLink?: string }> => {
+  ): Promise<{ success: boolean; error?: string; message?: string; confirmationLink?: string; verificationCode?: string }> => {
     try {
       const response = await fetch(`${API_URL}/auth/resend-confirmation`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: buildAuthHeaders(),
         body: JSON.stringify({ email }),
       });
       const data = await response.json().catch(() => ({}));
@@ -563,6 +619,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         success: true,
         message: typeof data?.message === 'string' ? data.message : 'Confirmation email sent.',
         confirmationLink: typeof data?.confirmationLink === 'string' ? data.confirmationLink : undefined,
+        verificationCode: typeof data?.verificationCode === 'string' ? data.verificationCode : undefined,
       };
     } catch (error) {
       console.error('Resend confirmation error:', error);
@@ -573,13 +630,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const register = async (userData: RegisterData): Promise<{ success: boolean; error?: string; message?: string; confirmationLink?: string; requiresEmailConfirmation?: boolean }> => {
+  const register = async (userData: RegisterData): Promise<{ success: boolean; error?: string; message?: string; confirmationLink?: string; requiresEmailConfirmation?: boolean; verificationMethod?: 'code' | 'link'; email?: string; verificationCode?: string }> => {
     try {
       const response = await fetch(`${API_URL}/signup`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: buildAuthHeaders(),
         body: JSON.stringify({
           name: userData.name,
           email: userData.email,
@@ -610,6 +665,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         message: typeof data?.message === 'string' ? data.message : undefined,
         confirmationLink: typeof data?.confirmationLink === 'string' ? data.confirmationLink : undefined,
         requiresEmailConfirmation: Boolean(data?.requiresEmailConfirmation),
+        verificationMethod: data?.verificationMethod === 'code' ? 'code' : data?.verificationMethod === 'link' ? 'link' : undefined,
+        email: typeof data?.email === 'string' ? data.email : undefined,
+        verificationCode: typeof data?.verificationCode === 'string' ? data.verificationCode : undefined,
       };
     } catch (error) {
       console.error('Registration error:', error);
@@ -683,6 +741,130 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Resolve the freshest access token available (state or storage), matching
+  // the pattern used by updateProfile.
+  const resolveAccessToken = () =>
+    accessToken ||
+    getStorage(sessionModeRef.current).getItem('accessToken') ||
+    localStorage.getItem('accessToken') ||
+    sessionStorage.getItem('accessToken');
+
+  // Authenticated request that transparently retries once after a token refresh.
+  const authedRequest = async (path: string, init: { method: string; body?: unknown }) => {
+    const token = resolveAccessToken();
+    if (!token) {
+      return { ok: false, status: 401, data: { error: 'Please log in again and try once more.' } };
+    }
+    const send = (authToken: string) =>
+      fetch(`${API_URL}${path}`, {
+        method: init.method,
+        headers: buildAuthHeaders(authToken),
+        ...(init.body !== undefined ? { body: JSON.stringify(init.body) } : {}),
+      });
+
+    let response = await send(token);
+    let data = await response.json().catch(() => ({}));
+    if (response.status === 401) {
+      const refreshed = await refreshAuthToken();
+      if (refreshed) {
+        response = await send(refreshed);
+        data = await response.json().catch(() => ({}));
+      }
+    }
+    return { ok: response.ok, status: response.status, data };
+  };
+
+  // Verify a 6-digit signup email-verification code (unauthenticated).
+  const verifyEmailCode = async (
+    email: string,
+    code: string,
+  ): Promise<{ success: boolean; error?: string; message?: string }> => {
+    try {
+      const response = await fetch(`${API_URL}/auth/verify-email-code`, {
+        method: 'POST',
+        headers: buildAuthHeaders(),
+        body: JSON.stringify({ email, code }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        return { success: false, error: data?.error || 'Invalid verification code' };
+      }
+      return { success: true, message: typeof data?.message === 'string' ? data.message : undefined };
+    } catch (error) {
+      console.error('Verify email code error:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Failed to verify code' };
+    }
+  };
+
+  const getSecurityStatus = async (): Promise<SecurityStatus | null> => {
+    const { ok, data } = await authedRequest('/auth/2fa/status', { method: 'GET' });
+    if (!ok || !data || typeof data !== 'object') {
+      return null;
+    }
+    return {
+      emailVerified: Boolean((data as any).emailVerified),
+      twoFactorEnabled: Boolean((data as any).twoFactorEnabled),
+      twoFactorMethod: ((data as any).twoFactorMethod ?? 'none') as SecurityStatus['twoFactorMethod'],
+      hasTotp: Boolean((data as any).hasTotp),
+      backupCodesRemaining: Number((data as any).backupCodesRemaining) || 0,
+    };
+  };
+
+  // Begin TOTP enrollment — returns the secret + otpauth URI to render a QR code.
+  const setupTotp = async (): Promise<{
+    success: boolean;
+    error?: string;
+    secret?: string;
+    otpauthUri?: string;
+  }> => {
+    const { ok, data } = await authedRequest('/auth/2fa/setup', { method: 'POST', body: {} });
+    if (!ok) {
+      return { success: false, error: (data as any)?.error || 'Could not start two-factor setup' };
+    }
+    return { success: true, secret: (data as any)?.secret, otpauthUri: (data as any)?.otpauthUri };
+  };
+
+  // Confirm enrollment with a code; returns one-time backup codes on success.
+  const enableTotp = async (
+    code: string,
+  ): Promise<{ success: boolean; error?: string; backupCodes?: string[] }> => {
+    const { ok, data } = await authedRequest('/auth/2fa/enable', { method: 'POST', body: { code } });
+    if (!ok) {
+      return { success: false, error: (data as any)?.error || 'Could not enable two-factor authentication' };
+    }
+    return { success: true, backupCodes: Array.isArray((data as any)?.backupCodes) ? (data as any).backupCodes : [] };
+  };
+
+  const disableTotp = async (challengeCode?: string): Promise<ChallengeResult> => {
+    const { ok, data } = await authedRequest('/auth/2fa/disable', {
+      method: 'POST',
+      body: { challengeCode },
+    });
+    return { success: ok && (data as any)?.success !== false, ...(data as any) };
+  };
+
+  const regenerateBackupCodes = async (
+    challengeCode?: string,
+  ): Promise<ChallengeResult & { backupCodes?: string[] }> => {
+    const { ok, data } = await authedRequest('/auth/2fa/backup-codes/regenerate', {
+      method: 'POST',
+      body: { challengeCode },
+    });
+    return { success: ok && (data as any)?.success !== false, ...(data as any) };
+  };
+
+  const changeEmail = async (
+    newEmail: string,
+    currentPassword: string,
+    challengeCode?: string,
+  ): Promise<ChallengeResult & { email?: string }> => {
+    const { ok, data } = await authedRequest('/auth/change-email', {
+      method: 'POST',
+      body: { newEmail, currentPassword, challengeCode },
+    });
+    return { success: ok && (data as any)?.success !== false, ...(data as any) };
+  };
+
   const hasStoredSessionToken = (() => {
     if (typeof window === 'undefined') {
       return false;
@@ -705,6 +887,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     resendTwoFactorCode,
     resendConfirmationEmail,
     register,
+    verifyEmailCode,
+    getSecurityStatus,
+    setupTotp,
+    enableTotp,
+    disableTotp,
+    regenerateBackupCodes,
+    changeEmail,
     logout,
     isAuthenticated,
     updateProfile,
@@ -724,5 +913,5 @@ export function useAuth() {
   return context;
 }
 
-export type { User };
+export type { User, SecurityStatus, ChallengeResult };
 

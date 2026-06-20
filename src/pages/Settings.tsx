@@ -6,14 +6,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app
 import { PasswordInput } from '@/app/components/ui/password-input';
 import { Label } from '@/app/components/ui/label';
 import { Switch } from '@/app/components/ui/switch';
+import { Input } from '@/app/components/ui/input';
+import { Alert, AlertDescription } from '@/app/components/ui/alert';
 import { toast } from 'sonner';
 
 import { API_URL } from '@/lib/api';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { TwoFactorSettings } from '@/components/TwoFactorSettings';
 
 export function Settings() {
   const navigate = useNavigate();
-  const { currentUser, accessToken, updateProfile, refreshCurrentUser } = useAuth();
+  const { currentUser, accessToken, updateProfile, refreshCurrentUser, changeEmail, verifyEmailCode } = useAuth();
   const { t } = useLanguage();
 
   const [changingPassword, setChangingPassword] = useState(false);
@@ -21,6 +24,12 @@ export function Settings() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  // Step-up challenge shown when changing the password requires confirmation
+  // (authenticator/backup code for 2FA users, or an emailed code otherwise).
+  const [pwChallenge, setPwChallenge] = useState(false);
+  const [pwChallengeType, setPwChallengeType] = useState<'totp' | 'email'>('email');
+  const [pwChallengeInfo, setPwChallengeInfo] = useState('');
+  const [pwChallengeCode, setPwChallengeCode] = useState('');
 
   const [notificationPreferences, setNotificationPreferences] = useState({
     messages: currentUser?.notificationPreferences?.messages ?? true,
@@ -34,6 +43,18 @@ export function Settings() {
     showEmail: currentUser?.privacyOptions?.showEmail ?? false,
     profileVisibility: currentUser?.privacyOptions?.profileVisibility ?? 'public',
   });
+
+  // Change-email flow (gated by a step-up challenge, then verify the new address).
+  const [emailNew, setEmailNew] = useState('');
+  const [emailPassword, setEmailPassword] = useState('');
+  const [emailChallenge, setEmailChallenge] = useState(false);
+  const [emailChallengeType, setEmailChallengeType] = useState<'totp' | 'email'>('email');
+  const [emailChallengeInfo, setEmailChallengeInfo] = useState('');
+  const [emailChallengeCode, setEmailChallengeCode] = useState('');
+  const [emailVerifyStep, setEmailVerifyStep] = useState(false);
+  const [emailVerifyCode, setEmailVerifyCode] = useState('');
+  const [emailVerifyInfo, setEmailVerifyInfo] = useState('');
+  const [changingEmail, setChangingEmail] = useState(false);
 
   const passwordValid = useMemo(
     () => newPassword.length >= 6 && newPassword === confirmPassword,
@@ -68,6 +89,7 @@ export function Settings() {
         body: JSON.stringify({
           currentPassword,
           newPassword,
+          ...(pwChallenge ? { challengeCode: pwChallengeCode.trim() } : {}),
         }),
       });
       const data = await response.json().catch(() => ({}));
@@ -75,14 +97,109 @@ export function Settings() {
         toast.error(data.error || 'Failed to change password');
         return;
       }
+
+      // A step-up confirmation is required before the change is applied.
+      if (data?.success === false && data?.requiresChallenge) {
+        setPwChallenge(true);
+        setPwChallengeType(data?.challengeType === 'totp' ? 'totp' : 'email');
+        setPwChallengeInfo(
+          data?.verificationCode
+            ? `Your confirmation code is ${data.verificationCode}`
+            : data?.message ||
+                (data?.challengeType === 'totp'
+                  ? 'Enter the code from your authenticator app to confirm.'
+                  : 'Enter the confirmation code we emailed you.'),
+        );
+        if (data?.error) toast.error(data.error);
+        return;
+      }
+
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
+      setPwChallenge(false);
+      setPwChallengeCode('');
+      setPwChallengeInfo('');
       toast.success('Password changed successfully');
     } catch (_error) {
       toast.error('Failed to change password');
     } finally {
       setChangingPassword(false);
+    }
+  };
+
+  const handleChangeEmail = async () => {
+    if (!emailNew.trim() || !emailPassword) {
+      toast.error('Enter your new email and current password');
+      return;
+    }
+    setChangingEmail(true);
+    try {
+      const result = await changeEmail(
+        emailNew.trim(),
+        emailPassword,
+        emailChallenge ? emailChallengeCode.trim() : undefined,
+      );
+
+      if (result.requiresChallenge) {
+        setEmailChallenge(true);
+        setEmailChallengeType(result.challengeType === 'totp' ? 'totp' : 'email');
+        setEmailChallengeInfo(
+          result.verificationCode
+            ? `Your confirmation code is ${result.verificationCode}`
+            : result.message ||
+                (result.challengeType === 'totp'
+                  ? 'Enter the code from your authenticator app to confirm.'
+                  : 'Enter the confirmation code we emailed you.'),
+        );
+        if (result.error) toast.error(result.error);
+        return;
+      }
+
+      if (!result.success) {
+        toast.error(result.error || 'Could not change email');
+        return;
+      }
+
+      // Email changed — now verify the new address with the code that was sent.
+      toast.success(result.message || 'Email updated. Verify your new address.');
+      setEmailChallenge(false);
+      setEmailChallengeCode('');
+      setEmailVerifyStep(true);
+      setEmailVerifyInfo(
+        result.verificationCode
+          ? `Your verification code is ${result.verificationCode}`
+          : 'Enter the 6-digit code we sent to your new email address.',
+      );
+    } catch (_error) {
+      toast.error('Could not change email');
+    } finally {
+      setChangingEmail(false);
+    }
+  };
+
+  const handleVerifyNewEmail = async () => {
+    if (emailVerifyCode.trim().length !== 6) {
+      toast.error('Enter the 6-digit verification code');
+      return;
+    }
+    setChangingEmail(true);
+    try {
+      const result = await verifyEmailCode(emailNew.trim().toLowerCase(), emailVerifyCode.trim());
+      if (!result.success) {
+        toast.error(result.error || 'Invalid verification code');
+        return;
+      }
+      toast.success('New email verified successfully');
+      setEmailVerifyStep(false);
+      setEmailVerifyCode('');
+      setEmailNew('');
+      setEmailPassword('');
+      if (refreshCurrentUser) await refreshCurrentUser();
+    } catch (_error) {
+      toast.error('Could not verify new email');
+    } finally {
+      setChangingEmail(false);
     }
   };
 
@@ -153,11 +270,121 @@ export function Settings() {
               placeholder="Confirm password"
             />
           </div>
-          <Button onClick={handleChangePassword} disabled={changingPassword}>
-            {changingPassword ? t('ui.updating', 'Updating...') : t('ui.update_password', 'Update Password')}
+          {pwChallenge && (
+            <div className="space-y-1 rounded-lg border border-primary/30 bg-primary-soft/40 p-3">
+              <Alert>
+                <AlertDescription>{pwChallengeInfo}</AlertDescription>
+              </Alert>
+              <Label htmlFor="pw-challenge-code">{t('ui.confirmation_code', 'Confirmation Code')}</Label>
+              <Input
+                id="pw-challenge-code"
+                maxLength={pwChallengeType === 'totp' ? 14 : 6}
+                placeholder={pwChallengeType === 'totp' ? 'Authenticator or backup code' : '000000'}
+                value={pwChallengeCode}
+                onChange={(e) =>
+                  setPwChallengeCode(
+                    pwChallengeType === 'totp'
+                      ? e.target.value.replace(/[^A-Za-z0-9-]/g, '').toUpperCase().slice(0, 14)
+                      : e.target.value.replace(/\D/g, '').slice(0, 6),
+                  )
+                }
+              />
+            </div>
+          )}
+          <Button onClick={handleChangePassword} disabled={changingPassword || (pwChallenge && pwChallengeCode.trim().length < 6)}>
+            {changingPassword
+              ? t('ui.updating', 'Updating...')
+              : pwChallenge
+                ? t('ui.confirm_change', 'Confirm Change')
+                : t('ui.update_password', 'Update Password')}
           </Button>
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('ui.change_email', 'Change Email')}</CardTitle>
+          <CardDescription>{t('ui.current_email', 'Current email')}: {currentUser.email}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {emailVerifyStep ? (
+            <>
+              <Alert>
+                <AlertDescription>{emailVerifyInfo}</AlertDescription>
+              </Alert>
+              <div className="space-y-1">
+                <Label htmlFor="email-verify-code">{t('ui.verification_code', 'Verification Code')}</Label>
+                <Input
+                  id="email-verify-code"
+                  inputMode="numeric"
+                  maxLength={6}
+                  placeholder="000000"
+                  value={emailVerifyCode}
+                  onChange={(e) => setEmailVerifyCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                />
+              </div>
+              <Button onClick={handleVerifyNewEmail} disabled={changingEmail}>
+                {changingEmail ? t('ui.verifying', 'Verifying...') : t('ui.verify_email', 'Verify Email')}
+              </Button>
+            </>
+          ) : (
+            <>
+              <div className="space-y-1">
+                <Label htmlFor="new-email">{t('ui.new_email', 'New Email')}</Label>
+                <Input
+                  id="new-email"
+                  type="email"
+                  value={emailNew}
+                  onChange={(e) => setEmailNew(e.target.value)}
+                  placeholder="you@university.edu"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="email-current-password">{t('ui.current_password', 'Current Password')}</Label>
+                <PasswordInput
+                  id="email-current-password"
+                  value={emailPassword}
+                  onChange={(e) => setEmailPassword(e.target.value)}
+                  placeholder="Current password"
+                />
+              </div>
+              {emailChallenge && (
+                <div className="space-y-1 rounded-lg border border-primary/30 bg-primary-soft/40 p-3">
+                  <Alert>
+                    <AlertDescription>{emailChallengeInfo}</AlertDescription>
+                  </Alert>
+                  <Label htmlFor="email-challenge-code">{t('ui.confirmation_code', 'Confirmation Code')}</Label>
+                  <Input
+                    id="email-challenge-code"
+                    maxLength={emailChallengeType === 'totp' ? 14 : 6}
+                    placeholder={emailChallengeType === 'totp' ? 'Authenticator or backup code' : '000000'}
+                    value={emailChallengeCode}
+                    onChange={(e) =>
+                      setEmailChallengeCode(
+                        emailChallengeType === 'totp'
+                          ? e.target.value.replace(/[^A-Za-z0-9-]/g, '').toUpperCase().slice(0, 14)
+                          : e.target.value.replace(/\D/g, '').slice(0, 6),
+                      )
+                    }
+                  />
+                </div>
+              )}
+              <Button
+                onClick={handleChangeEmail}
+                disabled={changingEmail || (emailChallenge && emailChallengeCode.trim().length < 6)}
+              >
+                {changingEmail
+                  ? t('ui.updating', 'Updating...')
+                  : emailChallenge
+                    ? t('ui.confirm_change', 'Confirm Change')
+                    : t('ui.update_email', 'Update Email')}
+              </Button>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      <TwoFactorSettings />
 
       <Card>
         <CardHeader>

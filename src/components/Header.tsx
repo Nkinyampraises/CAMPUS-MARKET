@@ -21,7 +21,10 @@ import {
   ShieldAlert,
   Languages,
   Check,
+  Download,
 } from 'lucide-react';
+import { toast } from 'sonner';
+import { usePwaInstall } from '@/hooks/usePwaInstall';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,6 +42,32 @@ export function Header() {
   const { language, setLanguage, t } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
+  const { canInstall, isIos, isInstalled, isCapacitorApp, promptInstall } = usePwaInstall();
+
+  // Always show an Install button while the app isn't installed (and not running
+  // inside the Capacitor native shell). Clicking it triggers the native prompt
+  // when available, otherwise shows platform-appropriate instructions.
+  const showInstallButton = !isInstalled && !isCapacitorApp;
+
+  const handleInstallClick = async () => {
+    if (canInstall) {
+      const outcome = await promptInstall();
+      if (outcome === 'accepted') {
+        toast.success(t('pwa.installing', 'Installing UNITRADE…'));
+        return;
+      }
+      if (outcome !== 'unavailable') return; // user dismissed the native dialog
+    }
+
+    if (isIos) {
+      toast(t('pwa.ios_install_hint', 'Tap the Share icon, then "Add to Home Screen" to install UNITRADE.'), { duration: 9000 });
+    } else {
+      toast(
+        t('pwa.desktop_install_hint', 'Open your browser menu and choose "Install UNITRADE" / "Add to Home screen". The button installs automatically once your browser marks the app installable.'),
+        { duration: 9000 },
+      );
+    }
+  };
 
   const handleLogout = () => {
     logout();
@@ -357,6 +386,19 @@ export function Header() {
                   {t('auth.signup', 'Sign Up')}
                 </Button>
               </div>
+            )}
+
+            {showInstallButton && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleInstallClick}
+                title={t('pwa.install_app', 'Install App')}
+                className="rounded-full border-primary/40 px-2 text-primary hover:bg-primary hover:text-primary-foreground sm:px-3"
+              >
+                <Download className="h-4 w-4 sm:mr-1.5" />
+                <span className="hidden sm:inline">{t('pwa.install', 'Install')}</span>
+              </Button>
             )}
 
             <DropdownMenu>

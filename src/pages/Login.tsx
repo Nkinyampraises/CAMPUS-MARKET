@@ -16,6 +16,14 @@ import { useLanguage } from '@/contexts/LanguageContext';
 const loginHeroImage =
   'https://images.pexels.com/photos/9158720/pexels-photo-9158720.jpeg?cs=srgb&dl=pexels-mikhail-nilov-9158720.jpg&fm=jpg';
 
+// Send each role to its dashboard with the proper sidebar layout
+// (admins → /admin, buyers → /buyer/dashboard, sellers → /seller/dashboard).
+const dashboardPathFor = (user?: { role?: string; userType?: string } | null) => {
+  if (!user) return '/dashboard';
+  if (user.role === 'admin') return '/admin';
+  return user.userType === 'buyer' ? '/buyer/dashboard' : '/seller/dashboard';
+};
+
 export function Login() {
   const navigate = useNavigate();
   const { login, resendConfirmationEmail, verifyTwoFactorCode, resendTwoFactorCode } = useAuth();
@@ -28,12 +36,15 @@ export function Login() {
   const [resendingConfirmation, setResendingConfirmation] = useState(false);
   const [confirmationMessage, setConfirmationMessage] = useState('');
   const [confirmationLink, setConfirmationLink] = useState('');
-  // Two-factor (OTP) step — shown after a correct password when 2FA is enabled.
+  // Two-factor (OTP) step — shown after a correct password when 2FA is enabled
+  // or when signing in from an unrecognized device.
   const [twoFactorToken, setTwoFactorToken] = useState('');
   const [otpCode, setOtpCode] = useState('');
   const [verifying, setVerifying] = useState(false);
   const [otpInfo, setOtpInfo] = useState('');
   const [resendingOtp, setResendingOtp] = useState(false);
+  // "totp" = authenticator app (also accepts a backup code); "email" = emailed code.
+  const [challengeType, setChallengeType] = useState<'totp' | 'email'>('email');
   // Real platform numbers for the stats panel (fetched from the public endpoints).
   const [studentCount, setStudentCount] = useState<number | null>(null);
   const [universityCount, setUniversityCount] = useState<number | null>(null);
@@ -80,16 +91,20 @@ export function Login() {
       const result = await login(email, password, { rememberDevice });
       if (result.success) {
         toast.success('Login successful!');
-        navigate('/dashboard');
+        navigate(dashboardPathFor(result.user));
       } else if (result.requiresTwoFactor && result.twoFactorToken) {
         // Password was correct — now require the one-time code to finish signing in.
         setTwoFactorToken(result.twoFactorToken);
+        setChallengeType(result.challengeType === 'totp' ? 'totp' : 'email');
         setOtpCode('');
         // If email delivery isn't configured, the server returns the code for testing.
         setOtpInfo(
           result.verificationCode
             ? `Your verification code is ${result.verificationCode}`
-            : (result.message || 'Enter the 6-digit code we sent to your email.'),
+            : (result.message ||
+                (result.challengeType === 'totp'
+                  ? 'Enter the code from your authenticator app.'
+                  : 'Enter the 6-digit code we sent to your email.')),
         );
       } else {
         setError(result.error || 'Invalid email or password');
@@ -104,16 +119,23 @@ export function Login() {
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (otpCode.trim().length !== 6) {
+    const submitted = otpCode.trim();
+    // Email codes are exactly 6 digits; authenticator codes are 6 digits but a
+    // backup recovery code is also accepted (longer, alphanumeric).
+    if (challengeType === 'email' && submitted.length !== 6) {
       setError('Enter the 6-digit verification code.');
+      return;
+    }
+    if (challengeType === 'totp' && submitted.length < 6) {
+      setError('Enter your authenticator code or a backup code.');
       return;
     }
     setVerifying(true);
     try {
-      const result = await verifyTwoFactorCode(twoFactorToken, otpCode.trim());
+      const result = await verifyTwoFactorCode(twoFactorToken, submitted);
       if (result.success) {
         toast.success('Login successful!');
-        navigate('/dashboard');
+        navigate(dashboardPathFor(result.user));
       } else {
         setError(result.error || 'Invalid verification code.');
       }
@@ -151,6 +173,7 @@ export function Login() {
     setTwoFactorToken('');
     setOtpCode('');
     setOtpInfo('');
+    setChallengeType('email');
     setError('');
   };
 
@@ -233,20 +256,33 @@ export function Login() {
 
                 <div className="space-y-1.5">
                   <Label htmlFor="otp" className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                    {t('ui.verification_code', 'Verification Code')}
+                    {challengeType === 'totp'
+                      ? t('ui.authenticator_code', 'Authenticator Code')
+                      : t('ui.verification_code', 'Verification Code')}
                   </Label>
                   <Input
                     id="otp"
-                    inputMode="numeric"
+                    inputMode={challengeType === 'totp' ? 'text' : 'numeric'}
                     autoComplete="one-time-code"
-                    maxLength={6}
-                    placeholder="000000"
+                    maxLength={challengeType === 'totp' ? 14 : 6}
+                    placeholder={challengeType === 'totp' ? '000000 or backup code' : '000000'}
                     value={otpCode}
-                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    className="h-14 rounded-xl border-border bg-secondary text-center text-2xl font-bold tracking-[0.5em] text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring"
+                    onChange={(e) =>
+                      setOtpCode(
+                        challengeType === 'totp'
+                          ? e.target.value.replace(/[^A-Za-z0-9-]/g, '').toUpperCase().slice(0, 14)
+                          : e.target.value.replace(/\D/g, '').slice(0, 6),
+                      )
+                    }
+                    className="h-14 rounded-xl border-border bg-secondary text-center text-2xl font-bold tracking-[0.4em] text-foreground placeholder:text-base placeholder:tracking-normal placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring"
                     required
                     autoFocus
                   />
+                  {challengeType === 'totp' && (
+                    <p className="text-xs text-muted-foreground">
+                      {t('ui.totp_backup_hint', 'Open your authenticator app, or enter one of your backup codes.')}
+                    </p>
+                  )}
                 </div>
 
                 <Button type="submit" size="lg" className="h-12 w-full text-base font-bold" disabled={verifying}>
@@ -265,14 +301,16 @@ export function Login() {
                   >
                     {t('ui.back', 'Back')}
                   </button>
-                  <button
-                    type="button"
-                    onClick={handleResendOtp}
-                    disabled={resendingOtp}
-                    className="font-bold text-primary hover:underline disabled:opacity-50"
-                  >
-                    {resendingOtp ? t('ui.sending', 'Sending...') : t('ui.resend_code', 'Resend Code')}
-                  </button>
+                  {challengeType === 'email' && (
+                    <button
+                      type="button"
+                      onClick={handleResendOtp}
+                      disabled={resendingOtp}
+                      className="font-bold text-primary hover:underline disabled:opacity-50"
+                    >
+                      {resendingOtp ? t('ui.sending', 'Sending...') : t('ui.resend_code', 'Resend Code')}
+                    </button>
+                  )}
                 </div>
               </form>
             </>

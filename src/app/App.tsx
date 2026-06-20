@@ -60,6 +60,18 @@ import { AdminSectionLayout } from '@/components/AdminSectionLayout';
 import { BuyerSectionLayout } from '@/components/BuyerSectionLayout';
 import { SellerSectionLayout } from '@/components/SellerSectionLayout';
 import { AiAssistantLauncher } from '@/components/AiAssistantLauncher';
+import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+
+function OfflineBanner() {
+  const online = useOnlineStatus();
+  if (online) return null;
+  return (
+    <div className="sticky top-0 z-[55] w-full bg-amber-500 px-4 py-1.5 text-center text-xs font-semibold text-white">
+      You're offline — showing saved content. Some features may be unavailable.
+    </div>
+  );
+}
 
 function AppLayout() {
   const location = useLocation();
@@ -72,6 +84,7 @@ function AppLayout() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
+      <OfflineBanner />
       <Header />
       <main className="flex-1">
         <Routes>
@@ -389,6 +402,7 @@ function AppLayout() {
       </main>
       <AiAssistantLauncher />
       {showFooter && <Footer />}
+      <PWAInstallPrompt />
       <Toaster />
     </div>
   );
