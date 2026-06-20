@@ -44,10 +44,10 @@ export function Header() {
   const location = useLocation();
   const { canInstall, isIos, isInstalled, isCapacitorApp, promptInstall } = usePwaInstall();
 
-  // Always show an Install button while the app isn't installed (and not running
-  // inside the Capacitor native shell). Clicking it triggers the native prompt
-  // when available, otherwise shows platform-appropriate instructions.
-  const showInstallButton = !isInstalled && !isCapacitorApp;
+  // Show the Install button ONLY to signed-out visitors on the web app, while the
+  // app isn't already installed and isn't running inside the Capacitor native
+  // shell. Once a user signs in (or installs), it disappears.
+  const showInstallButton = !currentUser && !isInstalled && !isCapacitorApp;
 
   const handleInstallClick = async () => {
     if (canInstall) {

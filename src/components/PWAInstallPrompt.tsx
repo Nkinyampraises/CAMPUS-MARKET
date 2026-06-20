@@ -13,7 +13,6 @@ import appLogo from '@/assets/image/logoi.png';
 const DISMISS_KEY = 'pwa-install-dismissed';
 const DISMISS_COOLDOWN_MS = 1000 * 60 * 60 * 24 * 14; // 14 days
 const ANON_DELAY_MS = 25_000; // first-visit delay for logged-out users
-const LOGIN_DELAY_MS = 3_000; // shortly after login
 
 const recentlyDismissed = (): boolean => {
   try {
@@ -36,14 +35,15 @@ export function PWAInstallPrompt() {
 
   // Decide whether/when to surface the banner.
   useEffect(() => {
+    // Install UI is only for signed-out visitors on the web app.
+    if (currentUser) { setVisible(false); return; }
     if (isCapacitorApp || isInstalled || recentlyDismissed()) return;
     if (!canInstall && !isIos) return; // nothing to offer yet
 
-    const delay = currentUser ? LOGIN_DELAY_MS : ANON_DELAY_MS;
     showTimerRef.current = setTimeout(() => {
       setIosMode(isIos && !canInstall);
       setVisible(true);
-    }, delay);
+    }, ANON_DELAY_MS);
 
     return () => {
       if (showTimerRef.current) clearTimeout(showTimerRef.current);
