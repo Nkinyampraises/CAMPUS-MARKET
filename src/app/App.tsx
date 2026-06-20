@@ -60,7 +60,6 @@ import { AdminSectionLayout } from '@/components/AdminSectionLayout';
 import { BuyerSectionLayout } from '@/components/BuyerSectionLayout';
 import { SellerSectionLayout } from '@/components/SellerSectionLayout';
 import { AiAssistantLauncher } from '@/components/AiAssistantLauncher';
-import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 
 function OfflineBanner() {
@@ -402,7 +401,6 @@ function AppLayout() {
       </main>
       <AiAssistantLauncher />
       {showFooter && <Footer />}
-      <PWAInstallPrompt />
       <Toaster />
     </div>
   );
