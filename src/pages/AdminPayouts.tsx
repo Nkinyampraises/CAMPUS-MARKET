@@ -273,13 +273,13 @@ export function AdminPayouts() {
       const status = String(data?.withdrawal?.status || '').toLowerCase();
       if (status === 'processing' || status === 'pending') {
         toast.info(
-          '⚠️ No payment API configured. The platform fees are already in your MTN MoMo merchant account (671562474). To withdraw: open MTN MoMo app → Transfer → enter your personal number and amount.',
-          { duration: 10000 }
+          `⏳ Payout to ${platformWithdrawPhone} sent via Fapshi — it's processing and will be confirmed shortly.`,
+          { duration: 8000 }
         );
       } else {
         toast.success(
-          '✅ Recorded as withdrawn. Remember: platform fees collected via USSD are already in MoMo account 671562474 — transfer manually to your personal account.',
-          { duration: 8000 }
+          `✅ Payout completed — funds sent to ${platformWithdrawPhone} via Fapshi.`,
+          { duration: 6000 }
         );
       }
       await fetchPayouts();
@@ -295,7 +295,7 @@ export function AdminPayouts() {
       {/* Info banner — explains how platform fees are collected */}
       <div className="rounded-xl border border-border bg-[#FEF3C7] p-4 text-sm text-[#D97706]">
         <p className="font-bold mb-1">💡 How Platform Revenue Works</p>
-        <p>Platform fees (from transactions and subscriptions) are collected via USSD and go directly into the merchant MTN MoMo account <strong>671562474</strong>. To access your funds, open your MTN MoMo app and transfer to your personal account. The "Withdraw" button below records the withdrawal in the system.</p>
+        <p>Platform fees (from transactions and subscriptions) accumulate in the platform revenue wallet. Use the <strong>Withdraw</strong> button below to send funds to a mobile-money number via <strong>Fapshi</strong>. The payout is initiated immediately and confirmed by Fapshi shortly after.</p>
       </div>
 
       <Card>
@@ -366,7 +366,7 @@ export function AdminPayouts() {
 
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-xs text-muted-foreground">
-              Current provider payout mode may be real (CamPay) or mock depending on backend configuration.
+              Current provider payout mode may be real (Fapshi) or mock depending on backend configuration.
             </p>
             <Button
               disabled={

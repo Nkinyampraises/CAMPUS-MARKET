@@ -25,6 +25,9 @@ yarn-error.log*
 .env*.local
 .env
 
+# database cleanup backups (contain real order/wallet data — never commit)
+db-cleanup-backup-*.json
+
 # vite
 .vite/
 

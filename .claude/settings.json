@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git ls-remote *)",
+      "Bash(git fetch *)",
+      "Bash(git log *)",
+      "Read(//tmp/**)",
+      "Bash(rm -f /tmp/msgs.txt)",
+      "Bash(gh auth *)",
+      "Bash(gh api *)",
+      "PowerShell(gh auth status 2>&1)",
+      "PowerShell(gh api repos/Nkinyampraises/CAMPUS-MARKET/contributors --jq '.[] | \"\\\\\\(.login\\)  contributions=\\\\\\(.contributions\\)\"' 2>&1)",
+      "PowerShell(\"=== contributors ===\")",
+      "PowerShell(try { $r = Invoke-RestMethod -Uri \"https://api.github.com/repos/Nkinyampraises/CAMPUS-MARKET/contributors?anon=1\" -Headers @{ \"User-Agent\"=\"claude\" }; $r | ForEach-Object { \"{0,-25} type={1} contributions={2}\" -f $_.login, $_.type, $_.contributions } } catch { \"ERROR: $\\($_.Exception.Message\\)\"; $_.Exception.Response.StatusCode.value__ })"
+    ]
+  }
+}

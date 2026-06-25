@@ -1433,15 +1433,19 @@ const ALLOWED_PICKUP_KEYWORDS = [
 ];
 
 const ORDER_STATUS = {
+  AWAITING_PAYMENT: "awaiting_payment",
   PAID_PENDING_DELIVERY: "paid_pending_delivery",
   DELIVERED_RELEASED: "delivered_released",
   REFUNDED: "refunded",
+  PAYMENT_FAILED: "payment_failed",
 } as const;
 
 const ESCROW_STATUS = {
+  AWAITING: "awaiting_payment",
   PENDING: "pending",
   RELEASED: "released",
   REFUNDED: "refunded",
+  VOIDED: "voided",
 } as const;
 
 const WITHDRAWAL_STATUS = {
@@ -1687,34 +1691,34 @@ const toDayKey = (value: any) => {
 };
 
 const normalizeOrderStatusLabel = (status: string) => {
+  if (status === ORDER_STATUS.AWAITING_PAYMENT) return "AWAITING PAYMENT";
   if (status === ORDER_STATUS.PAID_PENDING_DELIVERY) return "PAID - PENDING DELIVERY";
   if (status === ORDER_STATUS.DELIVERED_RELEASED) return "DELIVERED - RELEASED";
   if (status === ORDER_STATUS.REFUNDED) return "REFUNDED";
+  if (status === ORDER_STATUS.PAYMENT_FAILED) return "PAYMENT FAILED";
   return status;
 };
 
 const REQUESTED_PAYMENT_PROVIDER_MODE = (Deno.env.get("PAYMENT_PROVIDER_MODE") || "").trim().toLowerCase();
-const CAMPAY_APP_CREDENTIAL = (Deno.env.get("CAMPAY_APP_ID") || Deno.env.get("CAMPAY_API_KEY") || "").trim();
-const CAMPAY_USERNAME = (Deno.env.get("CAMPAY_USERNAME") || Deno.env.get("CAMPAY_APP_USERNAME") || "").trim();
-const CAMPAY_PASSWORD = (Deno.env.get("CAMPAY_PASSWORD") || Deno.env.get("CAMPAY_APP_PASSWORD") || "").trim();
-const CAMPAY_HAS_REQUIRED_CREDENTIALS = Boolean(
-  CAMPAY_APP_CREDENTIAL &&
-  CAMPAY_USERNAME &&
-  CAMPAY_PASSWORD,
-);
+// ── Fapshi payment provider (Direct Pay for collection, Payout for disbursement) ──
+// Fapshi uses two header credentials (apiuser + apikey) with a SEPARATE pair per
+// service: one for collection (charging buyers) and one for payout (paying sellers).
+// There is no OAuth/token step. Minimum transaction amount is 100 XAF.
+const FAPSHI_BASE_URL = (Deno.env.get("FAPSHI_BASE_URL") || "https://live.fapshi.com").replace(/\/+$/, "");
+const FAPSHI_COLLECTION_API_USER = (Deno.env.get("FAPSHI_COLLECTION_API_USER") || "").trim();
+const FAPSHI_COLLECTION_API_KEY = (Deno.env.get("FAPSHI_COLLECTION_API_KEY") || "").trim();
+const FAPSHI_PAYOUT_API_USER = (Deno.env.get("FAPSHI_PAYOUT_API_USER") || "").trim();
+const FAPSHI_PAYOUT_API_KEY = (Deno.env.get("FAPSHI_PAYOUT_API_KEY") || "").trim();
+const FAPSHI_MIN_AMOUNT = 100;
+const FAPSHI_COLLECTION_READY = Boolean(FAPSHI_COLLECTION_API_USER && FAPSHI_COLLECTION_API_KEY);
+const FAPSHI_PAYOUT_READY = Boolean(FAPSHI_PAYOUT_API_USER && FAPSHI_PAYOUT_API_KEY);
+// Kept the env name PAYMENT_PROVIDER_MODE for compatibility; "fapshi" or "mock".
 const PAYMENT_PROVIDER_MODE = (() => {
   if (REQUESTED_PAYMENT_PROVIDER_MODE === "mock") return "mock";
-  if (REQUESTED_PAYMENT_PROVIDER_MODE === "campay") {
-    return CAMPAY_HAS_REQUIRED_CREDENTIALS ? "campay" : "mock";
-  }
-  return CAMPAY_HAS_REQUIRED_CREDENTIALS ? "campay" : "mock";
+  return FAPSHI_COLLECTION_READY ? "fapshi" : "mock";
 })();
-const CAMPAY_BASE_URL = (Deno.env.get("CAMPAY_BASE_URL") || "https://demo.campay.net/api").replace(/\/+$/, "");
-const CAMPAY_TOKEN_URL = Deno.env.get("CAMPAY_TOKEN_URL") || `${CAMPAY_BASE_URL}/token/`;
-const CAMPAY_COLLECTION_URL = Deno.env.get("CAMPAY_COLLECTION_URL") || `${CAMPAY_BASE_URL}/collect/`;
-const CAMPAY_DISBURSE_URL = Deno.env.get("CAMPAY_DISBURSE_URL") || `${CAMPAY_BASE_URL}/withdraw/`;
-const CAMPAY_AUTH_SCHEME = Deno.env.get("CAMPAY_AUTH_SCHEME") || "Token";
-const CAMPAY_FORCE_MOCK = (Deno.env.get("CAMPAY_FORCE_MOCK") || "").toLowerCase() === "true";
+// Kill-switch: FAPSHI_FORCE_MOCK=true simulates success without hitting Fapshi.
+const FAPSHI_FORCE_MOCK = (Deno.env.get("FAPSHI_FORCE_MOCK") || "").toLowerCase() === "true";
 const MERCHANT_MOMO_NUMBER = normalizePhone(Deno.env.get("MERCHANT_MOMO_NUMBER") || "671562474");
 const MERCHANT_MOMO_NAME = Deno.env.get("MERCHANT_MOMO_NAME") || "nkinyampraisesncha";
 const TRANSACTION_FEE_PERCENT = Math.max(0, toSafeNumber(Deno.env.get("TRANSACTION_FEE_PERCENT"), 2));
@@ -1752,25 +1756,28 @@ if (ESCROW_API_KEY && !ESCROW_API_BASE_URL) {
   console.warn("ESCROW_API_KEY is set but ESCROW_API_BASE_URL is missing. External escrow sync is disabled.");
 }
 
-if (REQUESTED_PAYMENT_PROVIDER_MODE === "campay" && !CAMPAY_HAS_REQUIRED_CREDENTIALS) {
+if (REQUESTED_PAYMENT_PROVIDER_MODE === "fapshi" && !FAPSHI_COLLECTION_READY) {
   console.warn(
-    "PAYMENT_PROVIDER_MODE=campay was requested but CamPay credentials are incomplete. Falling back to mock payment mode.",
+    "PAYMENT_PROVIDER_MODE=fapshi was requested but Fapshi collection credentials are incomplete. Falling back to mock payment mode.",
+  );
+}
+if (FAPSHI_COLLECTION_READY && !FAPSHI_PAYOUT_READY) {
+  console.warn(
+    "Fapshi collection credentials are set but payout credentials are missing. Seller payouts will fail until FAPSHI_PAYOUT_API_USER/FAPSHI_PAYOUT_API_KEY are configured.",
   );
 }
 
-let cachedCampayToken = "";
-let cachedCampayTokenExpiry = 0;
-
-const formatCameroonPhoneE164 = (phone: string) => {
-  const normalized = normalizePhone(phone);
+// Fapshi expects the local 9-digit Cameroon number (e.g. "671234567"), NOT E.164.
+const formatCameroonPhoneLocal = (phone: string) => {
+  let normalized = normalizePhone(phone);
   if (normalized.startsWith("237")) {
-    return `+${normalized}`;
+    normalized = normalized.slice(3);
   }
-  return `+237${normalized}`;
+  return normalized;
 };
 
 const shouldUseMockProvider = () =>
-  CAMPAY_FORCE_MOCK || PAYMENT_PROVIDER_MODE !== "campay";
+  FAPSHI_FORCE_MOCK || PAYMENT_PROVIDER_MODE !== "fapshi";
 
 const calculateTransactionFee = (amount: number) =>
   roundXafAmount((roundXafAmount(amount) * TRANSACTION_FEE_PERCENT) / 100 + TRANSACTION_FEE_FLAT);
@@ -1891,159 +1898,119 @@ async function syncEscrowProvider(action: EscrowProviderAction, payload: Record<
   }
 }
 
-type CampayTokenOptions = {
-  forceRefresh?: boolean;
-  ignoreStaticToken?: boolean;
-};
-
-async function getCampayAccessToken(options: CampayTokenOptions = {}) {
-  const { forceRefresh = false, ignoreStaticToken = false } = options;
-
-  if (!forceRefresh && cachedCampayToken && Date.now() < cachedCampayTokenExpiry) {
-    return cachedCampayToken;
-  }
-
-  const staticToken = Deno.env.get("CAMPAY_ACCESS_TOKEN");
-  if (!forceRefresh && !ignoreStaticToken && staticToken && staticToken.trim().length > 0) {
-    return staticToken.trim();
-  }
-
-  const username = CAMPAY_USERNAME;
-  const password = CAMPAY_PASSWORD;
-  const appId = Deno.env.get("CAMPAY_APP_ID");
-
-  if (!username || !password) {
-    throw new Error("CamPay credentials are missing");
-  }
-
-  const requestToken = async (payload: Record<string, string>) => {
-    const response = await fetch(CAMPAY_TOKEN_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-
-    const rawText = await response.text();
-    let data: any = {};
-    if (rawText) {
-      try {
-        data = JSON.parse(rawText);
-      } catch {
-        data = { rawText };
-      }
+// ── Payment audit log ────────────────────────────────────────────────────────
+// Every payment event (collection, payout, webhook, reconciliation) is appended
+// to an immutable audit trail under payment:audit:<id>, indexed for retrieval.
+async function recordPaymentAudit(event: string, detail: Record<string, any> = {}) {
+  try {
+    const id = createEntityId("PAUD");
+    const record = {
+      id,
+      event,
+      at: new Date().toISOString(),
+      ...detail,
+    };
+    await kv.set(`payment:audit:${id}`, record);
+    const index = (await kv.get("payment:audit:ids")) || [];
+    index.push(id);
+    if (index.length > 1000) {
+      index.splice(0, index.length - 1000);
     }
-
-    return { response, data };
-  };
-
-  const tokenPayload: Record<string, string> = { username, password };
-  const tokenPayloadAlt: Record<string, string> = { app_username: username, app_password: password };
-  if (appId) {
-    tokenPayload.app_id = appId;
-    tokenPayloadAlt.app_id = appId;
+    await kv.set("payment:audit:ids", index);
+    return record;
+  } catch (error) {
+    // Never let audit logging break a payment flow.
+    console.error("Failed to write payment audit log:", error);
+    return null;
   }
-
-  let { response: tokenResponse, data: tokenData } = await requestToken(tokenPayload);
-  if (!tokenResponse.ok && [400, 401, 403].includes(tokenResponse.status)) {
-    ({ response: tokenResponse, data: tokenData } = await requestToken(tokenPayloadAlt));
-  }
-
-  if (!tokenResponse.ok) {
-    const rawMessage = typeof tokenData?.rawText === "string" ? tokenData.rawText.trim() : "";
-    const detail = (
-      tokenData?.error ||
-      tokenData?.message ||
-      (rawMessage.length > 300 ? `${rawMessage.slice(0, 300)}…` : rawMessage) ||
-      ""
-    ).toString();
-
-    throw new Error(detail || `Failed to authenticate with CamPay (${tokenResponse.status})`);
-  }
-
-  const token = tokenData?.token || tokenData?.access_token || tokenData?.accessToken;
-  if (!token || typeof token !== "string") {
-    throw new Error("CamPay token was not returned");
-  }
-
-  cachedCampayToken = token;
-  const expiresInSeconds = toSafeNumber(
-    tokenData?.expires_in ?? tokenData?.expiresIn ?? tokenData?.expires,
-    0,
-  );
-  const defaultMs = 45 * 60 * 1000;
-  const expiresInMs = expiresInSeconds > 0 ? Math.floor(expiresInSeconds * 1000) : defaultMs;
-  cachedCampayTokenExpiry = Date.now() + Math.max(30 * 1000, expiresInMs - 60 * 1000);
-  return token;
 }
 
-async function callCampay(endpoint: string, payload: Record<string, any>) {
-  const makeRequest = async (token: string) => {
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `${CAMPAY_AUTH_SCHEME} ${token}`,
-      },
-      body: JSON.stringify(payload),
-    });
+type FapshiService = "collection" | "payout";
 
-    const rawText = await response.text();
-    let data: any = {};
-    if (rawText) {
-      try {
-        data = JSON.parse(rawText);
-      } catch {
-        data = { rawText };
-      }
-    }
+const getFapshiCredentials = (service: FapshiService) =>
+  service === "payout"
+    ? { apiuser: FAPSHI_PAYOUT_API_USER, apikey: FAPSHI_PAYOUT_API_KEY }
+    : { apiuser: FAPSHI_COLLECTION_API_USER, apikey: FAPSHI_COLLECTION_API_KEY };
 
-    return { response, data };
-  };
+// Low-level Fapshi HTTP call. Fapshi authenticates with apiuser + apikey headers
+// (no token exchange). Throws a clean Error (no secret leakage) on non-2xx.
+async function callFapshi(
+  method: "GET" | "POST",
+  path: string,
+  service: FapshiService,
+  payload?: Record<string, any>,
+) {
+  const { apiuser, apikey } = getFapshiCredentials(service);
+  if (!apiuser || !apikey) {
+    throw new Error(`Fapshi ${service} credentials are missing`);
+  }
 
-  let token = await getCampayAccessToken();
-  let { response, data } = await makeRequest(token);
+  const response = await fetch(`${FAPSHI_BASE_URL}${path.startsWith("/") ? path : `/${path}`}`, {
+    method,
+    headers: {
+      "Content-Type": "application/json",
+      apiuser,
+      apikey,
+    },
+    body: method === "POST" ? JSON.stringify(payload || {}) : undefined,
+  });
 
-  if (response.status === 401) {
-    cachedCampayToken = "";
-    cachedCampayTokenExpiry = 0;
-
+  const rawText = await response.text();
+  let data: any = {};
+  if (rawText) {
     try {
-      token = await getCampayAccessToken({ forceRefresh: true, ignoreStaticToken: true });
-      ({ response, data } = await makeRequest(token));
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Unable to refresh CamPay access token";
-      throw new Error(`CamPay unauthorized (401). ${message}`);
+      data = JSON.parse(rawText);
+    } catch {
+      data = { rawText };
     }
   }
 
   if (!response.ok) {
     const rawMessage = typeof data?.rawText === "string" ? data.rawText.trim() : "";
     const detail = (
-      data?.error ||
       data?.message ||
+      data?.error ||
       (rawMessage.length > 300 ? `${rawMessage.slice(0, 300)}…` : rawMessage) ||
       ""
     ).toString();
-
-    const baseMessage = detail || `CamPay API error (${response.status})`;
-    const hint =
-      response.status === 401
-        ? " Check CAMPAY_AUTH_SCHEME, CAMPAY_BASE_URL, and CamPay credentials."
-        : "";
-
-    throw new Error(`${baseMessage}${hint}`);
+    throw new Error(detail || `Fapshi API error (${response.status})`);
   }
 
   return data;
 }
 
+// Fetch the authoritative status of a transaction. This is the source of truth
+// for webhook verification — never trust the webhook POST body directly.
+async function getFapshiPaymentStatus(transId: string, service: FapshiService = "collection") {
+  return await callFapshi("GET", `/payment-status/${encodeURIComponent(transId)}`, service);
+}
+
+// Normalize Fapshi status (CREATED|PENDING|SUCCESSFUL|FAILED|EXPIRED) to the
+// lowercase vocabulary the rest of the codebase already uses.
+const normalizeFapshiStatus = (status: any) => {
+  const value = String(status || "").toUpperCase();
+  if (value === "SUCCESSFUL") return "successful";
+  if (value === "FAILED") return "failed";
+  if (value === "EXPIRED") return "expired";
+  if (value === "PENDING" || value === "CREATED") return "pending";
+  return value.toLowerCase() || "pending";
+};
+
+const fapshiMedium = (provider: "mtn-momo" | "orange-money") =>
+  provider === "orange-money" ? "orange money" : "mobile money";
+
+// Charge a buyer via Fapshi Direct Pay. Returns immediately with status "pending"
+// (a PIN prompt is pushed to the payer's phone); the SUCCESSFUL/FAILED outcome
+// arrives later via webhook. The caller must NOT treat "pending" as paid.
 async function processInboundMobileMoneyPayment(params: {
   amount: number;
   phoneNumber: string;
   provider: "mtn-momo" | "orange-money";
   reference: string;
   description: string;
+  buyerName?: string;
+  buyerEmail?: string;
+  userId?: string;
 }) {
   if (shouldUseMockProvider()) {
     return {
@@ -2055,64 +2022,54 @@ async function processInboundMobileMoneyPayment(params: {
   }
 
   const normalizedAmount = roundXafAmount(params.amount);
-  if (normalizedAmount <= 0) {
-    throw new Error("Invalid amount");
+  if (normalizedAmount < FAPSHI_MIN_AMOUNT) {
+    throw new Error(`Minimum payment amount is ${FAPSHI_MIN_AMOUNT} XAF`);
   }
 
-  const payload = {
+  const payload: Record<string, any> = {
     amount: normalizedAmount,
-    from: formatCameroonPhoneE164(params.phoneNumber),
-    description: params.description,
-    external_reference: params.reference,
-    method: params.provider,
-    channel: params.provider === "orange-money" ? "orange" : "mtn",
+    phone: formatCameroonPhoneLocal(params.phoneNumber),
+    medium: fapshiMedium(params.provider),
+    externalId: params.reference,
+    message: params.description,
   };
+  if (params.buyerName) payload.name = params.buyerName;
+  if (params.buyerEmail) payload.email = params.buyerEmail;
+  if (params.userId) payload.userId = params.userId;
 
-  let data: any;
-  try {
-    data = await callCampay(CAMPAY_COLLECTION_URL, payload);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error || "");
-    if (!/invalid amount|whole numbers/i.test(message)) {
-      throw error;
-    }
+  const data = await callFapshi("POST", "/direct-pay", "collection", payload);
 
-    // Some providers accept whole-number amounts only when passed as digit strings.
-    data = await callCampay(CAMPAY_COLLECTION_URL, {
-      ...payload,
-      amount: String(normalizedAmount),
-    });
+  const transId = String(data?.transId || data?.transID || "");
+  if (!transId) {
+    throw new Error(data?.message || "Payment request was not accepted by Fapshi");
   }
 
-  const status = String(
-    data?.status || data?.transaction_status || data?.payment_status || "pending",
-  ).toLowerCase();
-  const providerReference = String(
-    data?.reference ||
-    data?.transaction_reference ||
-    data?.operator_reference ||
-    params.reference,
-  );
-
-  const acceptedStatuses = new Set(["pending", "accepted", "successful", "success", "completed"]);
-  if (!acceptedStatuses.has(status) && !providerReference) {
-    throw new Error(data?.message || "Payment request was not accepted by CamPay");
-  }
+  await recordPaymentAudit("direct_pay_initiated", {
+    transId,
+    reference: params.reference,
+    amount: normalizedAmount,
+    provider: params.provider,
+  });
 
   return {
-    provider: "campay",
-    status,
-    reference: providerReference,
+    provider: "fapshi",
+    status: "pending",
+    reference: transId,
     raw: data,
   };
 }
 
+// Pay a seller (or refund a buyer) via Fapshi Payout. Uses the payout credential
+// pair. Like collection, the final outcome is confirmed via webhook.
 async function processOutboundMobileMoneyPayout(params: {
   amount: number;
   phoneNumber: string;
   provider: "mtn-momo" | "orange-money";
   reference: string;
   description: string;
+  recipientName?: string;
+  recipientEmail?: string;
+  userId?: string;
 }) {
   if (shouldUseMockProvider()) {
     return {
@@ -2124,53 +2081,43 @@ async function processOutboundMobileMoneyPayout(params: {
   }
 
   const normalizedAmount = roundXafAmount(params.amount);
-  if (normalizedAmount <= 0) {
-    throw new Error("Invalid amount");
+  if (normalizedAmount < FAPSHI_MIN_AMOUNT) {
+    throw new Error(`Minimum payout amount is ${FAPSHI_MIN_AMOUNT} XAF`);
+  }
+  if (!FAPSHI_PAYOUT_READY) {
+    throw new Error("Fapshi payout credentials are not configured");
   }
 
-  const payload = {
+  const payload: Record<string, any> = {
     amount: normalizedAmount,
-    to: formatCameroonPhoneE164(params.phoneNumber),
-    description: params.description,
-    external_reference: params.reference,
-    method: params.provider,
-    channel: params.provider === "orange-money" ? "orange" : "mtn",
+    phone: formatCameroonPhoneLocal(params.phoneNumber),
+    medium: fapshiMedium(params.provider),
+    externalId: params.reference,
+    message: params.description,
   };
+  if (params.recipientName) payload.name = params.recipientName;
+  if (params.recipientEmail) payload.email = params.recipientEmail;
+  if (params.userId) payload.userId = params.userId;
 
-  let data: any;
-  try {
-    data = await callCampay(CAMPAY_DISBURSE_URL, payload);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error || "");
-    if (!/invalid amount|whole numbers/i.test(message)) {
-      throw error;
-    }
+  const data = await callFapshi("POST", "/payout", "payout", payload);
 
-    data = await callCampay(CAMPAY_DISBURSE_URL, {
-      ...payload,
-      amount: String(normalizedAmount),
-    });
+  const transId = String(data?.transId || data?.transID || "");
+  const status = normalizeFapshiStatus(data?.status || "pending");
+  if (!transId) {
+    throw new Error(data?.message || "Payout request was not accepted by Fapshi");
   }
 
-  const status = String(
-    data?.status || data?.transaction_status || data?.payout_status || "pending",
-  ).toLowerCase();
-  const providerReference = String(
-    data?.reference ||
-    data?.transaction_reference ||
-    data?.operator_reference ||
-    params.reference,
-  );
-
-  const acceptedStatuses = new Set(["pending", "accepted", "successful", "success", "completed"]);
-  if (!acceptedStatuses.has(status) && !providerReference) {
-    throw new Error(data?.message || "Payout request was not accepted by CamPay");
-  }
+  await recordPaymentAudit("payout_initiated", {
+    transId,
+    reference: params.reference,
+    amount: normalizedAmount,
+    provider: params.provider,
+  });
 
   return {
-    provider: "campay",
+    provider: "fapshi",
     status,
-    reference: providerReference,
+    reference: transId,
     raw: data,
   };
 }
@@ -2236,6 +2183,67 @@ async function adjustWallet(userId: string, changes: { availableDelta?: number; 
     throw new Error("Insufficient wallet balance");
   }
   return await saveWallet(wallet);
+}
+
+// Map a Fapshi transaction id to a payout/withdrawal record so the webhook can
+// reconcile its final status. Only meaningful for real Fapshi (mock has no txId).
+async function indexFapshiPayout(payoutResult: any, withdrawalId: string) {
+  if (payoutResult?.provider === "fapshi" && payoutResult?.reference) {
+    await kv.set(`fapshi:tx:${payoutResult.reference}`, {
+      type: "payout",
+      withdrawalId,
+      createdAt: new Date().toISOString(),
+    });
+  }
+}
+
+// Reconcile a payout's final status from a verified Fapshi webhook. Idempotent:
+// it only acts while the withdrawal is still PROCESSING. On FAILED/EXPIRED it
+// refunds the amount back to the user's available balance exactly once.
+async function reconcileFapshiPayout(withdrawalId: string, status: string, raw: any) {
+  const withdrawal = await kv.get(`withdrawal:${withdrawalId}`);
+  if (!withdrawal) return null;
+  if (withdrawal.status !== WITHDRAWAL_STATUS.PROCESSING) {
+    return { withdrawal, skipped: true };
+  }
+  const now = new Date().toISOString();
+
+  if (status === "successful") {
+    const updated = {
+      ...withdrawal,
+      status: WITHDRAWAL_STATUS.COMPLETED,
+      providerStatus: status,
+      providerPayload: raw ?? withdrawal.providerPayload,
+      updatedAt: now,
+    };
+    await kv.set(`withdrawal:${withdrawalId}`, updated);
+    await recordPaymentAudit("payout_completed", { withdrawalId, amount: withdrawal.amount });
+    return { withdrawal: updated, completed: true };
+  }
+
+  if (status === "failed" || status === "expired") {
+    // Refund the held amount back to the user — the money never left.
+    if (!withdrawal.walletRefunded && withdrawal.userId && withdrawal.amount > 0) {
+      try {
+        await adjustWallet(withdrawal.userId, { availableDelta: roundXafAmount(withdrawal.amount) });
+      } catch (refundError) {
+        console.error("Failed to refund failed payout to wallet:", refundError);
+      }
+    }
+    const updated = {
+      ...withdrawal,
+      status: WITHDRAWAL_STATUS.FAILED,
+      providerStatus: status,
+      providerPayload: raw ?? withdrawal.providerPayload,
+      walletRefunded: true,
+      updatedAt: now,
+    };
+    await kv.set(`withdrawal:${withdrawalId}`, updated);
+    await recordPaymentAudit("payout_failed", { withdrawalId, amount: withdrawal.amount, status });
+    return { withdrawal: updated, failed: true };
+  }
+
+  return { withdrawal, pending: true };
 }
 
 const sortByCreatedDesc = (a: any, b: any) =>
@@ -2379,6 +2387,65 @@ function buildSubscriptionTransaction(payment: any) {
     releasedAt: createdAt,
     refundedAt: null,
   };
+}
+
+// Activate a subscription once its Fapshi payment is confirmed. Idempotent:
+// no-ops (and never double-credits the platform wallet) if already active.
+async function activateSubscriptionFromPayment(paymentId: string) {
+  const payment = await kv.get(`subscription_payment:${paymentId}`);
+  if (!payment) return null;
+  if (payment.status === "active") {
+    return { payment, alreadyActive: true, user: await getUserProfile(payment.userId) };
+  }
+  const profile = await getUserProfile(payment.userId);
+  if (!profile) return null;
+
+  const now = new Date();
+  const nowIso = now.toISOString();
+  const endDate = new Date(now.getTime());
+  if (payment.plan === "yearly") {
+    endDate.setFullYear(endDate.getFullYear() + 1);
+  } else {
+    endDate.setMonth(endDate.getMonth() + 1);
+  }
+
+  const updatedProfile = {
+    ...profile,
+    phone: payment.phoneNumber || profile.phone,
+    subscriptionStatus: "active",
+    subscriptionPlan: payment.plan,
+    subscriptionStartDate: nowIso,
+    subscriptionEndDate: endDate.toISOString(),
+    subscriptionPaymentMethod: payment.paymentMethod,
+    subscriptionPhoneNumber: payment.phoneNumber,
+    subscriptionAmount: payment.amount,
+    subscriptionTransactionFee: payment.transactionFee,
+    subscriptionTotalCharged: payment.totalCharged,
+    subscriptionReference: payment.providerReference,
+    subscriptionUpdatedAt: nowIso,
+  };
+  await kv.set(`user:${payment.userId}`, updatedProfile);
+  await adjustWallet(ADMIN_WALLET_USER_ID, { availableDelta: roundXafAmount(payment.totalCharged) });
+
+  const activePayment = { ...payment, status: "active", providerStatus: "successful", activatedAt: nowIso };
+  await kv.set(`subscription_payment:${paymentId}`, activePayment);
+  await kv.set(`transaction:${paymentId}`, buildSubscriptionTransaction(activePayment));
+  await recordPaymentAudit("subscription_activated", {
+    paymentId,
+    userId: payment.userId,
+    amount: payment.totalCharged,
+  });
+  return { user: updatedProfile, payment: activePayment };
+}
+
+// Mark a subscription payment failed/expired (no activation, no wallet credit).
+async function failSubscriptionPayment(paymentId: string, reason: string) {
+  const payment = await kv.get(`subscription_payment:${paymentId}`);
+  if (!payment || payment.status === "active") return null;
+  const failed = { ...payment, status: "failed", providerStatus: reason, updatedAt: new Date().toISOString() };
+  await kv.set(`subscription_payment:${paymentId}`, failed);
+  await recordPaymentAudit("subscription_failed", { paymentId, userId: payment.userId, reason });
+  return { payment: failed, failed: true };
 }
 
 async function buildPayoutSummaries() {
@@ -3939,12 +4006,17 @@ app.get("/make-server-50b25a4f/health", (c) => {
   });
 });
 
-// CamPay webhook callback (stores payload for inspection)
-const handleCampayWebhookGet = (c: any) => c.json({ status: "ok" });
-const handleCampayWebhookPost = async (c: any) => {
+// Fapshi webhook callback.
+// Fapshi POSTs the payment-status object on every status change. There is NO
+// HMAC signature, so we NEVER trust the POST body: we extract only the transId
+// and re-fetch the authoritative status from Fapshi before acting. Processing
+// is idempotent per transId so retries/duplicates are safe.
+const handleFapshiWebhookGet = (c: any) => c.json({ status: "ok" });
+const handleFapshiWebhookPost = async (c: any) => {
+  let rawBody = "";
+  let payload: any = null;
   try {
-    const rawBody = await c.req.text();
-    let payload: any = null;
+    rawBody = await c.req.text();
     if (rawBody) {
       try {
         payload = JSON.parse(rawBody);
@@ -3953,36 +4025,100 @@ const handleCampayWebhookPost = async (c: any) => {
       }
     }
 
-    const eventId = createEntityId("CPWH");
-    const receivedAt = new Date().toISOString();
+    // Store the raw event for audit (capped ring buffer).
+    const eventId = createEntityId("FPWH");
     const headers = Object.fromEntries(c.req.raw.headers.entries());
-
-    const record = {
+    await kv.set(`fapshi:webhook:${eventId}`, {
       id: eventId,
-      receivedAt,
+      receivedAt: new Date().toISOString(),
       headers,
       payload,
       rawBody,
-    };
-
-    await kv.set(`campay:webhook:${eventId}`, record);
-    const recent = (await kv.get("campay:webhook:ids")) || [];
+    });
+    const recent = (await kv.get("fapshi:webhook:ids")) || [];
     recent.push(eventId);
     if (recent.length > 200) {
       recent.splice(0, recent.length - 200);
     }
-    await kv.set("campay:webhook:ids", recent);
+    await kv.set("fapshi:webhook:ids", recent);
+
+    const transId = String(payload?.transId || payload?.transID || "").trim();
+    await recordPaymentAudit("webhook_received", { transId, eventId });
+    if (!transId) {
+      return c.json({ received: true });
+    }
+
+    // Idempotency: skip if we already applied a terminal outcome for this txn.
+    const processed = await kv.get(`fapshi:webhook:processed:${transId}`);
+    if (processed && ["successful", "failed", "expired"].includes(processed.status)) {
+      return c.json({ received: true, duplicate: true });
+    }
+
+    // Resolve what this transId belongs to (order vs payout).
+    const mapping = await kv.get(`fapshi:tx:${transId}`);
+    const service = mapping?.type === "payout" ? "payout" : "collection";
+
+    // Source of truth: re-fetch the status from Fapshi.
+    let statusData: any = null;
+    try {
+      statusData = await getFapshiPaymentStatus(transId, service);
+    } catch (verifyError) {
+      console.error("Fapshi webhook verification failed:", verifyError);
+      await recordPaymentAudit("webhook_verify_failed", {
+        transId,
+        error: verifyError instanceof Error ? verifyError.message : String(verifyError),
+      });
+      // Acknowledge so Fapshi doesn't retry-storm; we can reconcile later.
+      return c.json({ received: true, verified: false });
+    }
+
+    const status = normalizeFapshiStatus(statusData?.status);
+    await recordPaymentAudit("webhook_verified", { transId, status, type: mapping?.type || "unknown" });
+
+    if (mapping?.type === "payout") {
+      await reconcileFapshiPayout(mapping.withdrawalId, status, statusData);
+    } else if (mapping?.type === "subscription") {
+      if (status === "successful") {
+        await activateSubscriptionFromPayment(mapping.paymentId);
+      } else if (status === "failed" || status === "expired") {
+        await failSubscriptionPayment(mapping.paymentId, `Fapshi payment ${status}`);
+      }
+    } else if (mapping?.type === "order" || mapping?.orderId) {
+      if (status === "successful") {
+        await confirmEscrowOrderPaid(mapping.orderId);
+      } else if (status === "failed" || status === "expired") {
+        await voidAwaitingEscrowOrder(mapping.orderId, `Fapshi payment ${status}`, status);
+      }
+    }
+
+    if (["successful", "failed", "expired"].includes(status)) {
+      await kv.set(`fapshi:webhook:processed:${transId}`, {
+        status,
+        type: mapping?.type || "unknown",
+        at: new Date().toISOString(),
+      });
+    }
 
     return c.json({ received: true });
   } catch (error) {
-    console.error("CamPay webhook error:", error);
-    return c.json({ error: "Failed to process webhook" }, 500);
+    console.error("Fapshi webhook error:", error);
+    // Still 200 so the provider does not hammer retries; failure is audited.
+    await recordPaymentAudit("webhook_error", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return c.json({ received: false }, 200);
   }
 };
-app.get("/make-server-50b25a4f/campay/webhook", handleCampayWebhookGet);
-app.get("/campay/webhook", handleCampayWebhookGet);
-app.post("/make-server-50b25a4f/campay/webhook", handleCampayWebhookPost);
-app.post("/campay/webhook", handleCampayWebhookPost);
+// Fapshi callback routes (configure …/fapshi/webhook in the Fapshi dashboard).
+app.get("/make-server-50b25a4f/fapshi/webhook", handleFapshiWebhookGet);
+app.get("/fapshi/webhook", handleFapshiWebhookGet);
+app.post("/make-server-50b25a4f/fapshi/webhook", handleFapshiWebhookPost);
+app.post("/fapshi/webhook", handleFapshiWebhookPost);
+// Backward-compatible aliases for any previously configured /campay/webhook URL.
+app.get("/make-server-50b25a4f/campay/webhook", handleFapshiWebhookGet);
+app.get("/campay/webhook", handleFapshiWebhookGet);
+app.post("/make-server-50b25a4f/campay/webhook", handleFapshiWebhookPost);
+app.post("/campay/webhook", handleFapshiWebhookPost);
 
 // ============ AUTHENTICATION ROUTES ============
 
@@ -5721,50 +5857,32 @@ async function createEscrowOrderForBuyer(user: any, body: any) {
   const orderId = createEntityId("ORD");
   const escrowId = createEntityId("ESC");
   const transactionRef = `${paymentMethod.toUpperCase()}-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
-  const paymentChannel = body?.paymentChannel === "ussd" ? "ussd" : "api";
-  const providedPaymentReference = typeof body?.paymentReference === "string" ? body.paymentReference.trim() : "";
-  if (paymentChannel === "ussd" && paymentMethod !== "mtn-momo") {
-    throw new Error("USSD flow is available for MTN MoMo only");
-  }
-  const paymentResult = paymentChannel === "ussd"
-    ? {
-        provider: "ussd-manual",
-        status: "successful",
-        reference: providedPaymentReference || transactionRef,
-        raw: {
-          channel: "ussd",
-          code: typeof body?.ussdCode === "string" ? body.ussdCode.trim() : "",
-          merchantNumber: MERCHANT_MOMO_NUMBER,
-          totalCharged,
-          buyerPhoneNumber: phoneNumber,
-        },
-      }
-    : await processInboundMobileMoneyPayment({
-        amount: totalCharged,
-        phoneNumber,
-        provider: paymentMethod,
-        reference: transactionRef,
-        description: `Escrow payment for ${listing.title || "marketplace item"}`,
-      });
-  const now = new Date().toISOString();
-
-  const escrowProviderSync = await syncEscrowProvider("hold", {
-    escrowId,
-    orderId,
-    amount,
-    transactionFee,
-    totalCharged,
-    platformFee,
-    sellerNetAmount,
-    currency: "XAF",
-    buyerId: user.id,
-    sellerId: listing.sellerId,
-    paymentMethod,
-    paymentReference: paymentResult.reference || transactionRef,
-    pickupDate,
-    pickupTime,
-    pickupLocation,
+  // All payments now go through Fapshi Direct Pay (API). Manual USSD removed.
+  const paymentResult = await processInboundMobileMoneyPayment({
+    amount: totalCharged,
+    phoneNumber,
+    provider: paymentMethod,
+    reference: transactionRef,
+    description: `Escrow payment for ${listing.title || "marketplace item"}`,
+    buyerName: buyerProfile.name,
+    buyerEmail: buyerProfile.email,
+    userId: user.id,
   });
+  const now = new Date().toISOString();
+  // Fapshi Direct Pay confirms asynchronously (status "pending") via webhook.
+  // Only mock mode returns "successful" synchronously. Escrow hold + seller
+  // credit are deferred to confirmEscrowOrderPaid() until payment is confirmed.
+  const paymentConfirmed = paymentResult.status === "successful";
+
+  const awaitingSync = {
+    provider: "pending",
+    synced: false,
+    action: "hold",
+    status: "awaiting_payment",
+    reference: "",
+    raw: null,
+    syncedAt: now,
+  };
 
   const order = {
     id: orderId,
@@ -5786,8 +5904,8 @@ async function createEscrowOrderForBuyer(user: any, body: any) {
     paymentProviderResponse: paymentResult.raw,
     merchantMoMoName: MERCHANT_MOMO_NAME,
     merchantMoMoNumber: MERCHANT_MOMO_NUMBER,
-    status: ORDER_STATUS.PAID_PENDING_DELIVERY,
-    statusLabel: normalizeOrderStatusLabel(ORDER_STATUS.PAID_PENDING_DELIVERY),
+    status: ORDER_STATUS.AWAITING_PAYMENT,
+    statusLabel: normalizeOrderStatusLabel(ORDER_STATUS.AWAITING_PAYMENT),
     buyerName: buyerProfile.name,
     buyerProfilePicture: buyerProfile.profilePicture || buyerProfile.avatar || "",
     buyerPhoneNumber: buyerProfile.phone || phoneNumber,
@@ -5804,12 +5922,12 @@ async function createEscrowOrderForBuyer(user: any, body: any) {
     buyerConfirmedAt: "",
     buyerSatisfied: false,
     refundReason: "",
-    escrowProvider: escrowProviderSync.provider,
-    escrowProviderStatus: escrowProviderSync.status,
-    escrowProviderReference: escrowProviderSync.reference,
-    escrowProviderSynced: escrowProviderSync.synced,
-    escrowProviderUpdatedAt: escrowProviderSync.syncedAt,
-    escrowProviderMeta: escrowProviderSync,
+    escrowProvider: awaitingSync.provider,
+    escrowProviderStatus: awaitingSync.status,
+    escrowProviderReference: awaitingSync.reference,
+    escrowProviderSynced: awaitingSync.synced,
+    escrowProviderUpdatedAt: awaitingSync.syncedAt,
+    escrowProviderMeta: awaitingSync,
     createdAt: now,
     updatedAt: now,
   };
@@ -5824,7 +5942,7 @@ async function createEscrowOrderForBuyer(user: any, body: any) {
     total_charged: totalCharged,
     platform_fee: platformFee,
     seller_net_amount: sellerNetAmount,
-    status: ESCROW_STATUS.PENDING,
+    status: ESCROW_STATUS.AWAITING,
     proof_image_url: "",
     pickup_location: pickupLocation,
     pickup_date: pickupDate,
@@ -5838,8 +5956,8 @@ async function createEscrowOrderForBuyer(user: any, body: any) {
     provider_reference: paymentResult.reference,
     provider_payload: paymentResult.raw,
     provider_sync: {
-      hold: escrowProviderSync,
-      latest: escrowProviderSync,
+      hold: awaitingSync,
+      latest: awaitingSync,
       updatedAt: now,
     },
     created_at: now,
@@ -5850,11 +5968,8 @@ async function createEscrowOrderForBuyer(user: any, body: any) {
   await kv.set(`escrow:${escrowId}`, escrowTransaction);
   await kv.set(`transaction:${orderId}`, buildLegacyTransaction(order));
 
-  if (transactionFee > 0) {
-    await adjustWallet(ADMIN_WALLET_USER_ID, { availableDelta: transactionFee });
-  }
-  await adjustWallet(listing.sellerId, { pendingDelta: amount });
-
+  // Reserve the listing immediately so a second buyer cannot purchase the same
+  // item while this payment is being confirmed. Freed again on FAILED/EXPIRED.
   listing.status = listing.type === "sell" ? "sold" : "rented";
   listing.reservedBy = user.id;
   listing.updatedAt = now;
@@ -5884,33 +5999,226 @@ async function createEscrowOrderForBuyer(user: any, body: any) {
     await kv.set(`user:${listing.sellerId}:transactions`, sellerTxns);
   }
 
+  // Index the Fapshi transaction id so the webhook can resolve this order.
+  if (paymentResult.provider === "fapshi" && paymentResult.reference) {
+    await kv.set(`fapshi:tx:${paymentResult.reference}`, {
+      type: "order",
+      orderId,
+      escrowId,
+      createdAt: now,
+    });
+  }
+
   const listingTitle = listing.title || "your item";
-  await createUserNotification(listing.sellerId, {
-    type: "order_created",
-    title: "New order received",
-    message: `${buyerProfile.name || "A buyer"} placed an order for ${listingTitle}.`,
+
+  if (paymentConfirmed) {
+    // Mock/synchronous success — confirm immediately via the shared path.
+    const confirmed = await confirmEscrowOrderPaid(orderId);
+    return {
+      order: confirmed?.order || order,
+      escrowTransaction: confirmed?.escrow || escrowTransaction,
+    };
+  }
+
+  // Real Fapshi Direct Pay: tell the buyer to approve the prompt on their phone.
+  // The seller is notified only once payment is confirmed by the webhook.
+  await createUserNotification(user.id, {
+    type: "payment_pending",
+    title: "Approve the payment on your phone",
+    message: `Confirm the Fapshi payment prompt on your phone to complete your order for ${listingTitle}.`,
     priority: "high",
     data: {
       orderId,
       itemId,
-      buyerId: user.id,
-      buyerName: buyerProfile.name || "",
+      transId: paymentResult.reference,
     },
   });
-  await createUserNotification(user.id, {
+
+  return { order, escrowTransaction };
+}
+
+// Apply all "payment confirmed" side effects exactly once: escrow hold sync,
+// wallet credits, listing reservation, status flip, and notifications. Safe to
+// call repeatedly — it no-ops unless the escrow is still AWAITING.
+async function confirmEscrowOrderPaid(orderId: string) {
+  const order = await kv.get(`order:${orderId}`);
+  if (!order) return null;
+  const escrow = await kv.get(`escrow:${order.escrowId}`);
+  if (!escrow) return null;
+  if (escrow.status !== ESCROW_STATUS.AWAITING) {
+    // Already confirmed (or voided) — idempotent no-op.
+    return { order, escrow, alreadyConfirmed: true };
+  }
+
+  const now = new Date().toISOString();
+  const amount = roundXafAmount(order.amount);
+  const transactionFee = roundXafAmount(order.transactionFee);
+  const buyerProfile = await getUserProfile(order.buyerId);
+  const sellerProfile = await getUserProfile(order.sellerId);
+
+  const escrowProviderSync = await syncEscrowProvider("hold", {
+    escrowId: order.escrowId,
+    orderId,
+    amount,
+    transactionFee,
+    totalCharged: roundXafAmount(order.totalCharged),
+    platformFee: order.platformFee || 0,
+    sellerNetAmount: roundXafAmount(order.sellerNetAmount),
+    currency: "XAF",
+    buyerId: order.buyerId,
+    sellerId: order.sellerId,
+    paymentMethod: order.paymentMethod,
+    paymentReference: order.paymentProviderReference || order.transactionRef,
+    pickupDate: order.pickupDate,
+    pickupTime: order.pickupTime,
+    pickupLocation: order.pickupLocation,
+  });
+
+  // Credit platform transaction fee and the seller's pending balance.
+  if (transactionFee > 0) {
+    await adjustWallet(ADMIN_WALLET_USER_ID, { availableDelta: transactionFee });
+  }
+  await adjustWallet(order.sellerId, { pendingDelta: amount });
+
+  // Keep the listing reserved/sold (it was reserved at order creation).
+  const listing = await kv.get(`listing:${order.itemId}`);
+  if (listing && typeof listing === "object") {
+    listing.status = listing.type === "sell" ? "sold" : "rented";
+    listing.reservedBy = order.buyerId;
+    listing.updatedAt = now;
+    await kv.set(`listing:${order.itemId}`, listing);
+  }
+
+  const escrowProviderSyncMeta = escrowProviderSync;
+  const updatedOrder = {
+    ...order,
+    status: ORDER_STATUS.PAID_PENDING_DELIVERY,
+    statusLabel: normalizeOrderStatusLabel(ORDER_STATUS.PAID_PENDING_DELIVERY),
+    paymentProviderStatus: "successful",
+    paidAt: now,
+    escrowProvider: escrowProviderSyncMeta.provider,
+    escrowProviderStatus: escrowProviderSyncMeta.status,
+    escrowProviderReference: escrowProviderSyncMeta.reference,
+    escrowProviderSynced: escrowProviderSyncMeta.synced,
+    escrowProviderUpdatedAt: escrowProviderSyncMeta.syncedAt,
+    escrowProviderMeta: escrowProviderSyncMeta,
+    updatedAt: now,
+  };
+
+  const previousProviderSync =
+    escrow?.provider_sync && typeof escrow.provider_sync === "object" && !Array.isArray(escrow.provider_sync)
+      ? escrow.provider_sync
+      : {};
+  const updatedEscrow = {
+    ...escrow,
+    status: ESCROW_STATUS.PENDING,
+    provider_status: "successful",
+    provider_sync: {
+      ...previousProviderSync,
+      hold: escrowProviderSyncMeta,
+      latest: escrowProviderSyncMeta,
+      updatedAt: now,
+    },
+    updated_at: now,
+  };
+
+  await kv.set(`order:${orderId}`, updatedOrder);
+  await kv.set(`escrow:${order.escrowId}`, updatedEscrow);
+  await kv.set(`transaction:${orderId}`, buildLegacyTransaction(updatedOrder));
+
+  const listingTitle = listing?.title || "your item";
+  await createUserNotification(order.sellerId, {
+    type: "order_created",
+    title: "New order received",
+    message: `${buyerProfile?.name || "A buyer"} placed an order for ${listingTitle}.`,
+    priority: "high",
+    data: {
+      orderId,
+      itemId: order.itemId,
+      buyerId: order.buyerId,
+      buyerName: buyerProfile?.name || "",
+    },
+  });
+  await createUserNotification(order.buyerId, {
     type: "order_paid",
     title: "Payment received in escrow",
     message: `Your payment for ${listingTitle} is secured. Wait for seller delivery proof.`,
     priority: "normal",
     data: {
       orderId,
-      itemId,
-      sellerId: listing.sellerId,
-      sellerName: sellerProfile.name || "",
+      itemId: order.itemId,
+      sellerId: order.sellerId,
+      sellerName: sellerProfile?.name || "",
     },
   });
 
-  return { order, escrowTransaction };
+  await recordPaymentAudit("order_confirmed", {
+    orderId,
+    escrowId: order.escrowId,
+    transId: order.paymentProviderReference,
+    amount,
+  });
+
+  return { order: updatedOrder, escrow: updatedEscrow, confirmed: true };
+}
+
+// Cancel an order whose Fapshi payment failed/expired. No wallet was credited
+// while AWAITING, so we only free the reserved listing and mark the records void.
+async function voidAwaitingEscrowOrder(orderId: string, reason: string, providerStatus?: string) {
+  const order = await kv.get(`order:${orderId}`);
+  if (!order) return null;
+  const escrow = await kv.get(`escrow:${order.escrowId}`);
+  if (escrow && escrow.status !== ESCROW_STATUS.AWAITING) {
+    // Already confirmed or already voided — never touch a paid order.
+    return { order, escrow, skipped: true };
+  }
+  const now = new Date().toISOString();
+
+  const listing = await kv.get(`listing:${order.itemId}`);
+  if (listing && typeof listing === "object" && listing.reservedBy === order.buyerId) {
+    listing.status = "available";
+    listing.reservedBy = "";
+    listing.updatedAt = now;
+    await kv.set(`listing:${order.itemId}`, listing);
+  }
+
+  const updatedOrder = {
+    ...order,
+    status: ORDER_STATUS.PAYMENT_FAILED,
+    statusLabel: normalizeOrderStatusLabel(ORDER_STATUS.PAYMENT_FAILED),
+    paymentProviderStatus: providerStatus || "failed",
+    paymentFailedReason: reason,
+    updatedAt: now,
+  };
+  await kv.set(`order:${orderId}`, updatedOrder);
+  if (escrow) {
+    await kv.set(`escrow:${order.escrowId}`, {
+      ...escrow,
+      status: ESCROW_STATUS.VOIDED,
+      voided_at: now,
+      void_reason: reason,
+      provider_status: providerStatus || "failed",
+      updated_at: now,
+    });
+  }
+  await kv.set(`transaction:${orderId}`, buildLegacyTransaction(updatedOrder));
+
+  await createUserNotification(order.buyerId, {
+    type: "payment_failed",
+    title: "Payment not completed",
+    message: `Your payment could not be completed (${reason}). The item has been released — please try again.`,
+    priority: "high",
+    data: { orderId, itemId: order.itemId },
+  });
+
+  await recordPaymentAudit("order_failed", {
+    orderId,
+    escrowId: order.escrowId,
+    transId: order.paymentProviderReference,
+    reason,
+  });
+
+  return { order: updatedOrder, voided: true };
 }
 
 async function releaseEscrowOrder(order: any, actorId: string) {
@@ -6003,13 +6311,20 @@ async function releaseEscrowOrder(order: any, actorId: string) {
             description: `Escrow release — seller payout for order ${updatedOrder.id}`,
           });
           await adjustWallet(updatedOrder.sellerId, { availableDelta: -payoutAmount });
+          // Fapshi payouts confirm asynchronously: only mark COMPLETED on a
+          // synchronous success, otherwise PROCESSING until the webhook lands.
+          const autoPayoutStatus = ["successful", "success", "completed"].includes(
+            String(payoutResult.status || "").toLowerCase(),
+          )
+            ? WITHDRAWAL_STATUS.COMPLETED
+            : WITHDRAWAL_STATUS.PROCESSING;
           const autoWithdrawal = {
             id: withdrawalId,
             userId: updatedOrder.sellerId,
             amount: payoutAmount,
             provider: "mtn-momo",
             phoneNumber: sellerPhone,
-            status: WITHDRAWAL_STATUS.COMPLETED,
+            status: autoPayoutStatus,
             source: "auto-release",
             reference: payoutResult.reference || payoutReference,
             providerStatus: payoutResult.status,
@@ -6021,12 +6336,13 @@ async function releaseEscrowOrder(order: any, actorId: string) {
             processedBy: "system",
           };
           await kv.set(`withdrawal:${withdrawalId}`, autoWithdrawal);
+          await indexFapshiPayout(payoutResult, withdrawalId);
           const sellerWithdrawals = (await kv.get(`user:${updatedOrder.sellerId}:withdrawals`)) || [];
           sellerWithdrawals.push(withdrawalId);
           await kv.set(`user:${updatedOrder.sellerId}:withdrawals`, sellerWithdrawals);
           updatedOrder.autoPayout = {
             provider: "mtn-momo",
-            status: WITHDRAWAL_STATUS.COMPLETED,
+            status: autoPayoutStatus,
             amount: payoutAmount,
             phoneNumber: sellerPhone,
             withdrawalId,
@@ -6257,6 +6573,13 @@ app.get("/make-server-50b25a4f/payment-meta", async (c) => {
       sampleBaseAmount: sampleAmount,
       sampleFee,
       sampleTotal: roundXafAmount(sampleAmount + sampleFee),
+    },
+    paymentProvider: {
+      provider: PAYMENT_PROVIDER_MODE,
+      supportsFapshi: FAPSHI_COLLECTION_READY,
+      supportsPush: true,
+      supportsUssd: false,
+      minAmount: FAPSHI_MIN_AMOUNT,
     },
     escrowProvider: {
       enabled: ESCROW_PROVIDER_ENABLED,
@@ -6504,61 +6827,23 @@ app.post("/make-server-50b25a4f/subscription/update", async (c) => {
     const totalCharged = roundXafAmount(baseAmount + transactionFee);
     const reference = `SUB-${paymentMethod.toUpperCase()}-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
 
-    const paymentChannel = body?.paymentChannel === "ussd" ? "ussd" : "api";
-    const providedPaymentReference = typeof body?.paymentReference === "string" ? body.paymentReference.trim() : "";
-    if (paymentChannel === "ussd" && paymentMethod !== "mtn-momo") {
-      return c.json({ error: "USSD flow is available for MTN MoMo only" }, 400);
-    }
+    // All subscription payments go through Fapshi Direct Pay (API). Manual USSD removed.
+    const paymentResult = await processInboundMobileMoneyPayment({
+      amount: totalCharged,
+      phoneNumber,
+      provider: paymentMethod,
+      reference,
+      description: `${plan} ${userType} subscription`,
+      buyerName: profile.name,
+      buyerEmail: profile.email,
+      userId: user.id,
+    });
+    // Fapshi confirms asynchronously; only mock returns "successful" now.
+    const paymentConfirmed = paymentResult.status === "successful";
+    const nowIso = new Date().toISOString();
 
-    const paymentResult = paymentChannel === "ussd"
-      ? {
-          provider: "ussd-manual",
-          status: "successful",
-          reference: providedPaymentReference || reference,
-          raw: {
-            channel: "ussd",
-            code: typeof body?.ussdCode === "string" ? body.ussdCode.trim() : "",
-            merchantNumber: MERCHANT_MOMO_NUMBER,
-            totalCharged,
-            buyerPhoneNumber: phoneNumber,
-          },
-        }
-      : await processInboundMobileMoneyPayment({
-          amount: totalCharged,
-          phoneNumber,
-          provider: paymentMethod,
-          reference,
-          description: `${plan} ${userType} subscription`,
-        });
-
-    const now = new Date();
-    const nowIso = now.toISOString();
-    const endDate = new Date(now.getTime());
-    if (plan === "yearly") {
-      endDate.setFullYear(endDate.getFullYear() + 1);
-    } else {
-      endDate.setMonth(endDate.getMonth() + 1);
-    }
-
-    const updatedProfile = {
-      ...profile,
-      phone: phoneNumber,
-      subscriptionStatus: "active",
-      subscriptionPlan: plan,
-      subscriptionStartDate: nowIso,
-      subscriptionEndDate: endDate.toISOString(),
-      subscriptionPaymentMethod: paymentMethod,
-      subscriptionPhoneNumber: phoneNumber,
-      subscriptionAmount: baseAmount,
-      subscriptionTransactionFee: transactionFee,
-      subscriptionTotalCharged: totalCharged,
-      subscriptionReference: paymentResult.reference || reference,
-      subscriptionUpdatedAt: nowIso,
-    };
-    await kv.set(`user:${user.id}`, updatedProfile);
-
-    await adjustWallet(ADMIN_WALLET_USER_ID, { availableDelta: totalCharged });
-
+    // Record the subscription payment as pending; activation (and crediting the
+    // platform wallet) happens only once payment is confirmed.
     const paymentId = createEntityId("SUBPAY");
     const paymentRecord = {
       id: paymentId,
@@ -6576,6 +6861,7 @@ app.post("/make-server-50b25a4f/subscription/update", async (c) => {
       providerStatus: paymentResult.status,
       providerReference: paymentResult.reference || reference,
       providerPayload: paymentResult.raw,
+      status: "pending",
       createdAt: nowIso,
     };
     await kv.set(`subscription_payment:${paymentId}`, paymentRecord);
@@ -6584,11 +6870,33 @@ app.post("/make-server-50b25a4f/subscription/update", async (c) => {
     paymentIds.push(paymentId);
     await kv.set(`user:${user.id}:subscriptionPayments`, paymentIds);
 
+    // Index the Fapshi transaction so the webhook can activate the subscription.
+    if (paymentResult.provider === "fapshi" && paymentResult.reference) {
+      await kv.set(`fapshi:tx:${paymentResult.reference}`, {
+        type: "subscription",
+        paymentId,
+        userId: user.id,
+        createdAt: nowIso,
+      });
+    }
+
+    if (!paymentConfirmed) {
+      await recordPaymentAudit("subscription_pending", { paymentId, userId: user.id });
+      return c.json({
+        success: true,
+        pending: true,
+        message: "Approve the payment prompt on your phone to activate your subscription.",
+        payment: paymentRecord,
+      });
+    }
+
+    // Mock/synchronous success — activate immediately via the shared path.
+    const activated = await activateSubscriptionFromPayment(paymentId);
     return c.json({
       success: true,
       message: "Subscription activated successfully",
-      user: updatedProfile,
-      payment: paymentRecord,
+      user: activated?.user || profile,
+      payment: activated?.payment || paymentRecord,
     });
   } catch (error: any) {
     console.error("Subscription update error:", error);
@@ -6680,6 +6988,31 @@ app.get("/make-server-50b25a4f/orders", async (c) => {
   }
 });
 
+// Safety net for missed/delayed webhooks: if an order is still AWAITING_PAYMENT,
+// re-verify its status directly with Fapshi and confirm/void it. This makes the
+// buyer's status poll self-healing so payments never get stuck if the webhook
+// fails to arrive. Defensive: never throws, returns the freshest order record.
+async function reconcileAwaitingOrder(order: any) {
+  if (!order || order.status !== ORDER_STATUS.AWAITING_PAYMENT) return order;
+  if (order.paymentProvider !== "fapshi" || !order.paymentProviderReference) return order;
+  try {
+    const statusData = await getFapshiPaymentStatus(order.paymentProviderReference, "collection");
+    const status = normalizeFapshiStatus(statusData?.status);
+    if (status === "successful") {
+      const result = await confirmEscrowOrderPaid(order.id);
+      return result?.order || (await kv.get(`order:${order.id}`)) || order;
+    }
+    if (status === "failed" || status === "expired") {
+      await voidAwaitingEscrowOrder(order.id, `Fapshi payment ${status}`, status);
+      return (await kv.get(`order:${order.id}`)) || order;
+    }
+  } catch (error) {
+    // Status check failed (transient/network) — leave the order as-is.
+    console.error("reconcileAwaitingOrder failed:", error);
+  }
+  return order;
+}
+
 // Get single order details
 app.get("/make-server-50b25a4f/orders/:id", async (c) => {
   const user = await verifyAuth(c.req.header("Authorization"));
@@ -6689,7 +7022,7 @@ app.get("/make-server-50b25a4f/orders/:id", async (c) => {
 
   try {
     const orderId = c.req.param("id");
-    const order = await kv.get(`order:${orderId}`);
+    let order = await kv.get(`order:${orderId}`);
     if (!order) {
       return c.json({ error: "Order not found" }, 404);
     }
@@ -6701,6 +7034,9 @@ app.get("/make-server-50b25a4f/orders/:id", async (c) => {
     if (!isAdmin && !isBuyer && !isSeller) {
       return c.json({ error: "Forbidden" }, 403);
     }
+
+    // Self-heal a stuck payment if the webhook was missed/delayed.
+    order = await reconcileAwaitingOrder(order);
 
     const existingEscrow = await kv.get(`escrow:${order.escrowId}`);
     const listing = await kv.get(`listing:${order.itemId}`);
@@ -7155,6 +7491,7 @@ app.post("/make-server-50b25a4f/wallet/withdrawals", async (c) => {
     };
 
     await kv.set(`withdrawal:${withdrawalId}`, withdrawal);
+    await indexFapshiPayout(payoutResult, withdrawalId);
     const withdrawals = (await kv.get(`user:${user.id}:withdrawals`)) || [];
     withdrawals.push(withdrawalId);
     await kv.set(`user:${user.id}:withdrawals`, withdrawals);
@@ -8874,6 +9211,7 @@ app.post("/make-server-50b25a4f/admin/platform-wallet/withdraw", async (c) => {
     };
 
     await kv.set(`withdrawal:${withdrawalId}`, withdrawal);
+    await indexFapshiPayout(payoutResult, withdrawalId);
     const platformWithdrawals = (await kv.get(`user:${ADMIN_WALLET_USER_ID}:withdrawals`)) || [];
     platformWithdrawals.push(withdrawalId);
     await kv.set(`user:${ADMIN_WALLET_USER_ID}:withdrawals`, platformWithdrawals);
@@ -8938,13 +9276,18 @@ app.post("/make-server-50b25a4f/admin/payouts/:sellerId/pay", async (c) => {
       description: `Admin payout for seller ${sellerId}`,
     });
     await adjustWallet(sellerId, { availableDelta: -amountToPay });
+    const adminPayoutStatus = ["successful", "success", "completed"].includes(
+      String(payoutResult.status || "").toLowerCase(),
+    )
+      ? WITHDRAWAL_STATUS.COMPLETED
+      : WITHDRAWAL_STATUS.PROCESSING;
     const payoutRecord = {
       id: payoutId,
       userId: sellerId,
       amount: roundXafAmount(amountToPay),
       provider: payoutProvider,
       phoneNumber: sellerPhone,
-      status: WITHDRAWAL_STATUS.COMPLETED,
+      status: adminPayoutStatus,
       note: "Admin payout processed from dashboard",
       reference: payoutResult.reference || payoutReference,
       providerStatus: payoutResult.status,
@@ -8956,6 +9299,7 @@ app.post("/make-server-50b25a4f/admin/payouts/:sellerId/pay", async (c) => {
       source: "admin-payout",
     };
     await kv.set(`withdrawal:${payoutId}`, payoutRecord);
+    await indexFapshiPayout(payoutResult, payoutId);
     const sellerWithdrawals = (await kv.get(`user:${sellerId}:withdrawals`)) || [];
     sellerWithdrawals.push(payoutId);
     await kv.set(`user:${sellerId}:withdrawals`, sellerWithdrawals);

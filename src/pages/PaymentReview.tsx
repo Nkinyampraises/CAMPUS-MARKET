@@ -37,6 +37,7 @@ export function PaymentReview() {
   const state = (location.state || null) as PaymentReviewState | null;
 
   const [submitting, setSubmitting] = useState(false);
+  const [awaitingApproval, setAwaitingApproval] = useState(false);
   const [ussdStarted, setUssdStarted] = useState(false);
   const [showDesktopModal, setShowDesktopModal] = useState(false);
   const [codeCopied, setCodeCopied] = useState(false);
@@ -159,45 +160,38 @@ export function PaymentReview() {
     });
   };
 
+  // Poll an order until Fapshi confirms (or fails). Returns 'paid' | 'failed' | 'timeout'.
+  const pollOrderStatus = async (orderId: string) => {
+    for (let attempt = 0; attempt < 40; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+      try {
+        const res = await fetch(`${API_URL}/orders/${orderId}`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        if (!res.ok) continue;
+        const data = await res.json();
+        const status = data?.order?.status || '';
+        if (status === 'paid_pending_delivery' || status === 'delivered_released') return 'paid';
+        if (status === 'payment_failed' || status === 'refunded') return 'failed';
+      } catch (_error) {
+        // Keep polling — transient network errors are expected.
+      }
+    }
+    return 'timeout';
+  };
+
   const handleConfirm = async () => {
     if (!state || !accessToken) {
       toast.error('Missing payment session');
       return;
     }
 
-    // ── USSD Mobile Money Payment (Real Money) ────────────────────────────────
-    // Dials *126*9*merchantNumber*amount# on the user's phone.
-    // Real XAF is transferred via MTN MoMo — no API or business account needed.
-    if ((state.paymentMethod === 'mtn-momo' || state.paymentMethod === 'orange-money') && !ussdStarted) {
-      if (isMobileDevice()) {
-        // On mobile: open the phone dialer with the full USSD code pre-filled.
-        // User just taps CALL then enters their PIN — payment is real and instant.
-        setUssdStarted(true);
-        try {
-          window.location.href = `tel:${ussdCode.replace('#', '%23')}`;
-        } catch (_e) { /* ignore if dialer unavailable */ }
-        toast.success('📱 Dialer opened! Tap CALL then enter your MTN MoMo PIN to pay.');
-        return; // Let user complete payment on their phone, then click again to finalise.
-      } else {
-        // On desktop: show the USSD code so user can dial from their phone.
-        setShowDesktopModal(true);
-        return;
-      }
-    }
-
     setSubmitting(true);
     try {
-      const paymentPayload = state.paymentMethod === 'mtn-momo'
-        ? {
-            ...state.payload,
-            paymentChannel: 'ussd',
-            paymentReference: `USSD-${Date.now()}`,
-            ussdCode,
-          }
-        : state.payload;
-
       if (state.context === 'order') {
-        const { response, data } = await postWithAuthRetry(`${API_URL}/orders`, paymentPayload);
+        // Fapshi Direct Pay: the backend creates an AWAITING_PAYMENT order and
+        // pushes a PIN prompt to the buyer's phone. We then poll until confirmed.
+        const { response, data } = await postWithAuthRetry(`${API_URL}/orders`, state.payload);
         if (!response) {
           toast.error(data.error || 'Missing payment session');
           return;
@@ -212,12 +206,32 @@ export function PaymentReview() {
           toast.error(data.error || 'Payment failed');
           return;
         }
-        toast.success('Payment successful. Order created.');
-        navigate(`/orders/${data.order?.id || ''}`);
+
+        const orderId = data.order?.id || '';
+        // Mock/instant confirmation path.
+        if (data.order?.status === 'paid_pending_delivery') {
+          toast.success('Payment successful. Order created.');
+          navigate(`/orders/${orderId}`);
+          return;
+        }
+
+        setAwaitingApproval(true);
+        toast.info('Approve the payment prompt on your phone to complete your order.');
+        const result = await pollOrderStatus(orderId);
+        if (result === 'paid') {
+          toast.success('Payment confirmed. Order created.');
+          navigate(`/orders/${orderId}`);
+        } else if (result === 'failed') {
+          toast.error('Payment was not completed. Please try again.');
+        } else {
+          toast.info('Payment is still processing. You can review this order shortly.');
+          navigate(`/orders/${orderId}`);
+        }
         return;
       }
 
-      const { response, data } = await postWithAuthRetry(`${API_URL}/subscription/update`, paymentPayload);
+      // Subscription payment via Fapshi Direct Pay.
+      const { response, data } = await postWithAuthRetry(`${API_URL}/subscription/update`, state.payload);
       if (!response) {
         toast.error(data.error || 'Missing payment session');
         return;
@@ -233,6 +247,13 @@ export function PaymentReview() {
         return;
       }
 
+      if (data.pending) {
+        // Awaiting Fapshi confirmation; the webhook activates the subscription.
+        toast.info('Approve the payment on your phone. Your subscription activates once payment is confirmed.');
+        navigate('/dashboard');
+        return;
+      }
+
       if (refreshCurrentUser) {
         await refreshCurrentUser();
       }
@@ -242,6 +263,7 @@ export function PaymentReview() {
       toast.error('Payment request could not be completed right now');
     } finally {
       setSubmitting(false);
+      setAwaitingApproval(false);
     }
   };
 
@@ -326,10 +348,8 @@ export function PaymentReview() {
   const itemImage = state.payload?.itemImage || state.payload?.imageUrl || '/placeholder.svg';
   const paymentMethodLabel = state.paymentMethod === 'mtn-momo' ? 'MTN Mobile Money' : 'Orange Money';
   const confirmButtonText = submitting
-    ? 'Processing...'
-    : ussdStarted
-      ? '✅ I\'ve Paid — Confirm Order'
-      : 'Confirm Payment';
+    ? (awaitingApproval ? 'Waiting for your approval…' : 'Processing...')
+    : 'Confirm & Pay';
 
   return (
     <div className="min-h-screen bg-background py-7">
@@ -399,15 +419,13 @@ export function PaymentReview() {
                       {t('ui.mobile_money_authorization', 'Mobile Money Authorization')}
                     </h3>
                     <p className="text-sm text-muted-foreground">
-                      {t('payment.keepPhoneReady', 'Please keep your phone ready.')} {t('payment.feeExample', 'Fee example')}: {formatMoney(feeHintBaseAmount)} XAF + {formatMoney(feeHintAmount)} XAF.
+                      {t('payment.fapshiPrompt', 'When you tap Confirm & Pay, a payment request is pushed to your phone. Enter your Mobile Money PIN to approve — your funds are then held in escrow until you confirm delivery.')}
                     </p>
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      <div className={`rounded-lg border px-3 py-2 text-xs font-semibold ${state.paymentMethod === 'mtn-momo' ? 'border-primary bg-primary-soft text-primary-strong' : 'border-border bg-card text-muted-foreground'}`}>
-                        MTN MOMO: {ussdCode}
-                      </div>
-                      <div className={`rounded-lg border px-3 py-2 text-xs font-semibold ${state.paymentMethod === 'orange-money' ? 'border-primary bg-primary-soft text-primary-strong' : 'border-border bg-card text-muted-foreground'}`}>
-                        ORANGE MONEY: *150#
-                      </div>
+                    <p className="text-xs text-muted-foreground">
+                      {t('payment.feeExample', 'Fee example')}: {formatMoney(feeHintBaseAmount)} XAF + {formatMoney(feeHintAmount)} XAF.
+                    </p>
+                    <div className="rounded-lg border border-primary bg-primary-soft px-3 py-2 text-xs font-semibold text-primary-strong">
+                      {paymentMethodLabel} — {t('payment.approveOnPhone', 'approve the prompt on your phone')}
                     </div>
                   </CardContent>
                 </Card>
