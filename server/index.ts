@@ -2011,6 +2011,7 @@ async function processInboundMobileMoneyPayment(params: {
   buyerName?: string;
   buyerEmail?: string;
   userId?: string;
+  redirectUrl?: string;
 }) {
   if (shouldUseMockProvider()) {
     return {
@@ -2018,6 +2019,7 @@ async function processInboundMobileMoneyPayment(params: {
       status: "successful",
       reference: `MOCK-PAY-${Date.now()}`,
       raw: { simulated: true },
+      paymentLink: "",
     };
   }
 
@@ -2026,25 +2028,28 @@ async function processInboundMobileMoneyPayment(params: {
     throw new Error(`Minimum payment amount is ${FAPSHI_MIN_AMOUNT} XAF`);
   }
 
+  // Hosted checkout: Fapshi returns a payment link the buyer is redirected to.
+  // (Direct Pay / inline PIN prompt requires special account activation; this
+  // /initiate-pay flow works on any verified account.) The buyer picks the
+  // mobile-money operator on Fapshi's page; outcome confirmed via webhook.
   const payload: Record<string, any> = {
     amount: normalizedAmount,
-    phone: formatCameroonPhoneLocal(params.phoneNumber),
-    medium: fapshiMedium(params.provider),
     externalId: params.reference,
     message: params.description,
   };
-  if (params.buyerName) payload.name = params.buyerName;
   if (params.buyerEmail) payload.email = params.buyerEmail;
   if (params.userId) payload.userId = params.userId;
+  if (params.redirectUrl) payload.redirectUrl = params.redirectUrl;
 
-  const data = await callFapshi("POST", "/direct-pay", "collection", payload);
+  const data = await callFapshi("POST", "/initiate-pay", "collection", payload);
 
   const transId = String(data?.transId || data?.transID || "");
-  if (!transId) {
-    throw new Error(data?.message || "Payment request was not accepted by Fapshi");
+  const paymentLink = String(data?.link || data?.paymentLink || "");
+  if (!transId || !paymentLink) {
+    throw new Error(data?.message || "Payment could not be initiated by Fapshi");
   }
 
-  await recordPaymentAudit("direct_pay_initiated", {
+  await recordPaymentAudit("initiate_pay", {
     transId,
     reference: params.reference,
     amount: normalizedAmount,
@@ -2056,6 +2061,7 @@ async function processInboundMobileMoneyPayment(params: {
     status: "pending",
     reference: transId,
     raw: data,
+    paymentLink,
   };
 }
 
@@ -5858,6 +5864,9 @@ async function createEscrowOrderForBuyer(user: any, body: any) {
   const escrowId = createEntityId("ESC");
   const transactionRef = `${paymentMethod.toUpperCase()}-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
   // All payments now go through Fapshi Direct Pay (API). Manual USSD removed.
+  // After paying on Fapshi's hosted page, the buyer is redirected back to the
+  // order page where the status self-reconciles. appOrigin is the frontend URL.
+  const appOrigin = typeof body?.appOrigin === "string" ? body.appOrigin.replace(/\/+$/, "") : "";
   const paymentResult = await processInboundMobileMoneyPayment({
     amount: totalCharged,
     phoneNumber,
@@ -5867,12 +5876,14 @@ async function createEscrowOrderForBuyer(user: any, body: any) {
     buyerName: buyerProfile.name,
     buyerEmail: buyerProfile.email,
     userId: user.id,
+    redirectUrl: appOrigin ? `${appOrigin}/orders/${orderId}` : undefined,
   });
   const now = new Date().toISOString();
-  // Fapshi Direct Pay confirms asynchronously (status "pending") via webhook.
-  // Only mock mode returns "successful" synchronously. Escrow hold + seller
-  // credit are deferred to confirmEscrowOrderPaid() until payment is confirmed.
+  // Fapshi confirms asynchronously (status "pending") via webhook. Only mock mode
+  // returns "successful" synchronously. Escrow hold + seller credit are deferred
+  // to confirmEscrowOrderPaid() until payment is confirmed.
   const paymentConfirmed = paymentResult.status === "successful";
+  const paymentLink = (paymentResult as any).paymentLink || "";
 
   const awaitingSync = {
     provider: "pending",
@@ -5902,6 +5913,7 @@ async function createEscrowOrderForBuyer(user: any, body: any) {
     paymentProviderStatus: paymentResult.status,
     paymentProviderReference: paymentResult.reference,
     paymentProviderResponse: paymentResult.raw,
+    paymentLink,
     merchantMoMoName: MERCHANT_MOMO_NAME,
     merchantMoMoNumber: MERCHANT_MOMO_NUMBER,
     status: ORDER_STATUS.AWAITING_PAYMENT,
@@ -6827,7 +6839,8 @@ app.post("/make-server-50b25a4f/subscription/update", async (c) => {
     const totalCharged = roundXafAmount(baseAmount + transactionFee);
     const reference = `SUB-${paymentMethod.toUpperCase()}-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
 
-    // All subscription payments go through Fapshi Direct Pay (API). Manual USSD removed.
+    // All subscription payments go through Fapshi hosted checkout. Manual USSD removed.
+    const appOrigin = typeof body?.appOrigin === "string" ? body.appOrigin.replace(/\/+$/, "") : "";
     const paymentResult = await processInboundMobileMoneyPayment({
       amount: totalCharged,
       phoneNumber,
@@ -6837,9 +6850,11 @@ app.post("/make-server-50b25a4f/subscription/update", async (c) => {
       buyerName: profile.name,
       buyerEmail: profile.email,
       userId: user.id,
+      redirectUrl: appOrigin ? `${appOrigin}/dashboard` : undefined,
     });
     // Fapshi confirms asynchronously; only mock returns "successful" now.
     const paymentConfirmed = paymentResult.status === "successful";
+    const paymentLink = (paymentResult as any).paymentLink || "";
     const nowIso = new Date().toISOString();
 
     // Record the subscription payment as pending; activation (and crediting the
@@ -6885,7 +6900,8 @@ app.post("/make-server-50b25a4f/subscription/update", async (c) => {
       return c.json({
         success: true,
         pending: true,
-        message: "Approve the payment prompt on your phone to activate your subscription.",
+        paymentLink,
+        message: "Continue to Fapshi to complete your subscription payment.",
         payment: paymentRecord,
       });
     }

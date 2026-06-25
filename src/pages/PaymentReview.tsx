@@ -188,10 +188,14 @@ export function PaymentReview() {
 
     setSubmitting(true);
     try {
+      // appOrigin lets the backend tell Fapshi where to send the buyer back after payment.
+      const payload = { ...state.payload, appOrigin: window.location.origin };
+
       if (state.context === 'order') {
-        // Fapshi Direct Pay: the backend creates an AWAITING_PAYMENT order and
-        // pushes a PIN prompt to the buyer's phone. We then poll until confirmed.
-        const { response, data } = await postWithAuthRetry(`${API_URL}/orders`, state.payload);
+        // Backend creates an AWAITING_PAYMENT order and returns a Fapshi hosted
+        // checkout link. We redirect the buyer there; on return the order page
+        // self-reconciles the payment status.
+        const { response, data } = await postWithAuthRetry(`${API_URL}/orders`, payload);
         if (!response) {
           toast.error(data.error || 'Missing payment session');
           return;
@@ -208,15 +212,22 @@ export function PaymentReview() {
         }
 
         const orderId = data.order?.id || '';
+        const paymentLink = data.order?.paymentLink || '';
         // Mock/instant confirmation path.
         if (data.order?.status === 'paid_pending_delivery') {
           toast.success('Payment successful. Order created.');
           navigate(`/orders/${orderId}`);
           return;
         }
-
+        // Live: redirect to Fapshi's hosted payment page.
+        if (paymentLink) {
+          toast.info('Redirecting to Fapshi to complete your payment…');
+          window.location.href = paymentLink;
+          return;
+        }
+        // Fallback: no link returned — poll the order status.
         setAwaitingApproval(true);
-        toast.info('Approve the payment prompt on your phone to complete your order.');
+        toast.info('Waiting for your payment to be confirmed…');
         const result = await pollOrderStatus(orderId);
         if (result === 'paid') {
           toast.success('Payment confirmed. Order created.');
@@ -230,8 +241,8 @@ export function PaymentReview() {
         return;
       }
 
-      // Subscription payment via Fapshi Direct Pay.
-      const { response, data } = await postWithAuthRetry(`${API_URL}/subscription/update`, state.payload);
+      // Subscription payment via Fapshi hosted checkout.
+      const { response, data } = await postWithAuthRetry(`${API_URL}/subscription/update`, payload);
       if (!response) {
         toast.error(data.error || 'Missing payment session');
         return;
@@ -248,8 +259,13 @@ export function PaymentReview() {
       }
 
       if (data.pending) {
-        // Awaiting Fapshi confirmation; the webhook activates the subscription.
-        toast.info('Approve the payment on your phone. Your subscription activates once payment is confirmed.');
+        // Redirect to Fapshi to complete payment; the webhook activates the sub.
+        if (data.paymentLink) {
+          toast.info('Redirecting to Fapshi to complete your payment…');
+          window.location.href = data.paymentLink;
+          return;
+        }
+        toast.info('Your subscription activates once payment is confirmed.');
         navigate('/dashboard');
         return;
       }
@@ -419,13 +435,13 @@ export function PaymentReview() {
                       {t('ui.mobile_money_authorization', 'Mobile Money Authorization')}
                     </h3>
                     <p className="text-sm text-muted-foreground">
-                      {t('payment.fapshiPrompt', 'When you tap Confirm & Pay, a payment request is pushed to your phone. Enter your Mobile Money PIN to approve — your funds are then held in escrow until you confirm delivery.')}
+                      {t('payment.fapshiPrompt', "When you tap Confirm & Pay, you'll be taken to Fapshi's secure page to complete payment with Mobile Money. Your funds are then held in escrow until you confirm delivery.")}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {t('payment.feeExample', 'Fee example')}: {formatMoney(feeHintBaseAmount)} XAF + {formatMoney(feeHintAmount)} XAF.
                     </p>
                     <div className="rounded-lg border border-primary bg-primary-soft px-3 py-2 text-xs font-semibold text-primary-strong">
-                      {paymentMethodLabel} — {t('payment.approveOnPhone', 'approve the prompt on your phone')}
+                      {paymentMethodLabel} — {t('payment.viaFapshi', 'secure payment via Fapshi')}
                     </div>
                   </CardContent>
                 </Card>
