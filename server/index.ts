@@ -6592,6 +6592,11 @@ app.get("/make-server-50b25a4f/payment-meta", async (c) => {
       supportsPush: true,
       supportsUssd: false,
       minAmount: FAPSHI_MIN_AMOUNT,
+      // Diagnostic: true means payments are SIMULATED (no real charge / no prompt).
+      // Caused by FAPSHI_FORCE_MOCK=true OR missing collection credentials.
+      mockMode: shouldUseMockProvider(),
+      forceMock: FAPSHI_FORCE_MOCK,
+      collectionConfigured: FAPSHI_COLLECTION_READY,
     },
     escrowProvider: {
       enabled: ESCROW_PROVIDER_ENABLED,
