@@ -1712,6 +1712,15 @@ const FAPSHI_PAYOUT_API_KEY = (Deno.env.get("FAPSHI_PAYOUT_API_KEY") || "").trim
 const FAPSHI_MIN_AMOUNT = 100;
 const FAPSHI_COLLECTION_READY = Boolean(FAPSHI_COLLECTION_API_USER && FAPSHI_COLLECTION_API_KEY);
 const FAPSHI_PAYOUT_READY = Boolean(FAPSHI_PAYOUT_API_USER && FAPSHI_PAYOUT_API_KEY);
+// Collection UX. "direct" = Direct Pay: a MoMo PIN prompt is pushed straight to
+// the buyer's phone (requires Direct Pay to be activated on the Fapshi collection
+// service). "checkout" = hosted page via /initiate-pay (works on any verified
+// account). Toggle with the FAPSHI_PAYMENT_MODE env var — no code change needed,
+// so you can fall back to "checkout" instantly if Direct Pay ever has an issue.
+const FAPSHI_PAYMENT_MODE =
+  (Deno.env.get("FAPSHI_PAYMENT_MODE") || "checkout").trim().toLowerCase() === "direct"
+    ? "direct"
+    : "checkout";
 // Kept the env name PAYMENT_PROVIDER_MODE for compatibility; "fapshi" or "mock".
 const PAYMENT_PROVIDER_MODE = (() => {
   if (REQUESTED_PAYMENT_PROVIDER_MODE === "mock") return "mock";
@@ -2028,9 +2037,46 @@ async function processInboundMobileMoneyPayment(params: {
     throw new Error(`Minimum payment amount is ${FAPSHI_MIN_AMOUNT} XAF`);
   }
 
+  // Direct Pay: push a MoMo PIN prompt straight to the buyer's phone. Requires
+  // Direct Pay to be activated on the Fapshi collection service. No redirect —
+  // the order waits in AWAITING_PAYMENT and is confirmed by the webhook (the
+  // frontend polls the order status meanwhile).
+  if (FAPSHI_PAYMENT_MODE === "direct") {
+    const directPayload: Record<string, any> = {
+      amount: normalizedAmount,
+      phone: formatCameroonPhoneLocal(params.phoneNumber),
+      medium: params.provider === "orange-money" ? "orange money" : "mobile money",
+      externalId: params.reference,
+      message: params.description,
+    };
+    if (params.buyerName) directPayload.name = params.buyerName;
+    if (params.buyerEmail) directPayload.email = params.buyerEmail;
+    if (params.userId) directPayload.userId = params.userId;
+
+    const directData = await callFapshi("POST", "/direct-pay", "collection", directPayload);
+    const directTransId = String(directData?.transId || directData?.transID || "");
+    if (!directTransId) {
+      throw new Error(directData?.message || "Payment could not be initiated by Fapshi");
+    }
+
+    await recordPaymentAudit("direct_pay", {
+      transId: directTransId,
+      reference: params.reference,
+      amount: normalizedAmount,
+      provider: params.provider,
+    });
+
+    return {
+      provider: "fapshi",
+      status: "pending",
+      reference: directTransId,
+      raw: directData,
+      paymentLink: "",
+    };
+  }
+
   // Hosted checkout: Fapshi returns a payment link the buyer is redirected to.
-  // (Direct Pay / inline PIN prompt requires special account activation; this
-  // /initiate-pay flow works on any verified account.) The buyer picks the
+  // Works on any verified account (no special activation). The buyer picks the
   // mobile-money operator on Fapshi's page; outcome confirmed via webhook.
   const payload: Record<string, any> = {
     amount: normalizedAmount,
