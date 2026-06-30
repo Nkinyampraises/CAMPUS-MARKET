@@ -4,7 +4,6 @@ import { Label } from '@/app/components/ui/label';
 import { Upload, X, Loader2, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import { removeBackground } from '@imgly/background-removal';
 
 interface ImageUploaderProps {
   images: string[];
@@ -19,25 +18,6 @@ type PendingFile = {
   localUrl: string;
   status: 'processing' | 'uploading';
 };
-
-async function addWhiteBackground(blob: Blob): Promise<Blob> {
-  const img = new Image();
-  const url = URL.createObjectURL(blob);
-  await new Promise<void>((res, rej) => {
-    img.onload = () => res();
-    img.onerror = rej;
-    img.src = url;
-  });
-  URL.revokeObjectURL(url);
-  const canvas = document.createElement('canvas');
-  canvas.width = img.naturalWidth;
-  canvas.height = img.naturalHeight;
-  const ctx = canvas.getContext('2d')!;
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(img, 0, 0);
-  return new Promise(res => canvas.toBlob(res as BlobCallback, 'image/png'));
-}
 
 export function ImageUploader({ images, onChange, maxImages = 5, type = 'listing' }: ImageUploaderProps) {
   const [pendingFiles, setPendingFiles] = useState<Map<string, PendingFile>>(new Map());
@@ -124,20 +104,10 @@ export function ImageUploader({ images, onChange, maxImages = 5, type = 'listing
 
     for (const { id, file, localUrl } of pendingEntries) {
       try {
-        // Remove background
-        let processedBlob: Blob;
-        try {
-          const transparent = await removeBackground(file);
-          processedBlob = await addWhiteBackground(transparent);
-        } catch {
-          toast.warning(`Could not remove background for ${file.name} — uploading original`);
-          processedBlob = file;
-        }
-
         setPendingStatus(id, 'uploading');
 
-        const processedName = file.name.replace(/\.[^.]+$/, '.png');
-        const processedFile = new File([processedBlob], processedName, { type: 'image/png' });
+        // Upload the original image as-is (background removal feature removed).
+        const processedFile = file;
 
         let token = accessToken || localStorage.getItem('accessToken');
         let response = await uploadFileWithToken(processedFile, token);

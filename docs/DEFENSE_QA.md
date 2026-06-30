@@ -179,6 +179,7 @@ The order is **refunded**: the held escrow is reversed and the buyer's balance i
 
 **Q: How do you prevent double-spending or double-**
 
+
 **payouts?**
 Every payout and webhook sets a **guard key** before acting (e.g., `fapshi:payout:<id>`, `fapshi:webhook:processed:<txn>`). If the operation is retried, the guard key makes it a no-op. This is the **idempotency** principle.
 
@@ -232,9 +233,6 @@ Users get in-app notifications for key events (new order, payment confirmed, esc
 
 **Q: What can admins do?**
 Approve/reject listings, manage users, categories, and universities, view analytics, manage payouts and platform revenue, moderate reviews, and resolve disputes.
-
-**Q: What is the "background removal" feature?**
-When sellers upload product photos, an in-browser tool (`@imgly/background-removal`) can remove the background for cleaner, more professional-looking listings.
 
 ---
 

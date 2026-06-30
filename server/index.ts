@@ -203,7 +203,9 @@ const OPENAI_BASE_URL = (Deno.env.get("OPENAI_BASE_URL") || "https://api.openai.
 const OPENAI_CHAT_MODEL = (Deno.env.get("OPENAI_CHAT_MODEL") || "gpt-4.1-mini").trim();
 const OPENAI_TRANSCRIBE_MODEL = (Deno.env.get("OPENAI_TRANSCRIBE_MODEL") || "gpt-4o-mini-transcribe").trim();
 const GEMINI_API_KEY = (Deno.env.get("GEMINI_API_KEY") || "").trim();
-const GEMINI_CHAT_MODEL = (Deno.env.get("GEMINI_CHAT_MODEL") || "gemini-2.0-flash").trim();
+// Default to gemini-2.5-flash: gemini-2.0-flash has 0 free-tier quota on many
+// accounts/regions (returns 429 "limit: 0"), which silently broke the assistant.
+const GEMINI_CHAT_MODEL = (Deno.env.get("GEMINI_CHAT_MODEL") || "gemini-2.5-flash").trim();
 const HUGGING_FACE_API_KEY = (
   Deno.env.get("HUGGING_FACE_API_KEY") ||
   Deno.env.get("HUGGINGFACE_API_KEY") ||
@@ -215,7 +217,9 @@ const HUGGING_FACE_MODEL = (
   Deno.env.get("HUGGINGFACE_MODEL") ||
   "Qwen/Qwen2.5-7B-Instruct"
 ).trim();
-const AI_PROVIDER = (Deno.env.get("AI_PROVIDER") || "openai").trim().toLowerCase();
+// "auto" tries every provider that has an API key configured, so a single
+// missing/most-broken provider can't take the whole assistant down.
+const AI_PROVIDER = (Deno.env.get("AI_PROVIDER") || "auto").trim().toLowerCase();
 const AI_CHAT_HISTORY_LIMIT = Math.max(20, readEnvNumber("AI_CHAT_HISTORY_LIMIT", 80));
 const AI_CHAT_CONVERSATION_LIMIT = Math.max(5, readEnvNumber("AI_CHAT_CONVERSATION_LIMIT", 30));
 const AI_MAX_PROMPT_LISTINGS = Math.max(10, readEnvNumber("AI_MAX_PROMPT_LISTINGS", 50));
@@ -1710,6 +1714,23 @@ const FAPSHI_COLLECTION_API_KEY = (Deno.env.get("FAPSHI_COLLECTION_API_KEY") || 
 const FAPSHI_PAYOUT_API_USER = (Deno.env.get("FAPSHI_PAYOUT_API_USER") || "").trim();
 const FAPSHI_PAYOUT_API_KEY = (Deno.env.get("FAPSHI_PAYOUT_API_KEY") || "").trim();
 const FAPSHI_MIN_AMOUNT = 100;
+// How long a buyer has to complete payment before the reserved listing is
+// released back to the marketplace (covers abandoned / incomplete payments).
+const AWAITING_PAYMENT_TTL_MS = 30 * 60 * 1000;
+const isPastDeadline = (iso?: string) => {
+  if (!iso) return false;
+  const t = Date.parse(String(iso));
+  return Number.isFinite(t) && t < Date.now();
+};
+const awaitingOrderDeadline = (order: any) => {
+  if (order?.paymentDeadline) return String(order.paymentDeadline);
+  if (order?.createdAt) {
+    const created = Date.parse(String(order.createdAt));
+    if (Number.isFinite(created)) return new Date(created + AWAITING_PAYMENT_TTL_MS).toISOString();
+  }
+  return "";
+};
+const isAwaitingOrderExpired = (order: any) => isPastDeadline(awaitingOrderDeadline(order));
 const FAPSHI_COLLECTION_READY = Boolean(FAPSHI_COLLECTION_API_USER && FAPSHI_COLLECTION_API_KEY);
 const FAPSHI_PAYOUT_READY = Boolean(FAPSHI_PAYOUT_API_USER && FAPSHI_PAYOUT_API_KEY);
 // Collection UX. "direct" = Direct Pay: a MoMo PIN prompt is pushed straight to
@@ -5348,7 +5369,24 @@ app.get("/make-server-50b25a4f/listings", async (c) => {
       }
 
       // Skip sold or rented listings — they should not appear in the marketplace.
+      // But first, release reservations whose payment window has elapsed (the
+      // buyer never completed payment) so the item returns to the marketplace.
       if (listing.status && listing.status !== 'available') {
+        if (listing.reservedOrderId && isPastDeadline(listing.reservedUntil)) {
+          try {
+            const reservedOrder = await kv.get(`order:${listing.reservedOrderId}`);
+            await reconcileAwaitingOrder(reservedOrder);
+            const freshListing = await kv.get(`listing:${listing.id}`);
+            if (freshListing && freshListing.status === 'available' && !isDemoMarketplaceListing(freshListing)) {
+              const value = await enrichListing(freshListing, sellerCache);
+              if (value && value.status === 'available') {
+                enriched.push(value);
+              }
+            }
+          } catch (sweepError) {
+            console.error('Listing reservation sweep failed:', sweepError);
+          }
+        }
         continue;
       }
 
@@ -5988,6 +6026,9 @@ async function createEscrowOrderForBuyer(user: any, body: any) {
     escrowProviderMeta: awaitingSync,
     createdAt: now,
     updatedAt: now,
+    // Buyers must complete payment before this time, or the reserved listing is
+    // released back to the marketplace (see reconcileAwaitingOrder).
+    paymentDeadline: new Date(Date.now() + AWAITING_PAYMENT_TTL_MS).toISOString(),
   };
 
   const escrowTransaction = {
@@ -6027,9 +6068,12 @@ async function createEscrowOrderForBuyer(user: any, body: any) {
   await kv.set(`transaction:${orderId}`, buildLegacyTransaction(order));
 
   // Reserve the listing immediately so a second buyer cannot purchase the same
-  // item while this payment is being confirmed. Freed again on FAILED/EXPIRED.
+  // item while this payment is being confirmed. Freed again on FAILED/EXPIRED,
+  // or automatically once reservedUntil passes (abandoned/incomplete payment).
   listing.status = listing.type === "sell" ? "sold" : "rented";
   listing.reservedBy = user.id;
+  listing.reservedOrderId = orderId;
+  listing.reservedUntil = new Date(Date.now() + AWAITING_PAYMENT_TTL_MS).toISOString();
   listing.updatedAt = now;
   await kv.set(`listing:${itemId}`, listing);
 
@@ -6138,11 +6182,14 @@ async function confirmEscrowOrderPaid(orderId: string) {
   }
   await adjustWallet(order.sellerId, { pendingDelta: amount });
 
-  // Keep the listing reserved/sold (it was reserved at order creation).
+  // Payment confirmed: the listing is now permanently sold/rented. Clear the
+  // temporary reservation markers so the marketplace sweep ignores it.
   const listing = await kv.get(`listing:${order.itemId}`);
   if (listing && typeof listing === "object") {
     listing.status = listing.type === "sell" ? "sold" : "rented";
     listing.reservedBy = order.buyerId;
+    listing.reservedOrderId = "";
+    listing.reservedUntil = "";
     listing.updatedAt = now;
     await kv.set(`listing:${order.itemId}`, listing);
   }
@@ -6236,6 +6283,8 @@ async function voidAwaitingEscrowOrder(orderId: string, reason: string, provider
   if (listing && typeof listing === "object" && listing.reservedBy === order.buyerId) {
     listing.status = "available";
     listing.reservedBy = "";
+    listing.reservedOrderId = "";
+    listing.reservedUntil = "";
     listing.updatedAt = now;
     await kv.set(`listing:${order.itemId}`, listing);
   }
@@ -6655,6 +6704,19 @@ app.get("/make-server-50b25a4f/payment-meta", async (c) => {
         refund: toApiPath(ESCROW_ACTION_ENDPOINTS.refund),
       },
     },
+    // Diagnostic for the Sasha AI assistant (no secrets — only key presence).
+    // If the provider order is empty or every key is false, the assistant has no
+    // working brain on this server and will return canned fallback replies.
+    aiAssistant: {
+      configuredProvider: AI_PROVIDER,
+      effectiveProviderOrder: getPreferredAiProviderOrder(),
+      geminiModel: GEMINI_CHAT_MODEL,
+      openaiModel: OPENAI_CHAT_MODEL,
+      huggingFaceModel: HUGGING_FACE_MODEL,
+      hasGeminiKey: Boolean(GEMINI_API_KEY),
+      hasOpenAiKey: Boolean(OPENAI_API_KEY),
+      hasHuggingFaceKey: Boolean(HUGGING_FACE_API_KEY),
+    },
   });
 });
 
@@ -7073,8 +7135,19 @@ async function reconcileAwaitingOrder(order: any) {
       await voidAwaitingEscrowOrder(order.id, `Fapshi payment ${status}`, status);
       return (await kv.get(`order:${order.id}`)) || order;
     }
+    // Abandoned/incomplete: the payment window elapsed and it still isn't paid,
+    // so release the reserved item back to the marketplace.
+    if (isAwaitingOrderExpired(order)) {
+      await voidAwaitingEscrowOrder(order.id, "Payment not completed in time", status || "expired");
+      return (await kv.get(`order:${order.id}`)) || order;
+    }
   } catch (error) {
-    // Status check failed (transient/network) — leave the order as-is.
+    // Status check failed (transient/network). Still release the item if the
+    // payment window has long passed, so a Fapshi outage can't strand a listing.
+    if (isAwaitingOrderExpired(order)) {
+      await voidAwaitingEscrowOrder(order.id, "Payment not completed in time");
+      return (await kv.get(`order:${order.id}`)) || order;
+    }
     console.error("reconcileAwaitingOrder failed:", error);
   }
   return order;
